@@ -47,6 +47,14 @@ DumbAI is a premium, high-performance Android application designed for power use
 - **Architecture**: MVVM with Kotlin StateFlow/SharedFlow
 - **Concurrency**: Kotlin Coroutines & Flow
 
+## Screenshots
+
+|                       Main View                       |                   Filter Options                    |
+| :---------------------------------------------------: | :-------------------------------------------------: |
+|         ![Main View](screenshots/1-home.png)          | ![Filter Options](screenshots/2-filter-options.png) |
+|                  **Display Options**                  |                    **Settings**                     |
+| ![Display Options](screenshots/3-display-options.png) |       ![Settings](screenshots/4-settings.png)       |
+
 ## Build & Installation
 
 ### Prerequisites
