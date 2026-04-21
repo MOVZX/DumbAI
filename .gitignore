@@ -1,0 +1,33 @@
+# Built artifacts
+build/
+app/build/
+.gradle/
+.kotlin/
+app/.cxx/
+app/.externalNativeBuild/
+*.apk
+
+# Local configuration
+local.properties
+.idea/modules.xml
+.idea/workspace.xml
+.idea/libraries/
+.idea/assetWizardSettings.xml
+.idea/navEditor.xml
+capture/
+*.hprof
+*.pyc
+
+# Keystores (Ignore actual production keystores, keeping the sample for now)
+# *.jks
+# *.keystore
+
+# IDEs
+.idea/
+.vscode/
+
+# System
+*.swp
+*.swo
+*.DS_Store
+.DS_Store
