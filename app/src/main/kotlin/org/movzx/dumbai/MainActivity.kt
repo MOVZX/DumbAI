@@ -93,17 +93,6 @@ fun MainScreen(imageLoader: ImageLoader) {
         }
     }
 
-    var feedRestored by
-        remember(
-            feedUiState.nsfw,
-            feedUiState.sort,
-            feedUiState.period,
-            feedUiState.type,
-            feedUiState.tagIds,
-        ) {
-            mutableStateOf(false)
-        }
-
     var favoritesRestored by remember { mutableStateOf(false) }
     var galleryRestored by remember { mutableStateOf(false) }
 
@@ -256,13 +245,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 tagIds = feedUiState.tagIds,
                                 onDismiss = { scope.launch { rightDrawerState.close() } },
                                 onFilterChange = { n, s, p, t, tg ->
-                                    feedRestored = false
                                     feedViewModel.updateFilters(n, s, p, t, tg)
                                 },
-                                onResetFilters = {
-                                    feedRestored = false
-                                    feedViewModel.resetFilters()
-                                },
+                                onResetFilters = { feedViewModel.resetFilters() },
                             )
                         } else {
                             SettingsSidebar(
@@ -311,8 +296,6 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     feedGridState = feedGridState,
                                     favoritesGridState = favoritesGridState,
                                     galleryGridState = galleryGridState,
-                                    feedRestored = feedRestored,
-                                    onFeedRestored = { feedRestored = it },
                                     favoritesRestored = favoritesRestored,
                                     onFavoritesRestored = { favoritesRestored = it },
                                     galleryRestored = galleryRestored,
@@ -398,8 +381,6 @@ fun AppNavigation(
     feedGridState: LazyStaggeredGridState,
     favoritesGridState: LazyStaggeredGridState,
     galleryGridState: LazyStaggeredGridState,
-    feedRestored: Boolean,
-    onFeedRestored: (Boolean) -> Unit,
     favoritesRestored: Boolean,
     onFavoritesRestored: (Boolean) -> Unit,
     galleryRestored: Boolean,
@@ -429,8 +410,6 @@ fun AppNavigation(
             FeedScreen(
                 imageLoader = imageLoader,
                 gridState = feedGridState,
-                isRestored = feedRestored,
-                onRestored = onFeedRestored,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,
@@ -445,8 +424,6 @@ fun AppNavigation(
             FavoritesScreen(
                 imageLoader = imageLoader,
                 gridState = favoritesGridState,
-                isRestored = favoritesRestored,
-                onRestored = onFavoritesRestored,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,
@@ -461,8 +438,6 @@ fun AppNavigation(
             GalleryScreen(
                 imageLoader = imageLoader,
                 gridState = galleryGridState,
-                isRestored = galleryRestored,
-                onRestored = onGalleryRestored,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,
                 currentRoute = currentRoute,
@@ -479,8 +454,6 @@ fun AppNavigation(
 fun FeedScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
-    isRestored: Boolean,
-    onRestored: (Boolean) -> Unit,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
@@ -496,17 +469,21 @@ fun FeedScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
-        viewModel.saveScrollPosition(
-            uiState.type,
-            gridState.firstVisibleItemIndex,
-            gridState.firstVisibleItemScrollOffset,
-        )
+        if (uiState.isRestored) {
+            kotlinx.coroutines.delay(500)
+
+            viewModel.saveScrollPosition(
+                uiState.type,
+                gridState.firstVisibleItemIndex,
+                gridState.firstVisibleItemScrollOffset,
+            )
+        }
     }
 
     LaunchedEffect(uiState.images.isNotEmpty()) {
-        if (!isRestored && uiState.images.isNotEmpty()) {
+        if (!uiState.isRestored && uiState.images.isNotEmpty()) {
             gridState.scrollToItem(uiState.scrollIndex, uiState.scrollOffset)
-            onRestored(true)
+            viewModel.markRestored()
         }
     }
 
@@ -525,19 +502,13 @@ fun FeedScreen(
         isLoading = uiState.isLoading,
         hasMore = uiState.hasMore,
         showRefresh = true,
-        onRefresh = {
-            onRestored(false)
-            viewModel.refresh()
-        },
+        onRefresh = { viewModel.refresh() },
         onLoadMore = { viewModel.loadMore() },
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             PullToRefreshBox(
                 isRefreshing = false,
-                onRefresh = {
-                    onRestored(false)
-                    viewModel.refresh()
-                },
+                onRefresh = { viewModel.refresh() },
                 modifier = Modifier.fillMaxSize(),
             ) {
                 ImageGrid(
@@ -575,8 +546,6 @@ fun FeedScreen(
 fun FavoritesScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
-    isRestored: Boolean,
-    onRestored: (Boolean) -> Unit,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
@@ -591,17 +560,21 @@ fun FavoritesScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
-        viewModel.saveScrollPosition(
-            "favorites",
-            gridState.firstVisibleItemIndex,
-            gridState.firstVisibleItemScrollOffset,
-        )
+        if (uiState.isRestored) {
+            kotlinx.coroutines.delay(500)
+
+            viewModel.saveScrollPosition(
+                "favorites",
+                gridState.firstVisibleItemIndex,
+                gridState.firstVisibleItemScrollOffset,
+            )
+        }
     }
 
     LaunchedEffect(uiState.images.isNotEmpty()) {
-        if (!isRestored && uiState.images.isNotEmpty()) {
+        if (!uiState.isRestored && uiState.images.isNotEmpty()) {
             gridState.scrollToItem(uiState.scrollIndex, uiState.scrollOffset)
-            onRestored(true)
+            viewModel.markRestored()
         }
     }
 
@@ -651,8 +624,6 @@ fun FavoritesScreen(
 fun GalleryScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
-    isRestored: Boolean,
-    onRestored: (Boolean) -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
     currentRoute: String?,
@@ -718,17 +689,21 @@ fun GalleryScreen(
     }
 
     LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
-        viewModel.saveScrollPosition(
-            "gallery",
-            gridState.firstVisibleItemIndex,
-            gridState.firstVisibleItemScrollOffset,
-        )
+        if (uiState.isRestored) {
+            kotlinx.coroutines.delay(500)
+
+            viewModel.saveScrollPosition(
+                "gallery",
+                gridState.firstVisibleItemIndex,
+                gridState.firstVisibleItemScrollOffset,
+            )
+        }
     }
 
     LaunchedEffect(uiState.images.isNotEmpty()) {
-        if (!isRestored && uiState.images.isNotEmpty()) {
+        if (!uiState.isRestored && uiState.images.isNotEmpty()) {
             gridState.scrollToItem(uiState.scrollIndex, uiState.scrollOffset)
-            onRestored(true)
+            viewModel.markRestored()
         }
     }
 

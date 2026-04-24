@@ -93,6 +93,11 @@ object AppModule {
     }
 
     @Provides
+    fun provideFeedCacheDao(database: AppDatabase): org.movzx.dumbai.data.FeedCacheDao {
+        return database.feedCacheDao()
+    }
+
+    @Provides
     @Singleton
     fun provideUserPreferencesRepository(
         @ApplicationContext context: Context

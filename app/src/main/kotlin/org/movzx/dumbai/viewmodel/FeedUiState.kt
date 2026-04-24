@@ -17,4 +17,5 @@ data class FeedUiState(
     override val scrollOffset: Int = 0,
     override val downloadProgresses: Map<Long, Float> = emptyMap(),
     val favoriteIds: Set<Long> = emptySet(),
+    val isRestored: Boolean = false,
 ) : BaseUiState

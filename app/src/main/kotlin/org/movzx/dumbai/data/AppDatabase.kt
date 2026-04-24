@@ -5,10 +5,17 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import org.movzx.dumbai.model.FavoriteImage
+import org.movzx.dumbai.model.FeedItemCache
 
-@Database(entities = [FavoriteImage::class], version = 1, exportSchema = false)
+@Database(
+    entities = [FavoriteImage::class, FeedItemCache::class],
+    version = 1,
+    exportSchema = false,
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteImageDao(): FavoriteImageDao
+
+    abstract fun feedCacheDao(): FeedCacheDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null

@@ -59,14 +59,22 @@ class UserPreferencesRepository(private val context: Context) {
 
     fun feedScrollIndex(type: String): Flow<Int> =
         context.dataStore.data.map { preferences ->
-            if (type == "video") preferences[PreferencesKeys.FEED_SCROLL_INDEX_VIDEO] ?: 0
-            else preferences[PreferencesKeys.FEED_SCROLL_INDEX_IMAGE] ?: 0
+            when (type) {
+                "video" -> preferences[PreferencesKeys.FEED_SCROLL_INDEX_VIDEO] ?: 0
+                "favorites" -> preferences[PreferencesKeys.FAVORITES_SCROLL_INDEX] ?: 0
+                "gallery" -> preferences[PreferencesKeys.GALLERY_SCROLL_INDEX] ?: 0
+                else -> preferences[PreferencesKeys.FEED_SCROLL_INDEX_IMAGE] ?: 0
+            }
         }
 
     fun feedScrollOffset(type: String): Flow<Int> =
         context.dataStore.data.map { preferences ->
-            if (type == "video") preferences[PreferencesKeys.FEED_SCROLL_OFFSET_VIDEO] ?: 0
-            else preferences[PreferencesKeys.FEED_SCROLL_OFFSET_IMAGE] ?: 0
+            when (type) {
+                "video" -> preferences[PreferencesKeys.FEED_SCROLL_OFFSET_VIDEO] ?: 0
+                "favorites" -> preferences[PreferencesKeys.FAVORITES_SCROLL_OFFSET] ?: 0
+                "gallery" -> preferences[PreferencesKeys.GALLERY_SCROLL_OFFSET] ?: 0
+                else -> preferences[PreferencesKeys.FEED_SCROLL_OFFSET_IMAGE] ?: 0
+            }
         }
 
     val favoritesScrollIndex: Flow<Int> =
@@ -167,27 +175,24 @@ class UserPreferencesRepository(private val context: Context) {
 
     suspend fun updateScrollPosition(type: String, index: Int, offset: Int) {
         context.dataStore.edit { preferences ->
-            if (type == "video") {
-                preferences[PreferencesKeys.FEED_SCROLL_INDEX_VIDEO] = index
-                preferences[PreferencesKeys.FEED_SCROLL_OFFSET_VIDEO] = offset
-            } else {
-                preferences[PreferencesKeys.FEED_SCROLL_INDEX_IMAGE] = index
-                preferences[PreferencesKeys.FEED_SCROLL_OFFSET_IMAGE] = offset
+            when (type) {
+                "video" -> {
+                    preferences[PreferencesKeys.FEED_SCROLL_INDEX_VIDEO] = index
+                    preferences[PreferencesKeys.FEED_SCROLL_OFFSET_VIDEO] = offset
+                }
+                "favorites" -> {
+                    preferences[PreferencesKeys.FAVORITES_SCROLL_INDEX] = index
+                    preferences[PreferencesKeys.FAVORITES_SCROLL_OFFSET] = offset
+                }
+                "gallery" -> {
+                    preferences[PreferencesKeys.GALLERY_SCROLL_INDEX] = index
+                    preferences[PreferencesKeys.GALLERY_SCROLL_OFFSET] = offset
+                }
+                else -> {
+                    preferences[PreferencesKeys.FEED_SCROLL_INDEX_IMAGE] = index
+                    preferences[PreferencesKeys.FEED_SCROLL_OFFSET_IMAGE] = offset
+                }
             }
-        }
-    }
-
-    suspend fun updateFavoritesScrollPosition(index: Int, offset: Int) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.FAVORITES_SCROLL_INDEX] = index
-            preferences[PreferencesKeys.FAVORITES_SCROLL_OFFSET] = offset
-        }
-    }
-
-    suspend fun updateGalleryScrollPosition(index: Int, offset: Int) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.GALLERY_SCROLL_INDEX] = index
-            preferences[PreferencesKeys.GALLERY_SCROLL_OFFSET] = offset
         }
     }
 

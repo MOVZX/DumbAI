@@ -10,4 +10,5 @@ data class FavoritesUiState(
     override val scrollIndex: Int = 0,
     override val scrollOffset: Int = 0,
     override val downloadProgresses: Map<Long, Float> = emptyMap(),
+    val isRestored: Boolean = false,
 ) : BaseUiState

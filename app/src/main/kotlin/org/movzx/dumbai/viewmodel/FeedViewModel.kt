@@ -10,9 +10,11 @@ import kotlinx.coroutines.launch
 import org.movzx.dumbai.R
 import org.movzx.dumbai.api.CivitaiApi
 import org.movzx.dumbai.data.FavoritesRepository
+import org.movzx.dumbai.data.FeedCacheDao
 import org.movzx.dumbai.data.GalleryRepository
 import org.movzx.dumbai.data.UserPreferencesRepository
 import org.movzx.dumbai.model.CivitaiImage
+import org.movzx.dumbai.model.FeedItemCache
 
 @HiltViewModel
 class FeedViewModel
@@ -22,6 +24,7 @@ constructor(
     favoritesRepository: FavoritesRepository,
     galleryRepository: GalleryRepository,
     private val civitaiApi: CivitaiApi,
+    private val feedCacheDao: FeedCacheDao,
 ) : BaseViewModel(repository, favoritesRepository, galleryRepository) {
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
@@ -30,6 +33,7 @@ constructor(
     private var imageCursor: String? = null
     private var videoCursor: String? = null
     private var loadingJob: Job? = null
+    private var isFirstSettingsLoad = true
 
     init {
         viewModelScope.launch {
@@ -70,11 +74,32 @@ constructor(
                             pageLimit = pageLimit,
                             gridColumns = gridColumns,
                             favoriteIds = favoriteIds,
+                            isRestored =
+                                if (
+                                    !isFirstSettingsLoad &&
+                                        (nsfwChanged ||
+                                            sortChanged ||
+                                            periodChanged ||
+                                            tagsChanged ||
+                                            typeChanged)
+                                )
+                                    false
+                                else it.isRestored,
                         )
                     }
 
-                    if (nsfwChanged || sortChanged || periodChanged || tagsChanged || typeChanged)
+                    if (
+                        !isFirstSettingsLoad &&
+                            (nsfwChanged ||
+                                sortChanged ||
+                                periodChanged ||
+                                tagsChanged ||
+                                typeChanged)
+                    ) {
                         refresh()
+                    }
+
+                    isFirstSettingsLoad = false
                 }
         }
 
@@ -93,15 +118,21 @@ constructor(
         viewModelScope.launch {
             imageCursor = repository.nextCursor("image").first()
             videoCursor = repository.nextCursor("video").first()
+            val cachedImages = feedCacheDao.getFeed("image").map { it.toCivitaiImage() }
+            val cachedVideos = feedCacheDao.getFeed("video").map { it.toCivitaiImage() }
+            imageFeed = cachedImages
+            videoFeed = cachedVideos
             val currentType = repository.type.first()
+            val initialImages = if (currentType == "video") videoFeed else imageFeed
 
             _uiState.update {
                 it.copy(
-                    hasMore = (if (currentType == "video") videoCursor else imageCursor) != null
+                    images = initialImages,
+                    hasMore = (if (currentType == "video") videoCursor else imageCursor) != null,
                 )
             }
 
-            if (_uiState.value.images.isEmpty()) refresh()
+            if (_uiState.value.images.isEmpty()) loadImages(isNew = true)
         }
     }
 
@@ -113,6 +144,7 @@ constructor(
                 isLoading = true,
                 scrollIndex = 0,
                 scrollOffset = 0,
+                isRestored = false,
             )
         }
 
@@ -127,6 +159,7 @@ constructor(
         }
 
         viewModelScope.launch {
+            feedCacheDao.clearFeed(currentType)
             repository.updateScrollPosition(currentType, 0, 0)
             repository.updateNextCursor(currentType, null)
             loadImages(isNew = true)
@@ -193,6 +226,12 @@ constructor(
 
                     repository.updateNextCursor(targetType, cursor)
 
+                    val cacheItems = items.mapIndexed { index, image ->
+                        FeedItemCache.fromCivitaiImage(image, targetType, index)
+                    }
+
+                    feedCacheDao.replaceFeed(targetType, cacheItems)
+
                     success = true
                 } catch (e: Exception) {
                     if (e is kotlinx.coroutines.CancellationException) throw e
@@ -231,5 +270,9 @@ constructor(
                 _uiState.update { it.copy(downloadProgresses = progresses) }
             },
         )
+    }
+
+    fun markRestored() {
+        _uiState.update { it.copy(isRestored = true) }
     }
 }

@@ -24,6 +24,11 @@ constructor(
 
     init {
         viewModelScope.launch {
+            val initialIndex = repository.feedScrollIndex("favorites").first()
+            val initialOffset = repository.feedScrollOffset("favorites").first()
+
+            _uiState.update { it.copy(scrollIndex = initialIndex, scrollOffset = initialOffset) }
+
             combine(
                     favoritesRepository.allFavorites,
                     favoritesRepository.favoriteIds,
@@ -36,18 +41,6 @@ constructor(
                         it.copy(images = favorites, favoriteIds = ids, gridColumns = columns)
                     }
                 }
-        }
-
-        viewModelScope.launch {
-            repository.feedScrollIndex("favorites").collect { index ->
-                _uiState.update { it.copy(scrollIndex = index) }
-            }
-        }
-
-        viewModelScope.launch {
-            repository.feedScrollOffset("favorites").collect { offset ->
-                _uiState.update { it.copy(scrollOffset = offset) }
-            }
         }
     }
 
@@ -65,5 +58,9 @@ constructor(
                 _uiState.update { it.copy(downloadProgresses = progresses) }
             },
         )
+    }
+
+    fun markRestored() {
+        _uiState.update { it.copy(isRestored = true) }
     }
 }

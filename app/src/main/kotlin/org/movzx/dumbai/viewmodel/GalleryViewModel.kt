@@ -23,21 +23,14 @@ constructor(
 
     init {
         viewModelScope.launch {
+            val initialIndex = repository.feedScrollIndex("gallery").first()
+            val initialOffset = repository.feedScrollOffset("gallery").first()
+
+            _uiState.update { it.copy(scrollIndex = initialIndex, scrollOffset = initialOffset) }
+
             repository.downloadPath.collect { path ->
                 _uiState.update { it.copy(downloadPath = path) }
                 refresh()
-            }
-        }
-
-        viewModelScope.launch {
-            repository.feedScrollIndex("gallery").collect { index ->
-                _uiState.update { it.copy(scrollIndex = index) }
-            }
-        }
-
-        viewModelScope.launch {
-            repository.feedScrollOffset("gallery").collect { offset ->
-                _uiState.update { it.copy(scrollOffset = offset) }
             }
         }
     }
@@ -65,5 +58,9 @@ constructor(
             },
             onSuccess = { refresh() },
         )
+    }
+
+    fun markRestored() {
+        _uiState.update { it.copy(isRestored = true) }
     }
 }
