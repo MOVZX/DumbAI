@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <!-- Content Types -->
+    <string-array name="content_types">
+        <item>image</item>
+        <item>video</item>
+    </string-array>
+
+    <!-- NSFW Levels -->
+    <string-array name="nsfw_levels">
+        <item>None</item>
+        <item>Soft</item>
+        <item>Mature</item>
+        <item>X</item>
+    </string-array>
+
+    <!-- Sort Options -->
+    <string-array name="sort_options">
+        <item>Most Reactions</item>
+        <item>Most Comments</item>
+        <item>Newest</item>
+    </string-array>
+
+    <!-- Periods -->
+    <string-array name="periods">
+        <item>AllTime</item>
+        <item>Year</item>
+        <item>Month</item>
+        <item>Week</item>
+        <item>Day</item>
+    </string-array>
+
+    <!-- Tags -->
+    <string-array name="tag_names">
+        <item>Animal</item>
+        <item>Anime</item>
+        <item>Architecture</item>
+        <item>Armor</item>
+        <item>Astronomy</item>
+        <item>Car</item>
+        <item>Cat</item>
+        <item>City</item>
+        <item>Clothing</item>
+        <item>Costume</item>
+        <item>Dog</item>
+        <item>Dragon</item>
+        <item>Fantasy</item>
+        <item>Food</item>
+        <item>Game Character</item>
+        <item>Landscape</item>
+        <item>Latex Clothing</item>
+        <item>Man</item>
+        <item>Modern Art</item>
+        <item>Outdoors</item>
+        <item>Photography</item>
+        <item>Photorealistic</item>
+        <item>Post Apocalyptic</item>
+        <item>Robot</item>
+        <item>Sci-Fi</item>
+        <item>Sports Car</item>
+        <item>Transportation</item>
+        <item>Woman</item>
+    </string-array>
+
+    <integer-array name="tag_ids">
+        <item>111768</item>
+        <item>4</item>
+        <item>414</item>
+        <item>5169</item>
+        <item>111767</item>
+        <item>111805</item>
+        <item>5132</item>
+        <item>55</item>
+        <item>5193</item>
+        <item>2435</item>
+        <item>2539</item>
+        <item>5499</item>
+        <item>5207</item>
+        <item>3915</item>
+        <item>5211</item>
+        <item>8363</item>
+        <item>111935</item>
+        <item>5232</item>
+        <item>617</item>
+        <item>111763</item>
+        <item>5241</item>
+        <item>172</item>
+        <item>213</item>
+        <item>6594</item>
+        <item>3060</item>
+        <item>111833</item>
+        <item>111757</item>
+        <item>5133</item>
+    </integer-array>
+
+    <!-- Display Settings -->
+    <integer-array name="page_limits">
+        <item>20</item>
+        <item>40</item>
+        <item>60</item>
+        <item>80</item>
+        <item>100</item>
+    </integer-array>
+
+    <integer-array name="grid_columns">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </integer-array>
+</resources>

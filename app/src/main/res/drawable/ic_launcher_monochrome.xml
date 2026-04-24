@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Hexagonal Rim/Frame with Cutout -->
+    <path
+        android:fillColor="#000000"
+        android:fillType="evenOdd"
+        android:pathData="M54,24 L80,39 L80,69 L54,84 L28,69 L28,39 Z M54,34 L72,44 L72,64 L54,74 L36,64 L36,44 Z" />
+
+    <!-- Small central AI diamond -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M54,48 L60,54 L54,60 L48,54 Z" />
+
+</vector>
