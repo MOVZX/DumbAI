@@ -41,6 +41,15 @@ The application employs a unique navigation system based on nested **ModalNaviga
 - **Direction Normalization**: Intelligent handling of layout directions to ensure the right-hand drawer content renders correctly in LTR mode within the RTL hack.
 - **Consistent UI**: All sidebars utilize a unified `BaseSidebar` foundation with square edges and dynamic scrollbars for a professional aesthetic.
 
+### Modern UI/UX Experience
+
+DumbAI adheres to professional Android standards to deliver a premium user experience:
+
+- **Immersive Edge-to-Edge**: The interface flows seamlessly behind system navigation and status bars for maximum content engagement.
+- **Material You Design**: Full support for Dynamic Colors _(Android 12+)_ and reactive themes that adapt to the user's system preferences.
+- **Fluid Motion**: All primary actions and state transitions, including Floating Action Buttons and loading shimmers, utilize high-quality animations.
+- **Full Internationalization**: Zero hardcoded strings or colors, with every asset strictly managed via system resources for seamless localizability.
+
 ### Local Resource Caching
 
 DumbAI prioritizes accessibility by automatically downloading and managing local copies of favorited images and video previews. This system ensures that the user's collection remains browseable regardless of network status.
@@ -51,7 +60,7 @@ A dedicated utility layer dynamically resolves the most appropriate media source
 
 ### Dynamic Networking
 
-The networking layer uses a custom **OkHttp Interceptor** to handle dynamic host switching _(supporting `civitai.red` for filtered content)_ and secure API key injection. Performance is optimized through atomic DataStore preference lookups, minimizing blocking calls during request interception.
+The networking layer uses a custom **OkHttp Interceptor** to handle secure API key injection. Performance is optimized through atomic DataStore preference lookups, minimizing blocking calls during request interception.
 
 ## Screenshots
 

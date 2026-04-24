@@ -8,6 +8,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okio.buffer
+import okio.source
 import org.movzx.dumbai.model.AppBackup
 
 @Singleton
@@ -46,18 +48,16 @@ constructor(
     suspend fun importData(uri: Uri): Boolean =
         withContext(Dispatchers.IO) {
             try {
-                val json =
-                    context.contentResolver.openInputStream(uri)?.use {
-                        it.bufferedReader().readText()
-                    } ?: return@withContext false
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val source = inputStream.source().buffer()
+                    val adapter = moshi.adapter(AppBackup::class.java)
+                    val backup = adapter.fromJson(source) ?: return@withContext false
 
-                val adapter = moshi.adapter(AppBackup::class.java)
-                val backup = adapter.fromJson(json) ?: return@withContext false
+                    backup.settings?.let { repository.importSettings(it) }
+                    favoritesRepository.importFavorites(backup.favorites)
 
-                backup.settings?.let { repository.importSettings(it) }
-                favoritesRepository.importFavorites(backup.favorites)
-
-                true
+                    true
+                } ?: false
             } catch (e: Exception) {
                 false
             }

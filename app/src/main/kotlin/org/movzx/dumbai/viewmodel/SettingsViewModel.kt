@@ -85,8 +85,8 @@ constructor(
 
         val sizeStr =
             if (size > 1024 * 1024 * 1024)
-                String.format("%.2f GB", size.toDouble() / (1024 * 1024 * 1024))
-            else String.format("%.2f MB", size.toDouble() / (1024 * 1024))
+                context.getString(R.string.format_gb, size.toDouble() / (1024 * 1024 * 1024))
+            else context.getString(R.string.format_mb, size.toDouble() / (1024 * 1024))
 
         _uiState.update { it.copy(cacheSize = sizeStr) }
     }

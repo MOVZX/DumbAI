@@ -3,6 +3,7 @@ package org.movzx.dumbai.util
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -16,36 +17,34 @@ import java.io.File
 import org.movzx.dumbai.model.CivitaiImage
 import org.movzx.dumbai.model.FavoriteImage
 
-fun Modifier.scrollbar(
-    state: ScrollState,
-    width: Dp = 4.dp,
-    color: Color = Color.Gray.copy(alpha = 0.5f),
-): Modifier = composed {
-    val targetAlpha = if (state.isScrollInProgress) 1f else 0f
-    val duration = if (state.isScrollInProgress) 150 else 500
+fun Modifier.scrollbar(state: ScrollState, width: Dp = 4.dp, color: Color? = null): Modifier =
+    composed {
+        val barColor = color ?: MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        val targetAlpha = if (state.isScrollInProgress) 1f else 0f
+        val duration = if (state.isScrollInProgress) 150 else 500
 
-    val alpha by
-        animateFloatAsState(
-            targetValue = targetAlpha,
-            animationSpec = tween(durationMillis = duration),
-            label = "scrollbar_alpha",
-        )
+        val alpha by
+            animateFloatAsState(
+                targetValue = targetAlpha,
+                animationSpec = tween(durationMillis = duration),
+                label = "scrollbar_alpha",
+            )
 
-    drawWithContent {
-        drawContent()
+        drawWithContent {
+            drawContent()
 
-        val viewHeight = size.height
-        val totalHeight = state.maxValue.toFloat() + viewHeight
-        val barHeight = (viewHeight / totalHeight) * viewHeight
-        val barOffset = (state.value.toFloat() / totalHeight) * viewHeight
+            val viewHeight = size.height
+            val totalHeight = state.maxValue.toFloat() + viewHeight
+            val barHeight = (viewHeight / totalHeight) * viewHeight
+            val barOffset = (state.value.toFloat() / totalHeight) * viewHeight
 
-        drawRect(
-            color = color.copy(alpha = alpha * color.alpha),
-            topLeft = Offset(size.width - width.toPx(), barOffset),
-            size = Size(width.toPx(), barHeight),
-        )
+            drawRect(
+                color = barColor.copy(alpha = alpha * barColor.alpha),
+                topLeft = Offset(size.width - width.toPx(), barOffset),
+                size = Size(width.toPx(), barHeight),
+            )
+        }
     }
-}
 
 fun resolveImageData(
     image: CivitaiImage,

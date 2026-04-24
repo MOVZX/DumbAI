@@ -21,8 +21,7 @@ fun MainBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
         tonalElevation = 0.dp,
         modifier =
-            Modifier.height(72.dp)
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)),
+            Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)),
     ) {
         NavigationBarItem(
             selected = currentRoute == "feed",

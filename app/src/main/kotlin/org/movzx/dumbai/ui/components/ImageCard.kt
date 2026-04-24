@@ -128,7 +128,13 @@ fun ImageCard(
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                colors =
+                                    listOf(
+                                        androidx.compose.ui.graphics.Color.Transparent,
+                                        androidx.compose.ui.res
+                                            .colorResource(org.movzx.dumbai.R.color.pure_black)
+                                            .copy(alpha = 0.6f),
+                                    )
                             )
                         )
             )
@@ -138,13 +144,21 @@ fun ImageCard(
                     modifier =
                         Modifier.padding(8.dp)
                             .align(Alignment.TopEnd)
-                            .background(Color.Black.copy(alpha = 0.4f), MaterialTheme.shapes.small)
+                            .background(
+                                androidx.compose.ui.res
+                                    .colorResource(org.movzx.dumbai.R.color.pure_black)
+                                    .copy(alpha = 0.4f),
+                                MaterialTheme.shapes.small,
+                            )
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint =
+                            androidx.compose.ui.res.colorResource(
+                                org.movzx.dumbai.R.color.pure_white
+                            ),
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -158,7 +172,9 @@ fun ImageCard(
                             .padding(6.dp)
                             .size(28.dp)
                             .background(
-                                Color.White.copy(alpha = 0.2f),
+                                androidx.compose.ui.res
+                                    .colorResource(org.movzx.dumbai.R.color.pure_white)
+                                    .copy(alpha = 0.2f),
                                 androidx.compose.foundation.shape.CircleShape,
                             )
                             .clip(androidx.compose.foundation.shape.CircleShape),
@@ -167,7 +183,12 @@ fun ImageCard(
                         if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription =
                             stringResource(org.movzx.dumbai.R.string.nav_favorites),
-                        tint = if (isFavorite) Color.Red else Color.White,
+                        tint =
+                            if (isFavorite) androidx.compose.ui.graphics.Color.Red
+                            else
+                                androidx.compose.ui.res.colorResource(
+                                    org.movzx.dumbai.R.color.pure_white
+                                ),
                         modifier = Modifier.size(16.dp),
                     )
                 }

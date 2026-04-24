@@ -66,9 +66,11 @@ fun FullScreenImage(
         modifier =
             Modifier.fillMaxSize()
                 .background(
-                    Color.Black.copy(
-                        alpha = (1f - (abs(offsetY) / (dismissThreshold * 2f))).coerceIn(0f, 1f)
-                    )
+                    androidx.compose.ui.res
+                        .colorResource(R.color.pure_black)
+                        .copy(
+                            alpha = (1f - (abs(offsetY) / (dismissThreshold * 2f))).coerceIn(0f, 1f)
+                        )
                 )
                 .pointerInput(isZoomed) {
                     if (!isZoomed) {
@@ -177,14 +179,16 @@ fun FullScreenImage(
                     Modifier.padding(16.dp)
                         .statusBarsPadding()
                         .background(
-                            Color.Black.copy(alpha = 0.5f),
+                            androidx.compose.ui.res
+                                .colorResource(R.color.pure_black)
+                                .copy(alpha = 0.5f),
                             androidx.compose.foundation.shape.CircleShape,
                         ),
             ) {
                 Icon(
                     Icons.Default.Close,
                     contentDescription = stringResource(R.string.btn_close),
-                    tint = Color.White,
+                    tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
                 )
             }
         }
@@ -199,7 +203,12 @@ fun FullScreenImage(
                 modifier =
                     Modifier.padding(16.dp)
                         .navigationBarsPadding()
-                        .background(Color.Black.copy(alpha = 0.5f), MaterialTheme.shapes.large)
+                        .background(
+                            androidx.compose.ui.res
+                                .colorResource(R.color.pure_black)
+                                .copy(alpha = 0.5f),
+                            MaterialTheme.shapes.large,
+                        )
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(24.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -213,7 +222,9 @@ fun FullScreenImage(
                             if (isFavorite) Icons.Filled.Favorite
                             else Icons.Outlined.FavoriteBorder,
                             contentDescription = stringResource(R.string.nav_favorites),
-                            tint = if (isFavorite) Color.Red else Color.White,
+                            tint =
+                                if (isFavorite) androidx.compose.ui.graphics.Color.Red
+                                else androidx.compose.ui.res.colorResource(R.color.pure_white),
                             modifier = Modifier.size(28.dp),
                         )
                     }
@@ -230,7 +241,7 @@ fun FullScreenImage(
                         if (progress != null) {
                             CircularProgressIndicator(
                                 progress = { progress },
-                                color = Color.White,
+                                color = androidx.compose.ui.res.colorResource(R.color.pure_white),
                                 strokeWidth = 3.dp,
                                 modifier = Modifier.size(24.dp),
                             )
@@ -238,7 +249,7 @@ fun FullScreenImage(
                             Icon(
                                 Icons.Default.Download,
                                 contentDescription = stringResource(R.string.btn_download),
-                                tint = Color.White,
+                                tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
                                 modifier = Modifier.size(28.dp),
                             )
                         }

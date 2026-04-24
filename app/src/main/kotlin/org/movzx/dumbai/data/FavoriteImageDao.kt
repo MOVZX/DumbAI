@@ -15,6 +15,9 @@ interface FavoriteImageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFavorite(image: FavoriteImage)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFavorites(images: List<FavoriteImage>)
+
     @Delete suspend fun deleteFavorite(image: FavoriteImage)
 
     @Query("SELECT EXISTS(SELECT 1 FROM favorite_images WHERE id = :id)")

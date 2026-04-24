@@ -1,13 +1,13 @@
 package org.movzx.dumbai.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 
 fun Modifier.shimmerBackground(): Modifier = composed {
     val transition = rememberInfiniteTransition(label = "shimmer")
@@ -23,11 +23,14 @@ fun Modifier.shimmerBackground(): Modifier = composed {
             label = "shimmer",
         )
 
+    val baseColor = MaterialTheme.colorScheme.surface
+    val highlightColor = MaterialTheme.colorScheme.surfaceVariant
+
     val shimmerColors =
         listOf(
-            Color(0xFF18181B).copy(alpha = 0.9f),
-            Color(0xFF27272A).copy(alpha = 0.4f),
-            Color(0xFF18181B).copy(alpha = 0.9f),
+            baseColor.copy(alpha = 0.9f),
+            highlightColor.copy(alpha = 0.4f),
+            baseColor.copy(alpha = 0.9f),
         )
 
     this.drawBehind {

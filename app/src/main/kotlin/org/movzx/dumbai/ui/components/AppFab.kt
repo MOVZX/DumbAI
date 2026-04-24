@@ -1,5 +1,10 @@
 package org.movzx.dumbai.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.material.icons.Icons
@@ -31,7 +36,11 @@ fun AppFab(
         horizontalAlignment = Alignment.End,
         modifier = Modifier.padding(bottom = 8.dp),
     ) {
-        if (showRefresh && !isLoading && !showScrollToTop) {
+        AnimatedVisibility(
+            visible = showRefresh && !isLoading && !showScrollToTop,
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut(),
+        ) {
             FloatingActionButton(
                 onClick = onRefresh,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -41,7 +50,11 @@ fun AppFab(
             }
         }
 
-        if (showScrollToTop) {
+        AnimatedVisibility(
+            visible = showScrollToTop,
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut(),
+        ) {
             FloatingActionButton(
                 onClick = { scope.launch { gridState.animateScrollToItem(0) } },
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -51,7 +64,11 @@ fun AppFab(
             }
         }
 
-        if (showScrollToBottom) {
+        AnimatedVisibility(
+            visible = showScrollToBottom,
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut(),
+        ) {
             FloatingActionButton(
                 onClick = {
                     scope.launch {
@@ -65,7 +82,11 @@ fun AppFab(
             }
         }
 
-        if (hasMore && !isLoading && !showScrollToBottom) {
+        AnimatedVisibility(
+            visible = hasMore && !isLoading && !showScrollToBottom,
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut(),
+        ) {
             FloatingActionButton(
                 onClick = onLoadMore,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,

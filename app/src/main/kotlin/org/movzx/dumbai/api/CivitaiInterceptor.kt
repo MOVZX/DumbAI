@@ -14,20 +14,10 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
         val original = chain.request()
         val requestBuilder = original.newBuilder()
         val host = original.url.host
-        val isCivitai = host.contains("civitai.com") || host.contains("civitai.red")
-        val (nsfw, key, debugEnabled) = runBlocking { repository.getInterceptorSettings() }
+        val isCivitai = host.contains("civitai.com")
+        val (key, debugEnabled) = runBlocking { repository.getInterceptorSettings() }
 
-        if (isCivitai) {
-            val targetHost = if (nsfw != "None") "civitai.red" else "civitai.com"
-
-            if (host != targetHost) {
-                val newUrl = original.url.newBuilder().host(targetHost).build()
-
-                requestBuilder.url(newUrl)
-            }
-
-            if (key.isNotBlank()) requestBuilder.header("Authorization", "Bearer $key")
-        }
+        if (isCivitai) if (key.isNotBlank()) requestBuilder.header("Authorization", "Bearer $key")
 
         val request = requestBuilder.build()
 

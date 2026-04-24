@@ -42,7 +42,7 @@ class FavoritesRepository(
         withContext(Dispatchers.IO) { favoriteImageDao.getAllFavoritesSync() }
 
     suspend fun importFavorites(favorites: List<FavoriteImage>) =
-        withContext(Dispatchers.IO) { favorites.forEach { favoriteImageDao.insertFavorite(it) } }
+        withContext(Dispatchers.IO) { favoriteImageDao.insertFavorites(favorites) }
 
     val favoriteIds: Flow<Set<Long>> = favoriteImageDao.getAllFavoriteIds().map { it.toSet() }
 

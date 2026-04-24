@@ -1,15 +1,24 @@
 package org.movzx.dumbai.ui.theme
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import org.movzx.dumbai.R
 
 @Composable
-fun DumbAITheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val darkColorScheme =
+fun DumbAITheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val context = LocalContext.current
+    val darkFallback =
         darkColorScheme(
             primary = colorResource(R.color.primary),
             onPrimary = colorResource(R.color.onPrimary),
@@ -32,5 +41,14 @@ fun DumbAITheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
             outline = colorResource(R.color.outline),
         )
 
-    MaterialTheme(colorScheme = darkColorScheme, content = content)
+    val colorScheme =
+        when {
+            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            }
+            darkTheme -> darkFallback
+            else -> darkFallback
+        }
+
+    MaterialTheme(colorScheme = colorScheme, content = content)
 }

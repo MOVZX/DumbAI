@@ -1,24 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+
 <resources>
-    <!-- Gemeral -->
+    <!-- General App Information -->
     <string name="app_name">DumbAI</string>
+
+    <!-- Navigation (Bottom Bar & Top Bar) -->
+    <string name="nav_feed">Feed</string>
+    <string name="nav_favorites">Likes</string>
+    <string name="nav_gallery">Gallery</string>
+
+    <!-- Sidebar Titles & Common Headers -->
+    <string name="display_options">Display Options</string>
+    <string name="filters">Filters</string>
     <string name="settings">Settings</string>
-    <string name="clear_cache">Clear Cache</string>
     <string name="nsfw">NSFW Level</string>
     <string name="sort">Sort By</string>
     <string name="period">Period</string>
     <string name="content_type">Content Type</string>
     <string name="tags">Tags</string>
+    <string name="clear_cache">Clear Cache</string>
 
-    <!-- Navigation -->
-    <string name="nav_feed">Feed</string>
-    <string name="nav_favorites">Likes</string>
-    <string name="nav_gallery">Gallery</string>
-
-    <!-- Sidebar Titles -->
-    <string name="display_options">Display Options</string>
-    <string name="filters">Filters</string>
-
-    <!-- Sidebar Sections -->
+    <!-- Sidebar Functional Sections -->
     <string name="section_api">API Configuration</string>
     <string name="section_storage">Storage Configuration</string>
     <string name="section_backup">Backup &amp; Restore</string>
@@ -26,70 +28,77 @@
     <string name="section_cache">Storage &amp; Cache</string>
     <string name="section_app_config">App Configuration</string>
 
-    <!-- Options & Labels -->
+    <!-- Formats, Labels & Placeholders -->
     <string name="label_api_key">Civitai API Key</string>
     <string name="label_gallery_location">Gallery Location</string>
-    <string name="placeholder_default_gallery">Default: Pictures/DumbAI</string>
-    <string name="label_debug_logging">Enable Debug Logging</string>
+    <string name="label_debug_logging">Debug Logging</string>
     <string name="label_image_cache_size">Image Cache Size: %s</string>
-    <string name="label_images_per_request">Images per Request</string>
+    <string name="label_images_per_request">Images Per Request</string>
     <string name="label_grid_columns">Grid Columns</string>
+    <string name="placeholder_default_gallery">Default (Internal Storage)</string>
+    <string name="format_gb">%.2f GB</string>
+    <string name="format_mb">%.2f MB</string>
 
-    <!-- Buttons -->
-    <string name="btn_save_api_key">Save API Key</string>
+    <!-- Buttons & Actions -->
+    <string name="btn_save_api_key">Save Key</string>
     <string name="btn_choose">Choose</string>
     <string name="btn_reset">Reset</string>
-    <string name="btn_export">Export</string>
-    <string name="btn_import">Import</string>
-    <string name="btn_clear_image_cache">Clear Image Cache</string>
+    <string name="btn_export">Export Data</string>
+    <string name="btn_import">Import Data</string>
+    <string name="btn_clear_image_cache">Clear Cache</string>
     <string name="btn_apply_settings">Apply Settings</string>
+    <string name="btn_close">Close</string>
+    <string name="btn_download">Download</string>
+    <string name="btn_delete">Delete</string>
 
-    <!-- Toasts & Messages -->
-    <string name="msg_api_key_saved">API Key saved</string>
-    <string name="msg_download_path_updated">Download path updated</string>
-    <string name="msg_export_success">Export successful</string>
-    <string name="msg_export_failed">Export failed</string>
-    <string name="msg_import_success">Import successful. Closing app...</string>
-    <string name="msg_import_failed">Import failed</string>
-    <string name="msg_cache_cleared">Cache cleared successfully. Closing app...</string>
-    <string name="msg_file_deleted">File deleted</string>
-    <string name="msg_delete_failed">Failed to delete</string>
-    <string name="msg_download_failed">Download failed</string>
-    <string name="msg_saved_to">Saved successfully</string>
-    <string name="msg_exit_confirm">Press back again to exit</string>
-    <string name="msg_load_failed">Failed to load images after 3 attempts. Please try again.</string>
-    <string name="msg_retrying">Civitai is busy, retrying... (Attempt %d)</string>
-
-    <!-- Empty States -->
-    <string name="empty_favorites">You haven\'t added any favorites yet.</string>
-    <string name="empty_gallery">Your local gallery is currently empty.</string>
-    <string name="empty_feed">No results found for current filters.</string>
-
-    <!-- Filter Options -->
+    <!-- Selectable Options (Filter Chips) -->
+    <string name="opt_image">Images</string>
+    <string name="opt_video">Videos</string>
+    <string name="opt_all">All</string>
+    <string name="opt_none">None</string>
+    <string name="opt_soft">Soft</string>
+    <string name="opt_mature">Mature</string>
+    <string name="opt_x">X</string>
+    <string name="opt_most_reactions">Most Reactions</string>
+    <string name="opt_most_comments">Most Comments</string>
+    <string name="opt_newest">Newest</string>
     <string name="opt_all_time">All Time</string>
     <string name="opt_year">Year</string>
     <string name="opt_month">Month</string>
     <string name="opt_week">Week</string>
     <string name="opt_day">Day</string>
-    <string name="opt_image">Image</string>
-    <string name="opt_video">Video</string>
-    <string name="opt_most_reactions">Most Reactions</string>
-    <string name="opt_most_comments">Most Comments</string>
-    <string name="opt_newest">Newest</string>
-    <string name="opt_none">None</string>
-    <string name="opt_soft">Soft</string>
-    <string name="opt_mature">Mature</string>
-    <string name="opt_x">X</string>
-    <string name="opt_all">All</string>
-    <string name="opt_columns">%d Columns</string>
     <string name="opt_column">1 Column</string>
+    <string name="opt_columns">%d Columns</string>
 
-    <string name="btn_close">Close</string>
-    <string name="btn_download">Download</string>
-    <string name="btn_delete">Delete</string>
+    <!-- UI Feedback & Toast Messages -->
+    <string name="msg_api_key_saved">API key updated</string>
+    <string name="msg_download_path_updated">Gallery location updated</string>
+    <string name="msg_cache_cleared">Image cache cleared</string>
+    <string name="msg_export_success">Data exported successfully</string>
+    <string name="msg_export_failed">Export failed</string>
+    <string name="msg_import_success">Data imported. App will restart.</string>
+    <string name="msg_import_failed">Import failed</string>
+    <string name="msg_load_failed">Failed to load images</string>
+    <string name="msg_saved_to">Media saved to gallery</string>
+    <string name="msg_download_failed">Download failed</string>
+    <string name="msg_exit_confirm">Press back again to exit</string>
 
-    <string name="desc_refresh">Refresh</string>
+    <!-- Empty States -->
+    <string name="empty_feed">No images found matching filters</string>
+    <string name="empty_favorites">No liked media yet</string>
+    <string name="empty_gallery">No downloaded media found</string>
+
+    <!-- Accessibility & Content Descriptions -->
+    <string name="desc_refresh">Refresh Feed</string>
     <string name="desc_scroll_to_top">Scroll to Top</string>
     <string name="desc_scroll_to_bottom">Scroll to Bottom</string>
     <string name="desc_load_more">Load More</string>
+
+    <!-- Permissions -->
+    <string name="perm_storage_title">Storage Permission</string>
+    <string name="perm_storage_desc">DumbAI needs access to your storage to scan for downloaded media.</string>
+
+    <!-- Internal / Technical Constants -->
+    <string name="backup_filename">dumbai_backup.json</string>
+    <string name="mime_json">application/json</string>
 </resources>

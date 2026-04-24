@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent { DumbAITheme { MainScreen(imageLoader) } }
     }
 }
@@ -80,14 +82,14 @@ fun MainScreen(imageLoader: ImageLoader) {
     val favoritesUiState by favoritesViewModel.uiState.collectAsState()
     val settingsState by settingsViewModel.uiState.collectAsState()
 
-    LaunchedEffect(settingsViewModel.uiMessage) {
-        settingsViewModel.uiMessage.collect { resId ->
-            android.widget.Toast.makeText(
-                    context,
-                    context.getString(resId),
-                    android.widget.Toast.LENGTH_SHORT,
-                )
-                .show()
+    LaunchedEffect(settingsViewModel.exitEvent) {
+        settingsViewModel.exitEvent.collect {
+            val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+
+            intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            context.startActivity(intent)
+            (context as? Activity)?.finishAffinity()
+            Runtime.getRuntime().exit(0)
         }
     }
 
@@ -105,6 +107,50 @@ fun MainScreen(imageLoader: ImageLoader) {
     var favoritesRestored by remember { mutableStateOf(false) }
     var galleryRestored by remember { mutableStateOf(false) }
 
+    LaunchedEffect(settingsViewModel.uiMessage) {
+        settingsViewModel.uiMessage.collect { resId ->
+            android.widget.Toast.makeText(
+                    context,
+                    context.getString(resId),
+                    android.widget.Toast.LENGTH_SHORT,
+                )
+                .show()
+        }
+    }
+
+    LaunchedEffect(feedViewModel.uiMessage) {
+        feedViewModel.uiMessage.collect { resId ->
+            android.widget.Toast.makeText(
+                    context,
+                    context.getString(resId),
+                    android.widget.Toast.LENGTH_SHORT,
+                )
+                .show()
+        }
+    }
+
+    LaunchedEffect(favoritesViewModel.uiMessage) {
+        favoritesViewModel.uiMessage.collect { resId ->
+            android.widget.Toast.makeText(
+                    context,
+                    context.getString(resId),
+                    android.widget.Toast.LENGTH_SHORT,
+                )
+                .show()
+        }
+    }
+
+    LaunchedEffect(galleryViewModel.uiMessage) {
+        galleryViewModel.uiMessage.collect { resId ->
+            android.widget.Toast.makeText(
+                    context,
+                    context.getString(resId),
+                    android.widget.Toast.LENGTH_SHORT,
+                )
+                .show()
+        }
+    }
+
     val dirPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             uri?.let {
@@ -121,7 +167,7 @@ fun MainScreen(imageLoader: ImageLoader) {
 
     val exportLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts.CreateDocument("application/json")
+            ActivityResultContracts.CreateDocument(context.getString(R.string.mime_json))
         ) { uri ->
             uri?.let { settingsViewModel.exportData(it) }
         }
@@ -229,8 +275,16 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 onSaveApiKey = { settingsViewModel.updateApiKey(it) },
                                 onUpdateDownloadPath = { settingsViewModel.updateDownloadPath(it) },
                                 onPickDirectory = { dirPickerLauncher.launch(null) },
-                                onExport = { exportLauncher.launch("dumbai_backup.json") },
-                                onImport = { importLauncher.launch(arrayOf("application/json")) },
+                                onExport = {
+                                    exportLauncher.launch(
+                                        context.getString(R.string.backup_filename)
+                                    )
+                                },
+                                onImport = {
+                                    importLauncher.launch(
+                                        arrayOf(context.getString(R.string.mime_json))
+                                    )
+                                },
                                 onToggleDebug = { settingsViewModel.updateDebugEnabled(it) },
                             )
                         }
@@ -441,17 +495,6 @@ fun FeedScreen(
     val favViewModel: FavoritesViewModel = hiltViewModel(activity)
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(viewModel.uiMessage) {
-        viewModel.uiMessage.collect { resId ->
-            android.widget.Toast.makeText(
-                    context,
-                    context.getString(resId),
-                    android.widget.Toast.LENGTH_SHORT,
-                )
-                .show()
-        }
-    }
-
     LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
         viewModel.saveScrollPosition(
             uiState.type,
@@ -546,17 +589,6 @@ fun FavoritesScreen(
     val activity = context as ComponentActivity
     val viewModel: FavoritesViewModel = hiltViewModel(activity)
     val uiState by viewModel.uiState.collectAsState()
-
-    LaunchedEffect(viewModel.uiMessage) {
-        viewModel.uiMessage.collect { resId ->
-            android.widget.Toast.makeText(
-                    context,
-                    context.getString(resId),
-                    android.widget.Toast.LENGTH_SHORT,
-                )
-                .show()
-        }
-    }
 
     LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
         viewModel.saveScrollPosition(
@@ -682,17 +714,6 @@ fun GalleryScreen(
             }
 
             if (!allGranted) permissionLauncher.launch(permissions) else viewModel.refresh()
-        }
-    }
-
-    LaunchedEffect(viewModel.uiMessage) {
-        viewModel.uiMessage.collect { resId ->
-            android.widget.Toast.makeText(
-                    context,
-                    context.getString(resId),
-                    android.widget.Toast.LENGTH_SHORT,
-                )
-                .show()
         }
     }
 
