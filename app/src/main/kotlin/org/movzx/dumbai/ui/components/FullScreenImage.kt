@@ -1,5 +1,7 @@
 package org.movzx.dumbai.ui.components
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -18,10 +20,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
@@ -39,6 +41,7 @@ fun FullScreenImage(
     initialIndex: Int,
     imageLoader: ImageLoader,
     favoriteIds: Set<Long>,
+    downloadedIds: Set<Long> = emptySet(),
     downloadProgresses: Map<Long, Float>,
     viewMode: String,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
@@ -63,6 +66,8 @@ fun FullScreenImage(
     var videoDuration by remember { mutableLongStateOf(0L) }
     var seekToPosition by remember { mutableStateOf<Long?>(null) }
     var isDraggingSeekBar by remember { mutableStateOf(false) }
+    var hasAudio by remember { mutableStateOf(false) }
+    var videoPlaybackError by remember { mutableStateOf<String?>(null) }
 
     val density = LocalDensity.current
 
@@ -165,6 +170,8 @@ fun FullScreenImage(
                     LaunchedEffect(pagerState.currentPage) {
                         videoProgress = 0L
                         videoDuration = 0L
+                        hasAudio = false
+                        videoPlaybackError = null
                     }
 
                     with(sharedTransitionScope) {
@@ -193,9 +200,36 @@ fun FullScreenImage(
                                         videoDuration = if (dur > 0) dur else 0L
                                     }
                                 },
+                                onAudioStateChange = { hasAudio = it },
+                                onPlaybackError = { videoPlaybackError = it },
                                 seekPosition = seekToPosition,
                                 onSeekConsumed = { seekToPosition = null },
                             )
+
+                            if (videoPlaybackError != null) {
+                                Column(
+                                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Default.ErrorOutline,
+                                        contentDescription = null,
+                                        tint = androidx.compose.ui.res.colorResource(R.color.error),
+                                        modifier = Modifier.size(48.dp),
+                                    )
+
+                                    Text(
+                                        text = stringResource(R.string.msg_playback_error),
+                                        color =
+                                            androidx.compose.ui.res.colorResource(
+                                                R.color.pure_white
+                                            ),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    )
+                                }
+                            }
                         }
                     }
                 } else {
@@ -217,32 +251,6 @@ fun FullScreenImage(
                         }
                     }
                 }
-            }
-        }
-
-        AnimatedVisibility(
-            visible = showUI && !isZoomed && offsetY == 0f,
-            enter = fadeIn() + slideInVertically(),
-            exit = fadeOut() + slideOutVertically(),
-            modifier = Modifier.align(Alignment.TopEnd),
-        ) {
-            IconButton(
-                onClick = onDismiss,
-                modifier =
-                    Modifier.padding(16.dp)
-                        .statusBarsPadding()
-                        .background(
-                            androidx.compose.ui.res
-                                .colorResource(R.color.pure_black)
-                                .copy(alpha = 0.5f),
-                            androidx.compose.foundation.shape.CircleShape,
-                        ),
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = stringResource(R.string.btn_close),
-                    tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                )
             }
         }
 
@@ -298,11 +306,14 @@ fun FullScreenImage(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (currentImage?.type == "video") {
-                        IconButton(onClick = { userIsPlaying = !userIsPlaying }) {
+                        IconButton(
+                            onClick = { userIsPlaying = !userIsPlaying },
+                            modifier = Modifier.size(48.dp),
+                        ) {
                             Icon(
                                 if (userIsPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                 contentDescription = "Play/Pause",
@@ -311,12 +322,19 @@ fun FullScreenImage(
                             )
                         }
 
-                        IconButton(onClick = { userIsMuted = !userIsMuted }) {
+                        IconButton(
+                            onClick = { userIsMuted = !userIsMuted },
+                            enabled = hasAudio,
+                            modifier = Modifier.size(48.dp),
+                        ) {
                             Icon(
                                 if (userIsMuted) Icons.Default.VolumeOff
                                 else Icons.Default.VolumeUp,
                                 contentDescription = "Mute/Unmute",
-                                tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                tint =
+                                    androidx.compose.ui.res
+                                        .colorResource(R.color.pure_white)
+                                        .copy(alpha = if (hasAudio) 1f else 0.3f),
                                 modifier = Modifier.size(28.dp),
                             )
                         }
@@ -329,7 +347,8 @@ fun FullScreenImage(
                                         ScaleMode.CROP -> ScaleMode.FULL
                                         ScaleMode.FULL -> ScaleMode.NORMAL
                                     }
-                            }
+                            },
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(
                                 when (scaleMode) {
@@ -351,14 +370,16 @@ fun FullScreenImage(
                             onClick = {
                                 if (isFavorite) showUnfavoriteDialog = true
                                 else onToggleFavorite(currentImage)
-                            }
+                            },
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(
                                 if (isFavorite) Icons.Filled.Favorite
                                 else Icons.Outlined.FavoriteBorder,
                                 contentDescription = stringResource(R.string.nav_favorites),
                                 tint =
-                                    if (isFavorite) androidx.compose.ui.graphics.Color.Red
+                                    if (isFavorite)
+                                        androidx.compose.ui.res.colorResource(R.color.error)
                                     else androidx.compose.ui.res.colorResource(R.color.pure_white),
                                 modifier = Modifier.size(28.dp),
                             )
@@ -367,8 +388,13 @@ fun FullScreenImage(
 
                     if (viewMode != "gallery" && currentImage != null) {
                         val progress = downloadProgresses[currentImage.id]
+                        val isDownloaded = downloadedIds.contains(currentImage.id)
 
-                        IconButton(onClick = { onDownloadImage(currentImage) }) {
+                        IconButton(
+                            onClick = { onDownloadImage(currentImage) },
+                            enabled = progress == null && !isDownloaded,
+                            modifier = Modifier.size(48.dp),
+                        ) {
                             if (progress != null) {
                                 CircularProgressIndicator(
                                     progress = { progress },
@@ -379,10 +405,14 @@ fun FullScreenImage(
                                 )
                             } else {
                                 Icon(
-                                    Icons.Default.Download,
+                                    imageVector =
+                                        if (isDownloaded) Icons.Default.Done
+                                        else Icons.Default.Download,
                                     contentDescription = stringResource(R.string.btn_download),
                                     tint =
-                                        androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                        androidx.compose.ui.res
+                                            .colorResource(R.color.pure_white)
+                                            .copy(alpha = if (isDownloaded) 0.5f else 1f),
                                     modifier = Modifier.size(28.dp),
                                 )
                             }
@@ -393,12 +423,34 @@ fun FullScreenImage(
                         IconButton(
                             onClick = {
                                 if (pagerState.currentPage < images.size) showDeleteDialog = true
-                            }
+                            },
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = stringResource(R.string.btn_delete),
-                                tint = MaterialTheme.colorScheme.error,
+                                tint = androidx.compose.ui.res.colorResource(R.color.error),
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                    }
+
+                    if (currentImage != null) {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+
+                        IconButton(
+                            onClick = {
+                                val url = "https://civitai.com/images/${currentImage.id}"
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.OpenInNew,
+                                contentDescription = "Open in Browser",
+                                tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
                                 modifier = Modifier.size(28.dp),
                             )
                         }

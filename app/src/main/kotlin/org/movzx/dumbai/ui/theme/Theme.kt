@@ -39,6 +39,7 @@ fun DumbAITheme(
             surfaceVariant = colorResource(R.color.surfaceVariant),
             onSurfaceVariant = colorResource(R.color.onSurfaceVariant),
             outline = colorResource(R.color.outline),
+            error = colorResource(R.color.error),
         )
 
     val colorScheme =

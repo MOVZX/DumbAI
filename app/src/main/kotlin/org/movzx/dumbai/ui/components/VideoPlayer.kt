@@ -24,6 +24,8 @@ fun VideoPlayer(
     isMuted: Boolean = true,
     scaleMode: ScaleMode = ScaleMode.NORMAL,
     onProgressUpdate: (Long, Long) -> Unit = { _, _ -> },
+    onAudioStateChange: (Boolean) -> Unit = {},
+    onPlaybackError: (String?) -> Unit = {},
     seekPosition: Long? = null,
     onSeekConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -32,6 +34,26 @@ fun VideoPlayer(
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply { repeatMode = Player.REPEAT_MODE_ONE }
+    }
+
+    DisposableEffect(exoPlayer) {
+        val listener =
+            object : Player.Listener {
+                override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                    val hasAudio =
+                        tracks.groups.any {
+                            it.type == androidx.media3.common.C.TRACK_TYPE_AUDIO && it.isSupported
+                        }
+
+                    onAudioStateChange(hasAudio)
+                }
+
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    onPlaybackError(error.message)
+                }
+            }
+        exoPlayer.addListener(listener)
+        onDispose { exoPlayer.removeListener(listener) }
     }
 
     LaunchedEffect(url) {

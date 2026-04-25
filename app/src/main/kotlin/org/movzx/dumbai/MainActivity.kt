@@ -341,6 +341,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 )
                             } else {
                                 val favoriteIds by favoritesViewModel.uiState.collectAsState()
+                                val galleryState by galleryViewModel.uiState.collectAsState()
 
                                 val downloadProgresses =
                                     when (fullScreenViewMode) {
@@ -367,9 +368,10 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     initialIndex = targetIndex,
                                     imageLoader = imageLoader,
                                     favoriteIds = favoriteIds.favoriteIds,
+                                    downloadedIds = galleryState.downloadedIds,
                                     downloadProgresses = downloadProgresses,
                                     viewMode = fullScreenViewMode,
-                                    onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
+    onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
                                     onEnsureFavoriteResources = { img, force, onProgress ->
                                         if (fullScreenViewMode == "feed")
                                             feedViewModel.ensureFavoriteResources(

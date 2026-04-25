@@ -33,6 +33,12 @@ constructor(
                 refresh()
             }
         }
+
+        viewModelScope.launch {
+            galleryRepository.downloadedIds.collect { ids ->
+                _uiState.update { it.copy(downloadedIds = ids) }
+            }
+        }
     }
 
     fun refresh() {

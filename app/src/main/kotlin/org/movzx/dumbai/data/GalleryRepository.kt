@@ -11,6 +11,7 @@ import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -30,6 +31,31 @@ constructor(
     private val preferencesRepository: UserPreferencesRepository,
 ) {
     private val videoMetadataDispatcher = Dispatchers.IO.limitedParallelism(16)
+    private val _downloadedIds = kotlinx.coroutines.flow.MutableStateFlow<Set<Long>>(emptySet())
+    val downloadedIds: kotlinx.coroutines.flow.StateFlow<Set<Long>> = _downloadedIds.asStateFlow()
+
+    suspend fun refreshDownloadedIds() {
+        val path = preferencesRepository.downloadPath.first()
+        val rootDir = getDownloadDir(path)
+
+        if (!rootDir.exists()) {
+            _downloadedIds.value = emptySet()
+
+            return
+        }
+
+        val files = rootDir.listFiles() ?: emptyArray()
+
+        val ids =
+            files
+                .filter { it.isFile && it.name.startsWith("DumbAI_") }
+                .mapNotNull { file ->
+                    file.nameWithoutExtension.removePrefix("DumbAI_").toLongOrNull()
+                }
+                .toSet()
+
+        _downloadedIds.value = ids
+    }
 
     suspend fun scanDirectory(path: String?): List<CivitaiImage> =
         withContext(videoMetadataDispatcher) {
@@ -39,6 +65,7 @@ constructor(
 
             val files = rootDir.listFiles() ?: emptyArray()
             val list = mutableListOf<CivitaiImage>()
+            val ids = mutableSetOf<Long>()
 
             for (file in files) {
                 if (file.isFile) {
@@ -47,6 +74,21 @@ constructor(
                     val isImage = ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "webp"
 
                     if (isImage || isVideo) {
+                        val id =
+                            if (file.name.startsWith("DumbAI_")) {
+                                file.nameWithoutExtension.removePrefix("DumbAI_").toLongOrNull()
+                                    ?: file.absolutePath.hashCode().toLong()
+                            } else {
+                                file.nameWithoutExtension.filter { it.isDigit() }.toLongOrNull()
+                                    ?: file.absolutePath.hashCode().toLong()
+                            }
+
+                        if (file.name.startsWith("DumbAI_")) {
+                            file.nameWithoutExtension.removePrefix("DumbAI_").toLongOrNull()?.let {
+                                ids.add(it)
+                            }
+                        }
+
                         var w = 0
                         var h = 0
 
@@ -101,9 +143,7 @@ constructor(
 
                         list.add(
                             CivitaiImage(
-                                id =
-                                    file.nameWithoutExtension.filter { it.isDigit() }.toLongOrNull()
-                                        ?: file.absolutePath.hashCode().toLong(),
+                                id = id,
                                 url = file.absolutePath,
                                 width = w,
                                 height = h,
@@ -116,6 +156,7 @@ constructor(
                 }
             }
 
+            _downloadedIds.value = ids
             list.sortedByDescending { File(it.url).lastModified() }
         }
 
@@ -124,7 +165,9 @@ constructor(
             try {
                 val file = File(image.url)
 
-                file.exists() && file.delete()
+                val result = file.exists() && file.delete()
+                if (result) refreshDownloadedIds()
+                result
             } catch (e: Exception) {
                 false
             }
@@ -174,6 +217,7 @@ constructor(
                     }
 
                     MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null, null)
+                    refreshDownloadedIds()
                     Result.success(file.absolutePath)
                 }
             } catch (e: Exception) {

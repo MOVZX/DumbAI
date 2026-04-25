@@ -83,7 +83,7 @@ fun FilterSidebar(
                     shape = MaterialTheme.shapes.medium,
                     colors =
                         ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
+                            contentColor = androidx.compose.ui.res.colorResource(R.color.error)
                         ),
                 ) {
                     Text(stringResource(R.string.btn_reset))

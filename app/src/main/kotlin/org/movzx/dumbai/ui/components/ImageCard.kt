@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
@@ -75,6 +76,7 @@ fun ImageCard(
     var showHeartAnimation by remember { mutableStateOf(false) }
     var isFirstComposition by remember { mutableStateOf(true) }
     var showUnfavoriteDialog by remember { mutableStateOf(false) }
+    var showRedownloadDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var manualProgress by remember { mutableStateOf<Float?>(null) }
 
@@ -88,6 +90,24 @@ fun ImageCard(
                 showUnfavoriteDialog = false
             },
             onDismiss = { showUnfavoriteDialog = false },
+        )
+    }
+
+    if (showRedownloadDialog) {
+        ConfirmationDialog(
+            title = stringResource(org.movzx.dumbai.R.string.dialog_redownload_title),
+            message = stringResource(org.movzx.dumbai.R.string.dialog_redownload_msg),
+            onConfirm = {
+                scope.launch {
+                    manualProgress = 0f
+                    onEnsureFavoriteResources(image, true) { progress -> manualProgress = progress }
+
+                    manualProgress = null
+                }
+
+                showRedownloadDialog = false
+            },
+            onDismiss = { showRedownloadDialog = false },
         )
     }
 
@@ -184,14 +204,7 @@ fun ImageCard(
                 IconButton(
                     onClick = {
                         if (viewMode == "favorites") {
-                            scope.launch {
-                                manualProgress = 0f
-                                onEnsureFavoriteResources(image, true) { progress ->
-                                    manualProgress = progress
-                                }
-
-                                manualProgress = null
-                            }
+                            showRedownloadDialog = true
                         } else {
                             if (isFavorite) showUnfavoriteDialog = true else onToggleFavorite(image)
                         }
@@ -249,12 +262,15 @@ fun ImageCard(
                             else Icons.Outlined.FavoriteBorder,
                             contentDescription =
                                 stringResource(org.movzx.dumbai.R.string.nav_favorites),
-                            tint =
-                                if (isFavorite) androidx.compose.ui.graphics.Color.Red
-                                else
-                                    androidx.compose.ui.res.colorResource(
-                                        org.movzx.dumbai.R.color.pure_white
-                                    ),
+                             tint =
+                                 if (isFavorite)
+                                     androidx.compose.ui.res.colorResource(
+                                         org.movzx.dumbai.R.color.error
+                                     )
+                                 else
+                                     androidx.compose.ui.res.colorResource(
+                                         org.movzx.dumbai.R.color.pure_white
+                                     ),
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -265,7 +281,7 @@ fun ImageCard(
                 Icon(
                     imageVector = Icons.Filled.Favorite,
                     contentDescription = null,
-                    tint = Color.Red.copy(alpha = 0.9f),
+                    tint = colorResource(org.movzx.dumbai.R.color.error).copy(alpha = 0.9f),
                     modifier = Modifier.align(Alignment.Center).size(72.dp).scale(heartScale),
                 )
             }

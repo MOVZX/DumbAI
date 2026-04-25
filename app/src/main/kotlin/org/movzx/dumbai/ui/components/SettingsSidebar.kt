@@ -114,14 +114,6 @@ fun SettingsSidebar(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Button(
-                        onClick = onExport,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                    ) {
-                        Text(stringResource(R.string.btn_export))
-                    }
-
-                    Button(
                         onClick = onImport,
                         modifier = Modifier.weight(1f),
                         shape = MaterialTheme.shapes.medium,
@@ -132,6 +124,19 @@ fun SettingsSidebar(
                             ),
                     ) {
                         Text(stringResource(R.string.btn_import))
+                    }
+
+                    Button(
+                        onClick = onExport,
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium,
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = colorResource(R.color.error),
+                                contentColor = androidx.compose.ui.graphics.Color.White,
+                            ),
+                    ) {
+                        Text(stringResource(R.string.btn_export))
                     }
                 }
             }
@@ -170,7 +175,8 @@ fun SettingsSidebar(
                     onClick = { onClearCache() },
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
+                            containerColor = colorResource(R.color.error),
+                            contentColor = androidx.compose.ui.graphics.Color.White,
                         ),
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,

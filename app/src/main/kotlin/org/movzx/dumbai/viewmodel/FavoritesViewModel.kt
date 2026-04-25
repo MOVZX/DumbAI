@@ -35,13 +35,11 @@ constructor(
                     favoritesRepository.favoriteIds,
                     repository.gridColumns,
                 ) { favorites, ids, columns ->
-                    Triple(favorites, ids, columns)
-                }
-                .collect { (favorites, ids, columns) ->
                     _uiState.update {
                         it.copy(images = favorites, favoriteIds = ids, gridColumns = columns)
                     }
                 }
+                .collect {}
         }
     }
 

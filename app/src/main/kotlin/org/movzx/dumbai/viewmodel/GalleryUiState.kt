@@ -10,5 +10,6 @@ data class GalleryUiState(
     override val scrollOffset: Int = 0,
     val downloadPath: String? = null,
     override val downloadProgresses: Map<Long, Float> = emptyMap(),
+    val downloadedIds: Set<Long> = emptySet(),
     val isRestored: Boolean = false,
 ) : BaseUiState

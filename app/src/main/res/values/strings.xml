@@ -58,6 +58,8 @@
     <string name="dialog_unfavorite_msg">Are you sure you want to remove this from your favorite list?</string>
     <string name="dialog_delete_title">Delete Media</string>
     <string name="dialog_delete_msg">Are you sure you want to permanently delete this file from your storage?</string>
+    <string name="dialog_redownload_title">Redownload Media</string>
+    <string name="dialog_redownload_msg">Are you sure you want to force a redownload of this media? Current cache will be overwritten.</string>
 
     <!-- Selectable Options (Filter Chips) -->
     <string name="opt_image">Images</string>
@@ -87,6 +89,7 @@
     <string name="msg_import_success">Data imported. App will restart.</string>
     <string name="msg_import_failed">Import failed</string>
     <string name="msg_load_failed">Failed to load contents</string>
+    <string name="msg_playback_error">Unsupported video format or playback error</string>
     <string name="msg_saved_to">Media saved to gallery</string>
     <string name="msg_download_failed">Download failed</string>
     <string name="msg_exit_confirm">Press back again to exit</string>
