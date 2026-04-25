@@ -47,13 +47,6 @@ constructor(
                     }
                     Logger.debugEnabled = debugEnabled
 
-                    try {
-                        `is`.xyz.mpv.MPVLib.setLogLevel(if (debugEnabled) "all=v" else "off")
-                    } catch (e: Exception) {
-                        // FIXME: MPV might not be loaded yet in some cases
-                        Logger.e("SettingsVM", "Failed to set MPV log level: ${e.message}")
-                    }
-
                     updateCacheSize()
                 }
                 .collect()

@@ -28,7 +28,6 @@ object MPVLib {
     external fun destroy()
     external fun attachSurface(surface: Surface)
     external fun detachSurface()
-    external fun setLogLevel(level: String)
     external fun command(cmd: Array<out String>)
     external fun setOptionString(name: String, value: String): Int
     external fun grabThumbnail(dimension: Int): Bitmap?

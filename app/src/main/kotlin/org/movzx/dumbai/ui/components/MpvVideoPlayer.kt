@@ -11,23 +11,28 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import `is`.xyz.mpv.BaseMPVView
 import `is`.xyz.mpv.MPVLib
-import java.io.File
 
 class MpvVideoView(context: Context) : BaseMPVView(context) {
     override fun initOptions() {
         MPVLib.setOptionString("vo", "gpu")
-        MPVLib.setOptionString("hwdec", "auto")
+        MPVLib.setOptionString("gpu-context", "android")
+        MPVLib.setOptionString("hwdec", "mediacodec")
+        MPVLib.setOptionString("video-sync", "audio")
+        MPVLib.setOptionString("loop-file", "inf")
     }
 
-    override fun postInitOptions() {
-    }
+    override fun postInitOptions() {}
 
-    override fun observeProperties() {
-    }
+    override fun observeProperties() {}
 }
 
 @Composable
-fun MpvVideoPlayer(url: String, isPlaying: Boolean = true, modifier: Modifier = Modifier) {
+fun MpvVideoPlayer(
+    url: String,
+    isPlaying: Boolean = true,
+    scaleMode: ScaleMode = ScaleMode.NORMAL,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -40,19 +45,34 @@ fun MpvVideoPlayer(url: String, isPlaying: Boolean = true, modifier: Modifier = 
         }
     }
 
-    LaunchedEffect(url) {
-        mpvView.playFile(url)
-    }
+    LaunchedEffect(url) { mpvView.playFile(url) }
 
-    LaunchedEffect(isPlaying) {
-        MPVLib.setPropertyBoolean("pause", !isPlaying)
+    LaunchedEffect(isPlaying) { MPVLib.setPropertyBoolean("pause", !isPlaying) }
+
+    LaunchedEffect(scaleMode) {
+        when (scaleMode) {
+            ScaleMode.NORMAL -> {
+                MPVLib.setPropertyString("keepaspect", "yes")
+                MPVLib.setPropertyString("panscan", "0.0")
+            }
+
+            ScaleMode.CROP -> {
+                MPVLib.setPropertyString("keepaspect", "yes")
+                MPVLib.setPropertyString("panscan", "1.0")
+            }
+
+            ScaleMode.FULL -> {
+                MPVLib.setPropertyString("keepaspect", "no")
+            }
+        }
     }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> MPVLib.setPropertyBoolean("pause", true)
-                Lifecycle.Event.ON_RESUME -> if (isPlaying) MPVLib.setPropertyBoolean("pause", false)
+                Lifecycle.Event.ON_RESUME ->
+                    if (isPlaying) MPVLib.setPropertyBoolean("pause", false)
                 else -> {}
             }
         }
@@ -65,8 +85,5 @@ fun MpvVideoPlayer(url: String, isPlaying: Boolean = true, modifier: Modifier = 
         }
     }
 
-    AndroidView(
-        factory = { mpvView },
-        modifier = modifier.fillMaxSize(),
-    )
+    AndroidView(factory = { mpvView }, modifier = modifier.fillMaxSize())
 }

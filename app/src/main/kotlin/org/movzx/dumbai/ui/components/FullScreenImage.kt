@@ -12,10 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -59,6 +56,9 @@ fun FullScreenImage(
     var offsetY by remember { mutableStateOf(0f) }
     var showUnfavoriteDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var userIsPlaying by remember { mutableStateOf(true) }
+    var scaleMode by remember { mutableStateOf(ScaleMode.NORMAL) }
+
     val density = LocalDensity.current
 
     if (showUnfavoriteDialog) {
@@ -71,7 +71,7 @@ fun FullScreenImage(
 
                 showUnfavoriteDialog = false
             },
-            onDismiss = { showUnfavoriteDialog = false }
+            onDismiss = { showUnfavoriteDialog = false },
         )
     }
 
@@ -87,7 +87,7 @@ fun FullScreenImage(
 
                 showDeleteDialog = false
             },
-            onDismiss = { showDeleteDialog = false }
+            onDismiss = { showDeleteDialog = false },
         )
     }
 
@@ -174,7 +174,8 @@ fun FullScreenImage(
                         ) {
                             VideoPlayer(
                                 url = previewData,
-                                isPlaying = page == pagerState.currentPage,
+                                isPlaying = page == pagerState.currentPage && userIsPlaying,
+                                scaleMode = scaleMode,
                             )
                         }
                     }
@@ -246,8 +247,44 @@ fun FullScreenImage(
                 horizontalArrangement = Arrangement.spacedBy(24.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (viewMode != "gallery" && pagerState.currentPage < images.size) {
-                    val currentImage = images[pagerState.currentPage]
+                val currentImage =
+                    if (pagerState.currentPage < images.size) images[pagerState.currentPage]
+                    else null
+
+                if (currentImage?.type == "video") {
+                    IconButton(onClick = { userIsPlaying = !userIsPlaying }) {
+                        Icon(
+                            if (userIsPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = "Play/Pause",
+                            tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            scaleMode =
+                                when (scaleMode) {
+                                    ScaleMode.NORMAL -> ScaleMode.CROP
+                                    ScaleMode.CROP -> ScaleMode.FULL
+                                    ScaleMode.FULL -> ScaleMode.NORMAL
+                                }
+                        }
+                    ) {
+                        Icon(
+                            when (scaleMode) {
+                                ScaleMode.NORMAL -> Icons.Default.Fullscreen
+                                ScaleMode.CROP -> Icons.Default.Crop
+                                ScaleMode.FULL -> Icons.Default.AspectRatio
+                            },
+                            contentDescription = "Scale Mode",
+                            tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+                }
+
+                if (viewMode != "gallery" && currentImage != null) {
                     val isFavorite = favoriteIds.contains(currentImage.id)
 
                     IconButton(
@@ -268,14 +305,10 @@ fun FullScreenImage(
                     }
                 }
 
-                if (viewMode != "gallery") {
-                    val currentImage =
-                        if (pagerState.currentPage < images.size) images[pagerState.currentPage]
-                        else null
+                if (viewMode != "gallery" && currentImage != null) {
+                    val progress = downloadProgresses[currentImage.id]
 
-                    val progress = currentImage?.let { downloadProgresses[it.id] }
-
-                    IconButton(onClick = { currentImage?.let { onDownloadImage(it) } }) {
+                    IconButton(onClick = { onDownloadImage(currentImage) }) {
                         if (progress != null) {
                             CircularProgressIndicator(
                                 progress = { progress },
@@ -297,8 +330,7 @@ fun FullScreenImage(
                 if (viewMode == "gallery") {
                     IconButton(
                         onClick = {
-                            if (pagerState.currentPage < images.size)
-                                showDeleteDialog = true
+                            if (pagerState.currentPage < images.size) showDeleteDialog = true
                         }
                     ) {
                         Icon(
