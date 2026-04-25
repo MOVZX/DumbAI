@@ -3,6 +3,7 @@ package org.movzx.dumbai.viewmodel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -16,6 +17,7 @@ import org.movzx.dumbai.data.UserPreferencesRepository
 import org.movzx.dumbai.model.CivitaiImage
 import org.movzx.dumbai.model.FeedItemCache
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class FeedViewModel
 @Inject
@@ -58,6 +60,7 @@ constructor(
                     val pageLimit = values[5] as Int
                     val gridColumns = values[6] as Int
                     val favoriteIds = values[7] as Set<Long>
+
                     val nsfwChanged = nsfw != _uiState.value.nsfw
                     val sortChanged = sort != _uiState.value.sort
                     val periodChanged = period != _uiState.value.period

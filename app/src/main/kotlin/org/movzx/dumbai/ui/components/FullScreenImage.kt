@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
@@ -328,8 +329,8 @@ fun FullScreenImage(
                             modifier = Modifier.size(48.dp),
                         ) {
                             Icon(
-                                if (userIsMuted) Icons.Default.VolumeOff
-                                else Icons.Default.VolumeUp,
+                                if (userIsMuted) Icons.AutoMirrored.Filled.VolumeOff
+                                else Icons.AutoMirrored.Filled.VolumeUp,
                                 contentDescription = "Mute/Unmute",
                                 tint =
                                     androidx.compose.ui.res
@@ -448,7 +449,7 @@ fun FullScreenImage(
                             modifier = Modifier.size(48.dp),
                         ) {
                             Icon(
-                                Icons.Default.OpenInNew,
+                                Icons.AutoMirrored.Filled.OpenInNew,
                                 contentDescription = "Open in Browser",
                                 tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
                                 modifier = Modifier.size(28.dp),
