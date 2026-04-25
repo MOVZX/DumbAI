@@ -249,10 +249,9 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun getInterceptorSettings() =
         context.dataStore.data
             .map { prefs ->
-                Triple(
+                Pair(
                     prefs[PreferencesKeys.API_KEY] ?: "",
                     prefs[PreferencesKeys.DEBUG_ENABLED] ?: false,
-                    prefs[PreferencesKeys.NSFW] ?: "None",
                 )
             }
             .first()
