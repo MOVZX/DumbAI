@@ -54,8 +54,8 @@
     <string name="btn_delete">Delete</string>
 
     <!-- Dialogs -->
-    <string name="dialog_unfavorite_title">Unlike Media</string>
-    <string name="dialog_unfavorite_msg">Are you sure you want to remove this from your likes?</string>
+    <string name="dialog_unfavorite_title">Unfavorite Media</string>
+    <string name="dialog_unfavorite_msg">Are you sure you want to remove this from your favorite list?</string>
     <string name="dialog_delete_title">Delete Media</string>
     <string name="dialog_delete_msg">Are you sure you want to permanently delete this file from your storage?</string>
 
