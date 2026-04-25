@@ -5,6 +5,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import org.movzx.dumbai.util.Logger
 
 abstract class BaseMPVView : SurfaceView, SurfaceHolder.Callback {
     constructor(context: Context) : super(context)
@@ -55,7 +56,7 @@ abstract class BaseMPVView : SurfaceView, SurfaceHolder.Callback {
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        Log.w(TAG, "attaching surface")
+        Logger.w(TAG, "attaching surface")
 
         MPVLib.attachSurface(holder.surface)
         MPVLib.setOptionString("force-window", "yes")
@@ -70,7 +71,7 @@ abstract class BaseMPVView : SurfaceView, SurfaceHolder.Callback {
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        Log.w(TAG, "detaching surface")
+        Logger.w(TAG, "detaching surface")
 
         MPVLib.setPropertyString("vo", "null")
         MPVLib.setPropertyString("force-window", "no")

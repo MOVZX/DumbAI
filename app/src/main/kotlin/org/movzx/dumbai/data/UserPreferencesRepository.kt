@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.movzx.dumbai.model.AppSettingsBackup
+import org.movzx.dumbai.util.Logger
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -133,7 +134,7 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     suspend fun importSettings(settings: AppSettingsBackup) {
-        android.util.Log.d("DumbAI_Prefs", "importSettings triggered")
+        Logger.d("DumbAI_Prefs", "importSettings triggered")
 
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.NSFW] = settings.nsfw
@@ -157,7 +158,7 @@ class UserPreferencesRepository(private val context: Context) {
         type: String,
         tagIds: String?,
     ) {
-        android.util.Log.d(
+        Logger.d(
             "DumbAI_Prefs",
             "updateFilters: nsfw=$nsfw sort=$sort period=$period type=$type tags=$tagIds",
         )
@@ -197,7 +198,7 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     suspend fun updateNextCursor(type: String, cursor: String?) {
-        android.util.Log.d("DumbAI_Prefs", "updateNextCursor for $type: $cursor")
+        Logger.d("DumbAI_Prefs", "updateNextCursor for $type: $cursor")
 
         context.dataStore.edit { preferences ->
             val key =
@@ -209,13 +210,13 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     suspend fun updatePageLimit(limit: Int) {
-        android.util.Log.d("DumbAI_Prefs", "updatePageLimit: $limit")
+        Logger.d("DumbAI_Prefs", "updatePageLimit: $limit")
 
         context.dataStore.edit { preferences -> preferences[PreferencesKeys.PAGE_LIMIT] = limit }
     }
 
     suspend fun updateGridColumns(columns: Int) {
-        android.util.Log.d("DumbAI_Prefs", "updateGridColumns: $columns")
+        Logger.d("DumbAI_Prefs", "updateGridColumns: $columns")
 
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.GRID_COLUMNS] = columns
@@ -223,7 +224,7 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     suspend fun updateDownloadPath(path: String?) {
-        android.util.Log.d("DumbAI_Prefs", "updateDownloadPath: $path")
+        Logger.d("DumbAI_Prefs", "updateDownloadPath: $path")
 
         context.dataStore.edit { preferences ->
             if (path == null) preferences.remove(PreferencesKeys.DOWNLOAD_PATH)
@@ -232,16 +233,13 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     suspend fun updateApiKey(key: String) {
-        android.util.Log.d(
-            "DumbAI_Prefs",
-            "updateApiKey: ${if (key.isBlank()) "cleared" else "set"}",
-        )
+        Logger.d("DumbAI_Prefs", "updateApiKey: ${if (key.isBlank()) "cleared" else "set"}")
 
         context.dataStore.edit { preferences -> preferences[PreferencesKeys.API_KEY] = key }
     }
 
     suspend fun updateDebugEnabled(enabled: Boolean) {
-        android.util.Log.d("DumbAI_Prefs", "updateDebugEnabled: $enabled")
+        Logger.d("DumbAI_Prefs", "updateDebugEnabled: $enabled")
 
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEBUG_ENABLED] = enabled

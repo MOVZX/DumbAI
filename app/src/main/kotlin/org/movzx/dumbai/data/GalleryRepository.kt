@@ -19,6 +19,7 @@ import okio.buffer
 import okio.source
 import org.movzx.dumbai.model.CivitaiImage
 import org.movzx.dumbai.util.FileUtils
+import org.movzx.dumbai.util.Logger
 
 @Singleton
 class GalleryRepository
@@ -92,10 +93,7 @@ constructor(
                                     h = vidH
                                 }
                             } catch (e: Exception) {
-                                android.util.Log.e(
-                                    "GalleryRepo",
-                                    "Error reading video meta: ${e.message}",
-                                )
+                                Logger.e("GalleryRepo", "Error reading video meta: ${e.message}")
                             } finally {
                                 retriever.release()
                             }

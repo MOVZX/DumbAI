@@ -6,6 +6,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.movzx.dumbai.data.UserPreferencesRepository
+import org.movzx.dumbai.util.Logger
 
 @Singleton
 class CivitaiInterceptor @Inject constructor(private val repository: UserPreferencesRepository) :
@@ -21,23 +22,18 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
 
         val request = requestBuilder.build()
 
-        if (debugEnabled) {
-            android.util.Log.d("DumbAI_Net", "Request: ${request.method} ${request.url}")
+        Logger.d("DumbAI_Net", "Request: ${request.method} ${request.url}")
 
-            request.headers.forEach { (name, value) ->
-                if (name != "Authorization")
-                    android.util.Log.d("DumbAI_Net", "Header: $name: $value")
-            }
+        request.headers.forEach { (name, value) ->
+            if (name != "Authorization") Logger.d("DumbAI_Net", "Header: $name: $value")
         }
 
         val response = chain.proceed(request)
 
-        if (debugEnabled) {
-            android.util.Log.d(
-                "DumbAI_Net",
-                "Response: ${response.code} ${response.message} for ${response.request.url}",
-            )
-        }
+        Logger.d(
+            "DumbAI_Net",
+            "Response: ${response.code} ${response.message} for ${response.request.url}",
+        )
 
         return response
     }

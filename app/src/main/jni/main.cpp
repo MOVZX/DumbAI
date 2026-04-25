@@ -24,6 +24,7 @@ extern "C"
     jni_func(void, init);
     jni_func(void, destroy);
     jni_func(void, command, jobjectArray jarray);
+    jni_func(void, setLogLevel, jstring jlevel);
 };
 
 JavaVM *g_vm;
@@ -63,8 +64,36 @@ jni_func(void, create, jobject appctx)
     if (!g_mpv)
         die("context init failed");
 
-    mpv_request_log_messages(g_mpv, "terminal-default");
-    mpv_set_option_string(g_mpv, "msg-level", "all=v");
+    if (g_debug_enabled)
+    {
+        mpv_request_log_messages(g_mpv, "terminal-default");
+        mpv_set_option_string(g_mpv, "msg-level", "all=v");
+    }
+}
+
+jni_func(void, setLogLevel, jstring jlevel)
+{
+    const char *level = env->GetStringUTFChars(jlevel, NULL);
+
+    if (strcmp(level, "off") == 0)
+    {
+        g_debug_enabled = false;
+
+        if (g_mpv)
+            mpv_set_option_string(g_mpv, "msg-level", "no");
+    }
+    else
+    {
+        g_debug_enabled = true;
+
+        if (g_mpv)
+        {
+            mpv_request_log_messages(g_mpv, "terminal-default");
+            mpv_set_option_string(g_mpv, "msg-level", level);
+        }
+    }
+
+    env->ReleaseStringUTFChars(jlevel, level);
 }
 
 jni_func(void, init)

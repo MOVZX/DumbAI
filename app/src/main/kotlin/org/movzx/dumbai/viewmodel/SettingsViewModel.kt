@@ -1,10 +1,9 @@
 package org.movzx.dumbai.viewmodel
 
-import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
+import coil3.ImageLoader
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -13,19 +12,20 @@ import org.movzx.dumbai.data.BackupRepository
 import org.movzx.dumbai.data.FavoritesRepository
 import org.movzx.dumbai.data.GalleryRepository
 import org.movzx.dumbai.data.UserPreferencesRepository
+import org.movzx.dumbai.util.Logger
 
 @HiltViewModel
 class SettingsViewModel
 @Inject
 constructor(
-    @ApplicationContext private val context: Context,
     repository: UserPreferencesRepository,
     favoritesRepository: FavoritesRepository,
     galleryRepository: GalleryRepository,
     private val backupRepository: BackupRepository,
+    private val imageLoader: ImageLoader,
 ) : BaseViewModel(repository, favoritesRepository, galleryRepository) {
     private val _uiState = MutableStateFlow(SettingsUiState())
-    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+    val uiState = _uiState.asStateFlow()
     private val _exitEvent = MutableSharedFlow<Unit>()
     val exitEvent = _exitEvent.asSharedFlow()
 
@@ -35,15 +35,24 @@ constructor(
                     apiKey,
                     downloadPath,
                     debugEnabled ->
-                    _uiState.update {
-                        it.copy(
+                    Triple(apiKey, downloadPath, debugEnabled)
+                }
+                .onEach { (apiKey, downloadPath, debugEnabled) ->
+                    _uiState.update { state ->
+                        state.copy(
                             apiKey = apiKey,
-                            downloadPath = downloadPath,
+                            downloadPath = downloadPath ?: "",
                             debugEnabled = debugEnabled,
                         )
                     }
+                    Logger.debugEnabled = debugEnabled
 
-                    favoritesRepository.debugEnabled = debugEnabled
+                    try {
+                        `is`.xyz.mpv.MPVLib.setLogLevel(if (debugEnabled) "all=v" else "off")
+                    } catch (e: Exception) {
+                        // FIXME: MPV might not be loaded yet in some cases
+                        Logger.e("SettingsVM", "Failed to set MPV log level: ${e.message}")
+                    }
 
                     updateCacheSize()
                 }
@@ -59,10 +68,7 @@ constructor(
     }
 
     fun updateDownloadPath(path: String?) {
-        viewModelScope.launch {
-            repository.updateDownloadPath(path)
-            sendMessage(R.string.msg_download_path_updated)
-        }
+        viewModelScope.launch { repository.updateDownloadPath(path) }
     }
 
     fun updateDebugEnabled(enabled: Boolean) {
@@ -71,24 +77,29 @@ constructor(
 
     fun clearImageCache() {
         viewModelScope.launch {
-            val coilCache = coil3.SingletonImageLoader.get(context).diskCache
-
-            coilCache?.clear()
+            imageLoader.diskCache?.clear()
+            imageLoader.memoryCache?.clear()
             updateCacheSize()
             sendMessage(R.string.msg_cache_cleared)
         }
     }
 
-    private fun updateCacheSize() {
-        val coilCache = coil3.SingletonImageLoader.get(context).diskCache
-        val size = coilCache?.size ?: 0L
+    fun updateCacheSize() {
+        val size = imageLoader.diskCache?.size ?: 0L
 
-        val sizeStr =
-            if (size > 1024 * 1024 * 1024)
-                context.getString(R.string.format_gb, size.toDouble() / (1024 * 1024 * 1024))
-            else context.getString(R.string.format_mb, size.toDouble() / (1024 * 1024))
+        _uiState.update { it.copy(cacheSize = formatSize(size)) }
+    }
 
-        _uiState.update { it.copy(cacheSize = sizeStr) }
+    private fun formatSize(bytes: Long): String {
+        val kb = bytes / 1024.0
+        val mb = kb / 1024.0
+        val gb = mb / 1024.0
+
+        return when {
+            gb >= 1.0 -> String.format("%.2f GB", gb)
+            mb >= 1.0 -> String.format("%.2f MB", mb)
+            else -> String.format("%.2f KB", kb)
+        }
     }
 
     fun exportData(uri: Uri) {
