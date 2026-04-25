@@ -15,7 +15,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okio.buffer
+import okio.source
 import org.movzx.dumbai.model.CivitaiImage
+import org.movzx.dumbai.util.FileUtils
 
 @Singleton
 class GalleryRepository
@@ -146,28 +149,29 @@ constructor(
                         response.body ?: return@withContext Result.failure(Exception("Empty body"))
 
                     val contentLength = body.contentLength()
+                    val source = body.source()
 
                     val ext =
-                        if (image.type == "video" || image.url.endsWith(".mp4", ignoreCase = true))
-                            "mp4"
-                        else "jpg"
+                        FileUtils.detectExtension(
+                            contentType = response.header("Content-Type"),
+                            source = source,
+                            url = image.url,
+                        )
 
                     val file = File(downloadDir, "DumbAI_${image.id}.$ext")
 
-                    body.byteStream().use { input ->
-                        FileOutputStream(file).use { output ->
-                            val buffer = ByteArray(8192)
-                            var totalBytesRead = 0L
-                            var bytesRead: Int
+                    FileOutputStream(file).use { output ->
+                        val buffer = ByteArray(8192)
+                        var totalBytesRead = 0L
+                        var bytesRead: Int
 
-                            while (input.read(buffer).also { bytesRead = it } != -1) {
-                                output.write(buffer, 0, bytesRead)
+                        while (source.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
 
-                                totalBytesRead += bytesRead
+                            totalBytesRead += bytesRead
 
-                                if (contentLength > 0)
-                                    onProgress(totalBytesRead.toFloat() / contentLength)
-                            }
+                            if (contentLength > 0)
+                                onProgress(totalBytesRead.toFloat() / contentLength)
                         }
                     }
 
