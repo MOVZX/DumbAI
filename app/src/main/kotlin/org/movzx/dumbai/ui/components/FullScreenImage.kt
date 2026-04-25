@@ -42,7 +42,7 @@ fun FullScreenImage(
     downloadProgresses: Map<Long, Float>,
     viewMode: String,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
-    onEnsureFavoriteResources: suspend (CivitaiImage) -> Unit,
+    onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onToggleFavorite: (CivitaiImage) -> Unit,
     onDownloadImage: (CivitaiImage) -> Unit,
     onDeleteLocalFile: (CivitaiImage) -> Unit,
@@ -57,6 +57,7 @@ fun FullScreenImage(
     var showUnfavoriteDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var userIsPlaying by remember { mutableStateOf(true) }
+    var userIsMuted by remember { mutableStateOf(true) }
     var scaleMode by remember { mutableStateOf(ScaleMode.NORMAL) }
 
     val density = LocalDensity.current
@@ -66,8 +67,11 @@ fun FullScreenImage(
             title = stringResource(R.string.dialog_unfavorite_title),
             message = stringResource(R.string.dialog_unfavorite_msg),
             onConfirm = {
-                if (pagerState.currentPage < images.size)
+                if (pagerState.currentPage < images.size) {
                     onToggleFavorite(images[pagerState.currentPage])
+
+                    if (viewMode == "favorites") onDismiss()
+                }
 
                 showUnfavoriteDialog = false
             },
@@ -136,25 +140,22 @@ fun FullScreenImage(
                         }
                         .collectAsState(initial = null)
 
-                val previewData by
-                    produceState<String>(
-                        initialValue = image.url,
-                        image.url,
-                        image.type,
-                        isFavorite,
-                        favoriteInfo,
-                    ) {
-                        value =
-                            org.movzx.dumbai.util.resolveImageData(
-                                image = image,
-                                favoriteInfo = favoriteInfo,
-                                thumbnailWidth = 640,
-                                useVideoPath = true,
-                            )
-
-                        if (isFavorite && image.url.startsWith("http"))
-                            onEnsureFavoriteResources(image)
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val previewData =
+                    remember(image.url, favoriteInfo) {
+                        org.movzx.dumbai.util.resolveImageData(
+                            context = context,
+                            image = image,
+                            favoriteInfo = favoriteInfo,
+                            thumbnailWidth = 640,
+                            useVideoPath = true,
+                        )
                     }
+
+                LaunchedEffect(isFavorite, image.url) {
+                    if (isFavorite && image.url.startsWith("http"))
+                        onEnsureFavoriteResources(image, false) { _ -> }
+                }
 
                 if (image.type == "video") {
                     with(sharedTransitionScope) {
@@ -175,6 +176,7 @@ fun FullScreenImage(
                             VideoPlayer(
                                 url = previewData,
                                 isPlaying = page == pagerState.currentPage && userIsPlaying,
+                                isMuted = userIsMuted,
                                 scaleMode = scaleMode,
                             )
                         }
@@ -256,6 +258,15 @@ fun FullScreenImage(
                         Icon(
                             if (userIsPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = "Play/Pause",
+                            tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+
+                    IconButton(onClick = { userIsMuted = !userIsMuted }) {
+                        Icon(
+                            if (userIsMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            contentDescription = "Mute/Unmute",
                             tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
                             modifier = Modifier.size(28.dp),
                         )

@@ -59,6 +59,34 @@ enum class RightSidebarType {
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(imageLoader: ImageLoader) {
+    val context = LocalContext.current
+    val activity = context as ComponentActivity
+
+    val permissionsToRequest =
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            listOf(
+                android.Manifest.permission.READ_MEDIA_IMAGES,
+                android.Manifest.permission.READ_MEDIA_VIDEO,
+            )
+        } else {
+            listOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+
+    val launcher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+        ) { _ ->
+        }
+
+    LaunchedEffect(Unit) {
+        val needed = permissionsToRequest.filter {
+            androidx.core.content.ContextCompat.checkSelfPermission(context, it) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+
+        if (needed.isNotEmpty()) launcher.launch(needed.toTypedArray())
+    }
+
     val navController = rememberNavController()
     var selectedImageIndex by remember { mutableStateOf<Int?>(null) }
     var fullScreenImages by remember { mutableStateOf<List<CivitaiImage>>(emptyList()) }
@@ -66,8 +94,6 @@ fun MainScreen(imageLoader: ImageLoader) {
     val feedGridState = rememberLazyStaggeredGridState()
     val favoritesGridState = rememberLazyStaggeredGridState()
     val galleryGridState = rememberLazyStaggeredGridState()
-    val context = LocalContext.current
-    val activity = context as ComponentActivity
     val scope = rememberCoroutineScope()
     var backPressedTime by remember { mutableLongStateOf(0L) }
     val exitConfirmMsg = stringResource(R.string.msg_exit_confirm)
@@ -344,8 +370,25 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     downloadProgresses = downloadProgresses,
                                     viewMode = fullScreenViewMode,
                                     onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
-                                    onEnsureFavoriteResources = {
-                                        favoritesViewModel.ensureFavoriteResources(it)
+                                    onEnsureFavoriteResources = { img, force, onProgress ->
+                                        if (fullScreenViewMode == "feed")
+                                            feedViewModel.ensureFavoriteResources(
+                                                img,
+                                                force,
+                                                onProgress,
+                                            )
+                                        else if (fullScreenViewMode == "favorites")
+                                            favoritesViewModel.ensureFavoriteResources(
+                                                img,
+                                                force,
+                                                onProgress,
+                                            )
+                                        else
+                                            galleryViewModel.ensureFavoriteResources(
+                                                img,
+                                                force,
+                                                onProgress,
+                                            )
                                     },
                                     onToggleFavorite = {
                                         if (fullScreenViewMode == "feed")
@@ -517,11 +560,14 @@ fun FeedScreen(
                     state = gridState,
                     isLoading = uiState.isLoading,
                     favoriteIds = uiState.favoriteIds,
+                    downloadProgresses = uiState.downloadProgresses,
                     columnCount = uiState.gridColumns,
                     showFavorite = true,
                     viewMode = "feed",
                     onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
-                    onEnsureFavoriteResources = { favViewModel.ensureFavoriteResources(it) },
+                    onEnsureFavoriteResources = { img, force, onProgress ->
+                        favViewModel.ensureFavoriteResources(img, force, onProgress)
+                    },
                     onImageClick = { image ->
                         val index = uiState.images.indexOf(image)
 
@@ -599,11 +645,14 @@ fun FavoritesScreen(
                 state = gridState,
                 isLoading = uiState.isLoading,
                 favoriteIds = uiState.favoriteIds,
+                downloadProgresses = uiState.downloadProgresses,
                 columnCount = uiState.gridColumns,
                 showFavorite = true,
                 viewMode = "favorites",
                 onGetFavoriteFlow = { viewModel.getFavoriteFlow(it) },
-                onEnsureFavoriteResources = { viewModel.ensureFavoriteResources(it) },
+                onEnsureFavoriteResources = { img, force, onProgress ->
+                    viewModel.ensureFavoriteResources(img, force, onProgress)
+                },
                 onImageClick = { image ->
                     val index = uiState.images.indexOf(image)
 
@@ -738,11 +787,14 @@ fun GalleryScreen(
                 state = gridState,
                 isLoading = uiState.isLoading,
                 favoriteIds = favoritesState.favoriteIds,
+                downloadProgresses = favoritesState.downloadProgresses,
                 columnCount = 3,
                 showFavorite = false,
                 viewMode = "gallery",
                 onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
-                onEnsureFavoriteResources = { favViewModel.ensureFavoriteResources(it) },
+                onEnsureFavoriteResources = { img, force, onProgress ->
+                    favViewModel.ensureFavoriteResources(img, force, onProgress)
+                },
                 onImageClick = { image ->
                     val index = uiState.images.indexOf(image)
 

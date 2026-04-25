@@ -5,6 +5,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.movzx.dumbai.R
 import org.movzx.dumbai.data.FavoritesRepository
 import org.movzx.dumbai.data.GalleryRepository
 import org.movzx.dumbai.data.UserPreferencesRepository
@@ -46,8 +47,29 @@ constructor(
 
     fun getFavoriteFlow(id: Long): Flow<FavoriteImage?> = favoritesRepository.getFavoriteFlow(id)
 
-    suspend fun ensureFavoriteResources(image: CivitaiImage) {
-        favoritesRepository.ensureFavoriteResources(image)
+    suspend fun ensureFavoriteResources(
+        image: CivitaiImage,
+        force: Boolean = false,
+        onProgress: (Float) -> Unit = {},
+    ) {
+        favoritesRepository.ensureFavoriteResources(image, force, onProgress)
+    }
+
+    fun forceRedownload(image: CivitaiImage) {
+        viewModelScope.launch {
+            val currentProgresses = _uiState.value.downloadProgresses
+
+            _uiState.update { it.copy(downloadProgresses = currentProgresses +(image.id to 0f)) }
+
+            favoritesRepository.ensureFavoriteResources(image, force = true) { progress ->
+                _uiState.update {
+                    it.copy(downloadProgresses = it.downloadProgresses + (image.id to progress))
+                }
+            }
+
+            _uiState.update { it.copy(downloadProgresses = it.downloadProgresses - image.id) }
+            sendMessage(R.string.msg_cache_cleared)
+        }
     }
 
     fun downloadImage(image: CivitaiImage) {

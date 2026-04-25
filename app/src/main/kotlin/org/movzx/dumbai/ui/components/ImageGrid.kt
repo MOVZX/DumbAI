@@ -27,11 +27,12 @@ fun ImageGrid(
     state: LazyStaggeredGridState,
     isLoading: Boolean,
     favoriteIds: Set<Long>,
+    downloadProgresses: Map<Long, Float>,
     columnCount: Int,
     showFavorite: Boolean,
     viewMode: String,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
-    onEnsureFavoriteResources: suspend (CivitaiImage) -> Unit,
+    onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onImageClick: (CivitaiImage) -> Unit,
     onToggleFavorite: (CivitaiImage) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -45,11 +46,17 @@ fun ImageGrid(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalItemSpacing = 8.dp,
     ) {
-        items(items = images, key = { it.id }, contentType = { "civitai_image" }) { image ->
+        items(
+            items = images,
+            key = { "${it.id}_${favoriteIds.contains(it.id)}" },
+            contentType = { "civitai_image" },
+        ) { image ->
             ImageCard(
                 image = image,
                 imageLoader = imageLoader,
                 isFavorite = favoriteIds.contains(image.id),
+                favoriteIds = favoriteIds,
+                downloadProgresses = downloadProgresses,
                 showFavorite = showFavorite,
                 viewMode = viewMode,
                 onGetFavoriteFlow = onGetFavoriteFlow,

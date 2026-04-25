@@ -9,6 +9,7 @@ object FileUtils {
     private val WEBP_HEADER = "52494646".decodeHex()
     private val GIF_HEADER = "47494638".decodeHex()
     private val EBML_HEADER = "1A45DFA3".decodeHex()
+    private val AVIF_HEADER = "61766966".decodeHex()
 
     fun detectExtension(contentType: String?, source: BufferedSource, url: String): String {
         val mappedExt =
@@ -35,19 +36,19 @@ object FileUtils {
 
             if (peek.rangeEquals(0, EBML_HEADER)) {
                 if (peek.request(64)) {
-                    val data = peek.readByteString(64).toString()
+                    val data = peek.readByteString(64).hex()
 
-                    return if (data.contains("webm")) "webm" else "mkv"
+                    return if (data.contains("7765626D")) "webm" else "mkv"
                 }
 
                 return "webm"
             }
 
             if (peek.request(12)) {
-                val ftyp = peek.readByteString(12).toString()
+                val head = peek.readByteString(12).hex()
 
-                if (ftyp.contains("avif")) return "avif"
-                if (ftyp.contains("ftyp")) return "mp4"
+                if (head.contains("61766966")) return "avif"
+                if (head.contains("66747970")) return "mp4"
             }
         } catch (e: Exception) {}
 
@@ -57,5 +58,20 @@ object FileUtils {
         if (urlExt in validExts) return if (urlExt == "jpeg") "jpg" else urlExt
 
         return "jpg"
+    }
+
+    fun getExtensionFromBytes(bytes: ByteArray): String {
+        val hex = bytes.take(12).joinToString("") { "%02X".format(it) }
+
+        return when {
+            hex.startsWith("89504E47") -> "png"
+            hex.startsWith("FFD8FF") -> "jpg"
+            hex.startsWith("52494646") && hex.substring(16, 24) == "57454250" -> "webp"
+            hex.startsWith("47494638") -> "gif"
+            hex.contains("61766966") -> "avif"
+            hex.contains("66747970") -> "mp4"
+            hex.startsWith("1A45DFA3") -> "webm"
+            else -> "jpg"
+        }
     }
 }

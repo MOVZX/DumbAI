@@ -262,6 +262,14 @@ constructor(
         }
     }
 
+    suspend fun ensureFavoriteResources(
+        image: CivitaiImage,
+        force: Boolean = false,
+        onProgress: (Float) -> Unit = {},
+    ) {
+        favoritesRepository.ensureFavoriteResources(image, force, onProgress)
+    }
+
     fun downloadImage(image: CivitaiImage) {
         performDownload(
             image = image,

@@ -7,8 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +27,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import org.movzx.dumbai.model.CivitaiImage
 import org.movzx.dumbai.model.FavoriteImage
 
@@ -37,33 +37,33 @@ fun ImageCard(
     image: CivitaiImage,
     imageLoader: ImageLoader,
     isFavorite: Boolean,
+    favoriteIds: Set<Long>,
+    downloadProgresses: Map<Long, Float>,
     showFavorite: Boolean,
     viewMode: String,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
-    onEnsureFavoriteResources: suspend (CivitaiImage) -> Unit,
+    onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onClick: (CivitaiImage) -> Unit,
     onToggleFavorite: (CivitaiImage) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
+    val context = LocalContext.current
     val favoriteInfo by
         remember(image.id, isFavorite) {
                 if (isFavorite) onGetFavoriteFlow(image.id) else flowOf(null)
             }
             .collectAsState(initial = null)
 
-    val imageData by
-        produceState<String>(
-            initialValue = image.url,
-            image.url,
-            image.type,
-            isFavorite,
-            favoriteInfo,
-        ) {
-            value = org.movzx.dumbai.util.resolveImageData(image, favoriteInfo)
-
-            if (isFavorite && image.url.startsWith("http")) onEnsureFavoriteResources(image)
+    val imageData =
+        remember(image.url, favoriteInfo) {
+            org.movzx.dumbai.util.resolveImageData(context, image, favoriteInfo)
         }
+
+    LaunchedEffect(isFavorite, image.url) {
+        if (isFavorite && image.url.startsWith("http"))
+            onEnsureFavoriteResources(image, false) { _ -> }
+    }
 
     val aspectRatio =
         remember(image.id, image.width, image.height) {
@@ -75,6 +75,8 @@ fun ImageCard(
     var showHeartAnimation by remember { mutableStateOf(false) }
     var isFirstComposition by remember { mutableStateOf(true) }
     var showUnfavoriteDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var manualProgress by remember { mutableStateOf<Float?>(null) }
 
     if (showUnfavoriteDialog) {
         ConfirmationDialog(
@@ -85,7 +87,7 @@ fun ImageCard(
 
                 showUnfavoriteDialog = false
             },
-            onDismiss = { showUnfavoriteDialog = false }
+            onDismiss = { showUnfavoriteDialog = false },
         )
     }
 
@@ -181,8 +183,18 @@ fun ImageCard(
             if (showFavorite) {
                 IconButton(
                     onClick = {
-                        if (isFavorite) showUnfavoriteDialog = true
-                        else onToggleFavorite(image)
+                        if (viewMode == "favorites") {
+                            scope.launch {
+                                manualProgress = 0f
+                                onEnsureFavoriteResources(image, true) { progress ->
+                                    manualProgress = progress
+                                }
+
+                                manualProgress = null
+                            }
+                        } else {
+                            if (isFavorite) showUnfavoriteDialog = true else onToggleFavorite(image)
+                        }
                     },
                     modifier =
                         Modifier.align(Alignment.BottomEnd)
@@ -196,18 +208,56 @@ fun ImageCard(
                             )
                             .clip(androidx.compose.foundation.shape.CircleShape),
                 ) {
-                    Icon(
-                        if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription =
-                            stringResource(org.movzx.dumbai.R.string.nav_favorites),
-                        tint =
-                            if (isFavorite) androidx.compose.ui.graphics.Color.Red
-                            else
-                                androidx.compose.ui.res.colorResource(
-                                    org.movzx.dumbai.R.color.pure_white
-                                ),
-                        modifier = Modifier.size(16.dp),
-                    )
+                    if (viewMode == "favorites") {
+                        val isThumbnailCached =
+                            org.movzx.dumbai.util.hasLocalCache(
+                                context,
+                                image.id,
+                                image.type == "video",
+                            )
+
+                        val isPreviewCached =
+                            org.movzx.dumbai.util.hasFullCache(
+                                context,
+                                image.id,
+                                image.type == "video",
+                            )
+
+                        val cloudColor =
+                            if (isThumbnailCached && isPreviewCached) Color.Green else Color.Yellow
+
+                        val progress = manualProgress ?: downloadProgresses[image.id]
+
+                        if (progress != null) {
+                            CircularProgressIndicator(
+                                progress = { progress },
+                                color = cloudColor,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.CloudDownload,
+                                contentDescription = "Cache Status",
+                                tint = cloudColor,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    } else {
+                        Icon(
+                            if (isFavorite) Icons.Filled.Favorite
+                            else Icons.Outlined.FavoriteBorder,
+                            contentDescription =
+                                stringResource(org.movzx.dumbai.R.string.nav_favorites),
+                            tint =
+                                if (isFavorite) androidx.compose.ui.graphics.Color.Red
+                                else
+                                    androidx.compose.ui.res.colorResource(
+                                        org.movzx.dumbai.R.color.pure_white
+                                    ),
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
                 }
             }
 

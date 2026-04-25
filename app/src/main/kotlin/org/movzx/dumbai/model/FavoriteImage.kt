@@ -15,6 +15,7 @@ data class FavoriteImage(
     val type: String? = "image",
     val timestamp: Long = System.currentTimeMillis(),
     val localPath: String? = null,
+    val localFullImagePath: String? = null,
     val localVideoPath: String? = null,
 ) {
     fun toCivitaiImage(): CivitaiImage {
@@ -33,6 +34,7 @@ data class FavoriteImage(
         fun fromCivitaiImage(
             image: CivitaiImage,
             localPath: String? = null,
+            localFullImagePath: String? = null,
             localVideoPath: String? = null,
         ): FavoriteImage {
             return FavoriteImage(
@@ -43,6 +45,7 @@ data class FavoriteImage(
                 nsfw = image.nsfw,
                 type = image.type,
                 localPath = localPath,
+                localFullImagePath = localFullImagePath,
                 localVideoPath = localVideoPath,
             )
         }
