@@ -163,7 +163,7 @@ fun resolveImageData(
 }
 
 fun getThumbnailUrl(url: String, width: Int): String {
-    if (!url.contains("image.civitai.com")) return url
+    if (!url.contains("image.civitai.com") && !url.contains("image.civitai.red")) return url
 
     val baseUrl =
         when {
@@ -186,7 +186,7 @@ fun getThumbnailUrl(url: String, width: Int): String {
 }
 
 fun getVideoThumbnailUrl(url: String): String {
-    if (!url.contains("image.civitai.com")) return url
+    if (!url.contains("image.civitai.com") && !url.contains("image.civitai.red")) return url
 
     val result =
         when {
