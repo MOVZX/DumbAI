@@ -32,8 +32,8 @@
     <string name="label_api_key">Civitai API Key</string>
     <string name="label_gallery_location">Gallery Location</string>
     <string name="label_debug_logging">Debug Logging</string>
-    <string name="label_image_cache_size">Image Cache Size: %s</string>
-    <string name="label_images_per_request">Images Per Request</string>
+    <string name="label_image_cache_size">Contents Cache Size: %s</string>
+    <string name="label_images_per_request">Contents Per Request</string>
     <string name="label_grid_columns">Grid Columns</string>
     <string name="placeholder_default_gallery">Default (Internal Storage)</string>
     <string name="format_gb">%.2f GB</string>
@@ -86,13 +86,13 @@
     <string name="msg_export_failed">Export failed</string>
     <string name="msg_import_success">Data imported. App will restart.</string>
     <string name="msg_import_failed">Import failed</string>
-    <string name="msg_load_failed">Failed to load images</string>
+    <string name="msg_load_failed">Failed to load contents</string>
     <string name="msg_saved_to">Media saved to gallery</string>
     <string name="msg_download_failed">Download failed</string>
     <string name="msg_exit_confirm">Press back again to exit</string>
 
     <!-- Empty States -->
-    <string name="empty_feed">No images found matching filters</string>
+    <string name="empty_feed">No contents found matching filters</string>
     <string name="empty_favorites">No liked media yet</string>
     <string name="empty_gallery">No downloaded media found</string>
 
