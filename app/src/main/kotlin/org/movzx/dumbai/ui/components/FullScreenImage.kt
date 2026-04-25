@@ -57,7 +57,40 @@ fun FullScreenImage(
     var isZoomed by remember { mutableStateOf(false) }
     var showUI by remember { mutableStateOf(true) }
     var offsetY by remember { mutableStateOf(0f) }
+    var showUnfavoriteDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val density = LocalDensity.current
+
+    if (showUnfavoriteDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_unfavorite_title),
+            message = stringResource(R.string.dialog_unfavorite_msg),
+            onConfirm = {
+                if (pagerState.currentPage < images.size)
+                    onToggleFavorite(images[pagerState.currentPage])
+
+                showUnfavoriteDialog = false
+            },
+            onDismiss = { showUnfavoriteDialog = false }
+        )
+    }
+
+    if (showDeleteDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_delete_title),
+            message = stringResource(R.string.dialog_delete_msg),
+            onConfirm = {
+                if (pagerState.currentPage < images.size) {
+                    onDeleteLocalFile(images[pagerState.currentPage])
+                    onDismiss()
+                }
+
+                showDeleteDialog = false
+            },
+            onDismiss = { showDeleteDialog = false }
+        )
+    }
+
     val dismissThreshold = with(density) { 150.dp.toPx() }
 
     BackHandler(onBack = onDismiss)
@@ -217,7 +250,12 @@ fun FullScreenImage(
                     val currentImage = images[pagerState.currentPage]
                     val isFavorite = favoriteIds.contains(currentImage.id)
 
-                    IconButton(onClick = { onToggleFavorite(currentImage) }) {
+                    IconButton(
+                        onClick = {
+                            if (isFavorite) showUnfavoriteDialog = true
+                            else onToggleFavorite(currentImage)
+                        }
+                    ) {
                         Icon(
                             if (isFavorite) Icons.Filled.Favorite
                             else Icons.Outlined.FavoriteBorder,
@@ -259,12 +297,8 @@ fun FullScreenImage(
                 if (viewMode == "gallery") {
                     IconButton(
                         onClick = {
-                            if (pagerState.currentPage < images.size) {
-                                val currentImage = images[pagerState.currentPage]
-
-                                onDeleteLocalFile(currentImage)
-                                onDismiss()
-                            }
+                            if (pagerState.currentPage < images.size)
+                                showDeleteDialog = true
                         }
                     ) {
                         Icon(

@@ -74,6 +74,20 @@ fun ImageCard(
 
     var showHeartAnimation by remember { mutableStateOf(false) }
     var isFirstComposition by remember { mutableStateOf(true) }
+    var showUnfavoriteDialog by remember { mutableStateOf(false) }
+
+    if (showUnfavoriteDialog) {
+        ConfirmationDialog(
+            title = stringResource(org.movzx.dumbai.R.string.dialog_unfavorite_title),
+            message = stringResource(org.movzx.dumbai.R.string.dialog_unfavorite_msg),
+            onConfirm = {
+                onToggleFavorite(image)
+
+                showUnfavoriteDialog = false
+            },
+            onDismiss = { showUnfavoriteDialog = false }
+        )
+    }
 
     val heartScale by
         animateFloatAsState(
@@ -166,7 +180,10 @@ fun ImageCard(
 
             if (showFavorite) {
                 IconButton(
-                    onClick = { onToggleFavorite(image) },
+                    onClick = {
+                        if (isFavorite) showUnfavoriteDialog = true
+                        else onToggleFavorite(image)
+                    },
                     modifier =
                         Modifier.align(Alignment.BottomEnd)
                             .padding(6.dp)

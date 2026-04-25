@@ -48,8 +48,16 @@
     <string name="btn_clear_image_cache">Clear Cache</string>
     <string name="btn_apply_settings">Apply Settings</string>
     <string name="btn_close">Close</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_confirm">Confirm</string>
     <string name="btn_download">Download</string>
     <string name="btn_delete">Delete</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_unfavorite_title">Unlike Media</string>
+    <string name="dialog_unfavorite_msg">Are you sure you want to remove this from your likes?</string>
+    <string name="dialog_delete_title">Delete Media</string>
+    <string name="dialog_delete_msg">Are you sure you want to permanently delete this file from your storage?</string>
 
     <!-- Selectable Options (Filter Chips) -->
     <string name="opt_image">Images</string>
