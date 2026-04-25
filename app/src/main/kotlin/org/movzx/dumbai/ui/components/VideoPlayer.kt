@@ -23,6 +23,9 @@ fun VideoPlayer(
     isPlaying: Boolean = true,
     isMuted: Boolean = true,
     scaleMode: ScaleMode = ScaleMode.NORMAL,
+    onProgressUpdate: (Long, Long) -> Unit = { _, _ -> },
+    seekPosition: Long? = null,
+    onSeekConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -39,6 +42,22 @@ fun VideoPlayer(
     LaunchedEffect(isPlaying) { exoPlayer.playWhenReady = isPlaying }
 
     LaunchedEffect(isMuted) { exoPlayer.volume = if (isMuted) 0f else 1f }
+
+    LaunchedEffect(seekPosition) {
+        seekPosition?.let {
+            exoPlayer.seekTo(it)
+            onSeekConsumed()
+        }
+    }
+
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (true) {
+                onProgressUpdate(exoPlayer.currentPosition, exoPlayer.duration)
+                kotlinx.coroutines.delay(33)
+            }
+        }
+    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 

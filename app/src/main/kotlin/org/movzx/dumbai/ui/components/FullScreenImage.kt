@@ -59,6 +59,10 @@ fun FullScreenImage(
     var userIsPlaying by remember { mutableStateOf(true) }
     var userIsMuted by remember { mutableStateOf(true) }
     var scaleMode by remember { mutableStateOf(ScaleMode.NORMAL) }
+    var videoProgress by remember { mutableLongStateOf(0L) }
+    var videoDuration by remember { mutableLongStateOf(0L) }
+    var seekToPosition by remember { mutableStateOf<Long?>(null) }
+    var isDraggingSeekBar by remember { mutableStateOf(false) }
 
     val density = LocalDensity.current
 
@@ -158,6 +162,11 @@ fun FullScreenImage(
                 }
 
                 if (image.type == "video") {
+                    LaunchedEffect(pagerState.currentPage) {
+                        videoProgress = 0L
+                        videoDuration = 0L
+                    }
+
                     with(sharedTransitionScope) {
                         Box(
                             modifier =
@@ -178,6 +187,14 @@ fun FullScreenImage(
                                 isPlaying = page == pagerState.currentPage && userIsPlaying,
                                 isMuted = userIsMuted,
                                 scaleMode = scaleMode,
+                                onProgressUpdate = { pos, dur ->
+                                    if (!isDraggingSeekBar) {
+                                        videoProgress = pos
+                                        videoDuration = if (dur > 0) dur else 0L
+                                    }
+                                },
+                                seekPosition = seekToPosition,
+                                onSeekConsumed = { seekToPosition = null },
                             )
                         }
                     }
@@ -235,9 +252,10 @@ fun FullScreenImage(
             exit = fadeOut() + slideOutVertically { it / 2 },
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
-            Row(
+            Column(
                 modifier =
-                    Modifier.padding(16.dp)
+                    Modifier.fillMaxWidth()
+                        .padding(16.dp)
                         .navigationBarsPadding()
                         .background(
                             androidx.compose.ui.res
@@ -246,110 +264,144 @@ fun FullScreenImage(
                             MaterialTheme.shapes.large,
                         )
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 val currentImage =
                     if (pagerState.currentPage < images.size) images[pagerState.currentPage]
                     else null
 
-                if (currentImage?.type == "video") {
-                    IconButton(onClick = { userIsPlaying = !userIsPlaying }) {
-                        Icon(
-                            if (userIsPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = "Play/Pause",
-                            tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-
-                    IconButton(onClick = { userIsMuted = !userIsMuted }) {
-                        Icon(
-                            if (userIsMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                            contentDescription = "Mute/Unmute",
-                            tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            scaleMode =
-                                when (scaleMode) {
-                                    ScaleMode.NORMAL -> ScaleMode.CROP
-                                    ScaleMode.CROP -> ScaleMode.FULL
-                                    ScaleMode.FULL -> ScaleMode.NORMAL
-                                }
-                        }
-                    ) {
-                        Icon(
-                            when (scaleMode) {
-                                ScaleMode.NORMAL -> Icons.Default.Fullscreen
-                                ScaleMode.CROP -> Icons.Default.Crop
-                                ScaleMode.FULL -> Icons.Default.AspectRatio
-                            },
-                            contentDescription = "Scale Mode",
-                            tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
+                if (currentImage?.type == "video" && videoDuration > 0) {
+                    Slider(
+                        value = videoProgress.toFloat(),
+                        onValueChange = {
+                            isDraggingSeekBar = true
+                            userIsPlaying = false
+                            videoProgress = it.toLong()
+                            seekToPosition = it.toLong()
+                        },
+                        onValueChangeFinished = { isDraggingSeekBar = false },
+                        valueRange = 0f..videoDuration.toFloat(),
+                        colors =
+                            SliderDefaults.colors(
+                                thumbColor =
+                                    androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                activeTrackColor =
+                                    androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                inactiveTrackColor =
+                                    androidx.compose.ui.res
+                                        .colorResource(R.color.pure_white)
+                                        .copy(alpha = 0.3f),
+                            ),
+                        modifier = Modifier.fillMaxWidth().height(32.dp),
+                    )
                 }
 
-                if (viewMode != "gallery" && currentImage != null) {
-                    val isFavorite = favoriteIds.contains(currentImage.id)
-
-                    IconButton(
-                        onClick = {
-                            if (isFavorite) showUnfavoriteDialog = true
-                            else onToggleFavorite(currentImage)
-                        }
-                    ) {
-                        Icon(
-                            if (isFavorite) Icons.Filled.Favorite
-                            else Icons.Outlined.FavoriteBorder,
-                            contentDescription = stringResource(R.string.nav_favorites),
-                            tint =
-                                if (isFavorite) androidx.compose.ui.graphics.Color.Red
-                                else androidx.compose.ui.res.colorResource(R.color.pure_white),
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                }
-
-                if (viewMode != "gallery" && currentImage != null) {
-                    val progress = downloadProgresses[currentImage.id]
-
-                    IconButton(onClick = { onDownloadImage(currentImage) }) {
-                        if (progress != null) {
-                            CircularProgressIndicator(
-                                progress = { progress },
-                                color = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                                strokeWidth = 3.dp,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (currentImage?.type == "video") {
+                        IconButton(onClick = { userIsPlaying = !userIsPlaying }) {
                             Icon(
-                                Icons.Default.Download,
-                                contentDescription = stringResource(R.string.btn_download),
+                                if (userIsPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = "Play/Pause",
+                                tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+
+                        IconButton(onClick = { userIsMuted = !userIsMuted }) {
+                            Icon(
+                                if (userIsMuted) Icons.Default.VolumeOff
+                                else Icons.Default.VolumeUp,
+                                contentDescription = "Mute/Unmute",
+                                tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                scaleMode =
+                                    when (scaleMode) {
+                                        ScaleMode.NORMAL -> ScaleMode.CROP
+                                        ScaleMode.CROP -> ScaleMode.FULL
+                                        ScaleMode.FULL -> ScaleMode.NORMAL
+                                    }
+                            }
+                        ) {
+                            Icon(
+                                when (scaleMode) {
+                                    ScaleMode.NORMAL -> Icons.Default.Fullscreen
+                                    ScaleMode.CROP -> Icons.Default.Crop
+                                    ScaleMode.FULL -> Icons.Default.AspectRatio
+                                },
+                                contentDescription = "Scale Mode",
                                 tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
                                 modifier = Modifier.size(28.dp),
                             )
                         }
                     }
-                }
 
-                if (viewMode == "gallery") {
-                    IconButton(
-                        onClick = {
-                            if (pagerState.currentPage < images.size) showDeleteDialog = true
+                    if (viewMode != "gallery" && currentImage != null) {
+                        val isFavorite = favoriteIds.contains(currentImage.id)
+
+                        IconButton(
+                            onClick = {
+                                if (isFavorite) showUnfavoriteDialog = true
+                                else onToggleFavorite(currentImage)
+                            }
+                        ) {
+                            Icon(
+                                if (isFavorite) Icons.Filled.Favorite
+                                else Icons.Outlined.FavoriteBorder,
+                                contentDescription = stringResource(R.string.nav_favorites),
+                                tint =
+                                    if (isFavorite) androidx.compose.ui.graphics.Color.Red
+                                    else androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                modifier = Modifier.size(28.dp),
+                            )
                         }
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.btn_delete),
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(28.dp),
-                        )
+                    }
+
+                    if (viewMode != "gallery" && currentImage != null) {
+                        val progress = downloadProgresses[currentImage.id]
+
+                        IconButton(onClick = { onDownloadImage(currentImage) }) {
+                            if (progress != null) {
+                                CircularProgressIndicator(
+                                    progress = { progress },
+                                    color =
+                                        androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                    strokeWidth = 3.dp,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Download,
+                                    contentDescription = stringResource(R.string.btn_download),
+                                    tint =
+                                        androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                    modifier = Modifier.size(28.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    if (viewMode == "gallery") {
+                        IconButton(
+                            onClick = {
+                                if (pagerState.currentPage < images.size) showDeleteDialog = true
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.btn_delete),
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
                     }
                 }
             }
