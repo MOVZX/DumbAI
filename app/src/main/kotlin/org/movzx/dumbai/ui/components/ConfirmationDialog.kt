@@ -23,31 +23,33 @@ fun ConfirmationDialog(
         confirmButton = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ),
-                    shape = MaterialTheme.shapes.medium
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
+                    shape = MaterialTheme.shapes.medium,
                 ) {
                     Text(text = stringResource(R.string.btn_cancel))
                 }
                 Button(
                     onClick = onConfirm,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colorResource(R.color.error),
-                        contentColor = androidx.compose.ui.graphics.Color.White
-                    ),
-                    shape = MaterialTheme.shapes.medium
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.error),
+                            contentColor = androidx.compose.ui.graphics.Color.White,
+                        ),
+                    shape = MaterialTheme.shapes.medium,
                 ) {
                     Text(text = stringResource(R.string.btn_confirm))
                 }
             }
-        }
+        },
     )
 }

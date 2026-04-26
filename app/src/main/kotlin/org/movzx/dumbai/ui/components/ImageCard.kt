@@ -262,15 +262,15 @@ fun ImageCard(
                             else Icons.Outlined.FavoriteBorder,
                             contentDescription =
                                 stringResource(org.movzx.dumbai.R.string.nav_favorites),
-                             tint =
-                                 if (isFavorite)
-                                     androidx.compose.ui.res.colorResource(
-                                         org.movzx.dumbai.R.color.error
-                                     )
-                                 else
-                                     androidx.compose.ui.res.colorResource(
-                                         org.movzx.dumbai.R.color.pure_white
-                                     ),
+                            tint =
+                                if (isFavorite)
+                                    androidx.compose.ui.res.colorResource(
+                                        org.movzx.dumbai.R.color.error
+                                    )
+                                else
+                                    androidx.compose.ui.res.colorResource(
+                                        org.movzx.dumbai.R.color.pure_white
+                                    ),
                             modifier = Modifier.size(16.dp),
                         )
                     }

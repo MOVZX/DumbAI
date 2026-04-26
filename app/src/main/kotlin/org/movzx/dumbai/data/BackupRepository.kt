@@ -31,9 +31,14 @@ constructor(
                     AppBackup(
                         version = 1,
                         settings = settings,
-                        favorites = favorites.map { 
-                            it.copy(localPath = null, localFullImagePath = null, localVideoPath = null) 
-                        },
+                        favorites =
+                            favorites.map {
+                                it.copy(
+                                    localPath = null,
+                                    localFullImagePath = null,
+                                    localVideoPath = null,
+                                )
+                            },
                     )
 
                 val adapter = moshi.adapter(AppBackup::class.java)

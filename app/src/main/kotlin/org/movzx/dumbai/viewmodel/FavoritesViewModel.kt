@@ -57,7 +57,7 @@ constructor(
         viewModelScope.launch {
             val currentProgresses = _uiState.value.downloadProgresses
 
-            _uiState.update { it.copy(downloadProgresses = currentProgresses +(image.id to 0f)) }
+            _uiState.update { it.copy(downloadProgresses = currentProgresses + (image.id to 0f)) }
 
             favoritesRepository.ensureFavoriteResources(image, force = true) { progress ->
                 _uiState.update {

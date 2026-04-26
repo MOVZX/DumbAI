@@ -371,7 +371,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     downloadedIds = galleryState.downloadedIds,
                                     downloadProgresses = downloadProgresses,
                                     viewMode = fullScreenViewMode,
-    onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
+                                    onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
                                     onEnsureFavoriteResources = { img, force, onProgress ->
                                         if (fullScreenViewMode == "feed")
                                             feedViewModel.ensureFavoriteResources(
@@ -772,8 +772,6 @@ fun GalleryScreen(
                         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                         titleContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
-
-
                 modifier =
                     Modifier.windowInsetsPadding(
                         WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
