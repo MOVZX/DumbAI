@@ -214,7 +214,7 @@ constructor(
                             (currentList + response.items).distinctBy { it.id }
                         }
 
-                    val cursor = response.metadata.nextCursor
+                    val cursor = response.metadata.nextCursor?.substringBefore('|')
 
                     if (targetType == "video") {
                         videoFeed = items
