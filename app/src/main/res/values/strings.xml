@@ -28,6 +28,10 @@
     <string name="section_cache">Storage &amp; Cache</string>
     <string name="section_app_config">App Configuration</string>
 
+    <!-- Selection Mode -->
+    <string name="label_selected_count">%1$d Selected</string>
+    <string name="btn_select_all">Select All</string>
+
     <!-- Formats, Labels & Placeholders -->
     <string name="label_api_key">Civitai API Key</string>
     <string name="label_gallery_location">Gallery Location</string>
@@ -60,6 +64,10 @@
     <string name="dialog_delete_msg">Are you sure you want to permanently delete this file from your storage?</string>
     <string name="dialog_redownload_title">Redownload Media</string>
     <string name="dialog_redownload_msg">Are you sure you want to force a redownload of this media? Current cache will be overwritten.</string>
+    <string name="dialog_batch_unfavorite_title">Unfavorite items?</string>
+    <string name="dialog_batch_unfavorite_msg">Unfavorite %1$d items?</string>
+    <string name="dialog_batch_delete_title">Delete items?</string>
+    <string name="dialog_batch_delete_msg">Delete %1$d items from your device?</string>
 
     <!-- Selectable Options (Filter Chips) -->
     <string name="opt_image">Images</string>

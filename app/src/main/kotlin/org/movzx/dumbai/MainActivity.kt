@@ -14,6 +14,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -392,6 +393,13 @@ fun MainScreen(imageLoader: ImageLoader) {
                                             selectedImageIndex = index
                                             fullScreenViewMode = viewMode
                                         },
+                                        leftDrawerState = leftDrawerState,
+                                        rightDrawerState = rightDrawerState,
+                                        scope = scope,
+                                        selectedImageIndex = selectedImageIndex,
+                                        backPressedTime = backPressedTime,
+                                        onUpdateBackPressedTime = { backPressedTime = it },
+                                        exitConfirmMsg = exitConfirmMsg,
                                         sharedTransitionScope = this@SharedTransitionLayout,
                                         animatedVisibilityScope = this@AnimatedContent,
                                     )
@@ -494,6 +502,13 @@ fun AppNavigation(
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
+    leftDrawerState: DrawerState,
+    rightDrawerState: DrawerState,
+    scope: kotlinx.coroutines.CoroutineScope,
+    selectedImageIndex: Int?,
+    backPressedTime: Long,
+    onUpdateBackPressedTime: (Long) -> Unit,
+    exitConfirmMsg: String,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -521,6 +536,13 @@ fun AppNavigation(
                 onImageClick = onImageClick,
                 currentRoute = currentRoute,
                 onNavigate = onNavigate,
+                leftDrawerState = leftDrawerState,
+                rightDrawerState = rightDrawerState,
+                scope = scope,
+                selectedImageIndex = selectedImageIndex,
+                backPressedTime = backPressedTime,
+                onUpdateBackPressedTime = onUpdateBackPressedTime,
+                exitConfirmMsg = exitConfirmMsg,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -535,6 +557,15 @@ fun AppNavigation(
                 onImageClick = onImageClick,
                 currentRoute = currentRoute,
                 onNavigate = onNavigate,
+                favoritesRestored = favoritesRestored,
+                onFavoritesRestored = onFavoritesRestored,
+                leftDrawerState = leftDrawerState,
+                rightDrawerState = rightDrawerState,
+                scope = scope,
+                selectedImageIndex = selectedImageIndex,
+                backPressedTime = backPressedTime,
+                onUpdateBackPressedTime = onUpdateBackPressedTime,
+                exitConfirmMsg = exitConfirmMsg,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -549,6 +580,15 @@ fun AppNavigation(
                 onImageClick = onImageClick,
                 currentRoute = currentRoute,
                 onNavigate = onNavigate,
+                galleryRestored = galleryRestored,
+                onGalleryRestored = onGalleryRestored,
+                leftDrawerState = leftDrawerState,
+                rightDrawerState = rightDrawerState,
+                scope = scope,
+                selectedImageIndex = selectedImageIndex,
+                backPressedTime = backPressedTime,
+                onUpdateBackPressedTime = onUpdateBackPressedTime,
+                exitConfirmMsg = exitConfirmMsg,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -566,6 +606,13 @@ fun FeedScreen(
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
     currentRoute: String?,
     onNavigate: (String) -> Unit,
+    leftDrawerState: DrawerState,
+    rightDrawerState: DrawerState,
+    scope: kotlinx.coroutines.CoroutineScope,
+    selectedImageIndex: Int?,
+    backPressedTime: Long,
+    onUpdateBackPressedTime: (Long) -> Unit,
+    exitConfirmMsg: String,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -661,6 +708,15 @@ fun FavoritesScreen(
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
     currentRoute: String?,
     onNavigate: (String) -> Unit,
+    favoritesRestored: Boolean,
+    onFavoritesRestored: (Boolean) -> Unit,
+    leftDrawerState: DrawerState,
+    rightDrawerState: DrawerState,
+    scope: kotlinx.coroutines.CoroutineScope,
+    selectedImageIndex: Int?,
+    backPressedTime: Long,
+    onUpdateBackPressedTime: (Long) -> Unit,
+    exitConfirmMsg: String,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -688,15 +744,65 @@ fun FavoritesScreen(
         }
     }
 
+    var showBatchConfirmDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = selectedImageIndex == null) {
+        if (uiState.isSelectionMode) {
+            viewModel.clearSelection()
+        } else if (leftDrawerState.isOpen) {
+            scope.launch { leftDrawerState.close() }
+        } else if (rightDrawerState.isOpen) {
+            scope.launch { rightDrawerState.close() }
+        } else {
+            val currentTime = System.currentTimeMillis()
+
+            if (currentTime - backPressedTime < 2000) {
+                (context as? Activity)?.finish()
+            } else {
+                onUpdateBackPressedTime(currentTime)
+                android.widget.Toast.makeText(
+                        context,
+                        exitConfirmMsg,
+                        android.widget.Toast.LENGTH_SHORT,
+                    )
+                    .show()
+            }
+        }
+    }
+
+    if (showBatchConfirmDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_batch_unfavorite_title),
+            message =
+                stringResource(R.string.dialog_batch_unfavorite_msg, uiState.selectedIds.size),
+            onConfirm = {
+                viewModel.batchUnfavorite()
+
+                showBatchConfirmDialog = false
+            },
+            onDismiss = { showBatchConfirmDialog = false },
+        )
+    }
+
     AppScaffold(
         topBar = {
-            MainTopBar(
-                gridColumns = uiState.gridColumns,
-                onShowDisplayOptions = onOpenLeftSidebar,
-                onUpdateGridColumns = { viewModel.updateGridColumns(it) },
-                onShowFilters = { onOpenRightSidebar(RightSidebarType.FILTERS) },
-                onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
-            )
+            if (uiState.isSelectionMode) {
+                SelectionTopBar(
+                    selectedCount = uiState.selectedIds.size,
+                    onClose = { viewModel.clearSelection() },
+                    onSelectAll = { viewModel.selectAll() },
+                    onAction = { showBatchConfirmDialog = true },
+                    actionIcon = Icons.Default.HeartBroken,
+                )
+            } else {
+                MainTopBar(
+                    gridColumns = uiState.gridColumns,
+                    onShowDisplayOptions = onOpenLeftSidebar,
+                    onUpdateGridColumns = { viewModel.updateGridColumns(it) },
+                    onShowFilters = { onOpenRightSidebar(RightSidebarType.FILTERS) },
+                    onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
+                )
+            }
         },
         bottomBar = { MainBottomBar(currentRoute, onNavigate) },
         gridState = gridState,
@@ -713,6 +819,8 @@ fun FavoritesScreen(
                 columnCount = uiState.gridColumns,
                 showFavorite = true,
                 viewMode = "favorites",
+                isSelectionMode = uiState.isSelectionMode,
+                selectedIds = uiState.selectedIds,
                 onGetFavoriteFlow = { viewModel.getFavoriteFlow(it) },
                 onEnsureFavoriteResources = { img, force, onProgress ->
                     viewModel.ensureFavoriteResources(img, force, onProgress)
@@ -723,6 +831,8 @@ fun FavoritesScreen(
                     if (index != -1) onImageClick(uiState.images, index, "favorites")
                 },
                 onToggleFavorite = { viewModel.toggleFavorite(it) },
+                onToggleSelection = { viewModel.toggleSelection(it) },
+                onLongClick = { viewModel.toggleSelection(it) },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -742,6 +852,15 @@ fun GalleryScreen(
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
     currentRoute: String?,
     onNavigate: (String) -> Unit,
+    galleryRestored: Boolean,
+    onGalleryRestored: (Boolean) -> Unit,
+    leftDrawerState: DrawerState,
+    rightDrawerState: DrawerState,
+    scope: kotlinx.coroutines.CoroutineScope,
+    selectedImageIndex: Int?,
+    backPressedTime: Long,
+    onUpdateBackPressedTime: (Long) -> Unit,
+    exitConfirmMsg: String,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -802,6 +921,8 @@ fun GalleryScreen(
         }
     }
 
+    var showBatchConfirmDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
         if (uiState.isRestored) {
             kotlinx.coroutines.delay(500)
@@ -821,15 +942,62 @@ fun GalleryScreen(
         }
     }
 
+    BackHandler(enabled = selectedImageIndex == null) {
+        if (uiState.isSelectionMode) {
+            viewModel.clearSelection()
+        } else if (leftDrawerState.isOpen) {
+            scope.launch { leftDrawerState.close() }
+        } else if (rightDrawerState.isOpen) {
+            scope.launch { rightDrawerState.close() }
+        } else {
+            val currentTime = System.currentTimeMillis()
+
+            if (currentTime - backPressedTime < 2000) {
+                (context as? Activity)?.finish()
+            } else {
+                onUpdateBackPressedTime(currentTime)
+                android.widget.Toast.makeText(
+                        context,
+                        exitConfirmMsg,
+                        android.widget.Toast.LENGTH_SHORT,
+                    )
+                    .show()
+            }
+        }
+    }
+
+    if (showBatchConfirmDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_batch_delete_title),
+            message = stringResource(R.string.dialog_batch_delete_msg, uiState.selectedIds.size),
+            onConfirm = {
+                viewModel.batchDelete()
+
+                showBatchConfirmDialog = false
+            },
+            onDismiss = { showBatchConfirmDialog = false },
+        )
+    }
+
     AppScaffold(
         topBar = {
-            MainTopBar(
-                gridColumns = uiState.gridColumns,
-                onShowDisplayOptions = onOpenLeftSidebar,
-                onUpdateGridColumns = { viewModel.updateGridColumns(it) },
-                onShowFilters = {},
-                onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
-            )
+            if (uiState.isSelectionMode) {
+                SelectionTopBar(
+                    selectedCount = uiState.selectedIds.size,
+                    onClose = { viewModel.clearSelection() },
+                    onSelectAll = { viewModel.selectAll() },
+                    onAction = { showBatchConfirmDialog = true },
+                    actionIcon = Icons.Default.Delete,
+                )
+            } else {
+                MainTopBar(
+                    gridColumns = uiState.gridColumns,
+                    onShowDisplayOptions = onOpenLeftSidebar,
+                    onUpdateGridColumns = { viewModel.updateGridColumns(it) },
+                    onShowFilters = {},
+                    onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
+                )
+            }
         },
         bottomBar = { MainBottomBar(currentRoute, onNavigate) },
         gridState = gridState,
@@ -846,6 +1014,8 @@ fun GalleryScreen(
                 columnCount = uiState.gridColumns,
                 showFavorite = false,
                 viewMode = "gallery",
+                isSelectionMode = uiState.isSelectionMode,
+                selectedIds = uiState.selectedIds,
                 onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
                 onEnsureFavoriteResources = { img, force, onProgress ->
                     favViewModel.ensureFavoriteResources(img, force, onProgress)
@@ -855,7 +1025,9 @@ fun GalleryScreen(
 
                     if (index != -1) onImageClick(uiState.images, index, "gallery")
                 },
-                onToggleFavorite = {},
+                onToggleFavorite = { favViewModel.toggleFavorite(it) },
+                onToggleSelection = { viewModel.toggleSelection(it) },
+                onLongClick = { viewModel.toggleSelection(it) },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )

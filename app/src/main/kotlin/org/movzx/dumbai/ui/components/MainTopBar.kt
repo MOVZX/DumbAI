@@ -11,10 +11,61 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.movzx.dumbai.R
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SelectionTopBar(
+    selectedCount: Int,
+    onClose: () -> Unit,
+    onSelectAll: () -> Unit,
+    onAction: () -> Unit,
+    actionIcon: androidx.compose.ui.graphics.vector.ImageVector,
+) {
+    CenterAlignedTopAppBar(
+        title = {
+            Text(
+                text =
+                    stringResource(org.movzx.dumbai.R.string.label_selected_count, selectedCount),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onClose) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(org.movzx.dumbai.R.string.btn_close),
+                )
+            }
+        },
+        actions = {
+            IconButton(onClick = onSelectAll) {
+                Icon(
+                    Icons.Default.SelectAll,
+                    contentDescription = stringResource(org.movzx.dumbai.R.string.btn_select_all),
+                )
+            }
+            IconButton(onClick = onAction) {
+                Icon(
+                    actionIcon,
+                    contentDescription = "Action",
+                    tint = colorResource(org.movzx.dumbai.R.color.error),
+                )
+            }
+        },
+        colors =
+            TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+        modifier =
+            Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

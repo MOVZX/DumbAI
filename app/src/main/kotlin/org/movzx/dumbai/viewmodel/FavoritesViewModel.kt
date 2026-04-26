@@ -60,6 +60,43 @@ constructor(
         viewModelScope.launch { repository.updateFavoritesType(type) }
     }
 
+    fun toggleSelection(id: Long) {
+        _uiState.update { state ->
+            val newSelected =
+                if (state.selectedIds.contains(id)) state.selectedIds - id
+                else state.selectedIds + id
+
+            state.copy(selectedIds = newSelected, isSelectionMode = newSelected.isNotEmpty())
+        }
+    }
+
+    fun clearSelection() {
+        _uiState.update { it.copy(selectedIds = emptySet(), isSelectionMode = false) }
+    }
+
+    fun selectAll() {
+        _uiState.update { state ->
+            val allIds = state.images.map { it.id }.toSet()
+            val newSelected = if (state.selectedIds.size == allIds.size) emptySet() else allIds
+
+            state.copy(selectedIds = newSelected, isSelectionMode = newSelected.isNotEmpty())
+        }
+    }
+
+    fun batchUnfavorite() {
+        viewModelScope.launch {
+            val idsToUnfavorite = _uiState.value.selectedIds
+
+            idsToUnfavorite.forEach { id ->
+                val image = _uiState.value.images.find { it.id == id }
+
+                if (image != null) favoritesRepository.toggleFavorite(image)
+            }
+
+            clearSelection()
+        }
+    }
+
     fun getFavoriteFlow(id: Long): Flow<FavoriteImage?> = favoritesRepository.getFavoriteFlow(id)
 
     suspend fun ensureFavoriteResources(

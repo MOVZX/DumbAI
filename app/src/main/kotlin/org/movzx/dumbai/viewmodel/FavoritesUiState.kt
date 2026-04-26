@@ -7,6 +7,8 @@ data class FavoritesUiState(
     override val isLoading: Boolean = false,
     val favoriteIds: Set<Long> = emptySet(),
     val type: String = "all",
+    val isSelectionMode: Boolean = false,
+    val selectedIds: Set<Long> = emptySet(),
     override val gridColumns: Int = 3,
     override val scrollIndex: Int = 0,
     override val scrollOffset: Int = 0,

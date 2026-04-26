@@ -4,7 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -42,10 +42,14 @@ fun ImageCard(
     downloadProgresses: Map<Long, Float>,
     showFavorite: Boolean,
     viewMode: String,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
     onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onClick: (CivitaiImage) -> Unit,
     onToggleFavorite: (CivitaiImage) -> Unit,
+    onToggleSelection: () -> Unit = {},
+    onLongClick: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -130,7 +134,13 @@ fun ImageCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth().aspectRatio(aspectRatio).clickable { onClick(image) },
+        modifier =
+            Modifier.fillMaxWidth()
+                .aspectRatio(aspectRatio)
+                .combinedClickable(
+                    onClick = { if (isSelectionMode) onToggleSelection() else onClick(image) },
+                    onLongClick = onLongClick,
+                ),
         shape = MaterialTheme.shapes.large,
         colors =
             CardDefaults.cardColors(
@@ -162,6 +172,20 @@ fun ImageCard(
                         isError = state is coil3.compose.AsyncImagePainter.State.Error
                     },
                 )
+            }
+
+            if (isSelected) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Selected",
+                        tint = colorResource(org.movzx.dumbai.R.color.success),
+                        modifier = Modifier.size(48.dp),
+                    )
+                }
             }
 
             if (isError) {
