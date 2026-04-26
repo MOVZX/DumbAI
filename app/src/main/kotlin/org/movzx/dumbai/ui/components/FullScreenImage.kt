@@ -7,9 +7,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -27,6 +25,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
 import kotlin.math.abs
 import kotlinx.coroutines.flow.Flow
@@ -62,6 +61,7 @@ fun FullScreenImage(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var userIsPlaying by remember { mutableStateOf(true) }
     var userIsMuted by remember { mutableStateOf(true) }
+    var playbackSpeed by remember { mutableFloatStateOf(1.0f) }
     var scaleMode by remember { mutableStateOf(ScaleMode.NORMAL) }
     var videoProgress by remember { mutableLongStateOf(0L) }
     var videoDuration by remember { mutableLongStateOf(0L) }
@@ -173,6 +173,7 @@ fun FullScreenImage(
                         videoDuration = 0L
                         hasAudio = false
                         videoPlaybackError = null
+                        isZoomed = false
                     }
 
                     with(sharedTransitionScope) {
@@ -183,17 +184,12 @@ fun FullScreenImage(
                                         rememberSharedContentState(key = "image-${image.id}"),
                                         animatedVisibilityScope = animatedVisibilityScope,
                                     )
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                    ) {
-                                        showUI = !showUI
-                                    }
                         ) {
                             VideoPlayer(
                                 url = previewData,
                                 isPlaying = page == pagerState.currentPage && userIsPlaying,
                                 isMuted = userIsMuted,
+                                playbackSpeed = playbackSpeed,
                                 scaleMode = scaleMode,
                                 onProgressUpdate = { pos, dur ->
                                     if (!isDraggingSeekBar) {
@@ -203,6 +199,8 @@ fun FullScreenImage(
                                 },
                                 onAudioStateChange = { hasAudio = it },
                                 onPlaybackError = { videoPlaybackError = it },
+                                onZoomChange = { isZoomed = it },
+                                onTap = { showUI = !showUI },
                                 seekPosition = seekToPosition,
                                 onSeekConsumed = { seekToPosition = null },
                             )
@@ -256,7 +254,45 @@ fun FullScreenImage(
         }
 
         AnimatedVisibility(
-            visible = showUI && !isZoomed && offsetY == 0f,
+            visible = showUI && offsetY == 0f,
+            enter = fadeIn() + slideInVertically { -it / 2 },
+            exit = fadeOut() + slideOutVertically { -it / 2 },
+            modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(16.dp),
+        ) {
+            val currentImage =
+                if (pagerState.currentPage < images.size) images[pagerState.currentPage] else null
+
+            if (currentImage != null) {
+                val context = androidx.compose.ui.platform.LocalContext.current
+
+                FilledTonalIconButton(
+                    onClick = {
+                        val url = "https://civitai.com/images/${currentImage.id}"
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+
+                        context.startActivity(intent)
+                    },
+                    colors =
+                        IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor =
+                                androidx.compose.ui.res
+                                    .colorResource(R.color.pure_black)
+                                    .copy(alpha = 0.5f),
+                            contentColor = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                        ),
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = "Open in Browser",
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showUI && offsetY == 0f,
             enter = fadeIn() + slideInVertically { it / 2 },
             exit = fadeOut() + slideOutVertically { it / 2 },
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -337,6 +373,28 @@ fun FullScreenImage(
                                         .colorResource(R.color.pure_white)
                                         .copy(alpha = if (hasAudio) 1f else 0.3f),
                                 modifier = Modifier.size(28.dp),
+                            )
+                        }
+
+                        TextButton(
+                            onClick = {
+                                playbackSpeed =
+                                    when (playbackSpeed) {
+                                        0.5f -> 0.75f
+                                        0.75f -> 1.0f
+                                        1.0f -> 1.25f
+                                        1.25f -> 1.5f
+                                        1.5f -> 2.0f
+                                        else -> 0.5f
+                                    }
+                            },
+                            modifier = Modifier.width(64.dp),
+                        ) {
+                            Text(
+                                text = "${playbackSpeed}x",
+                                color = colorResource(R.color.pure_white),
+                                fontSize = 14.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             )
                         }
 
@@ -431,27 +489,6 @@ fun FullScreenImage(
                                 Icons.Default.Delete,
                                 contentDescription = stringResource(R.string.btn_delete),
                                 tint = androidx.compose.ui.res.colorResource(R.color.error),
-                                modifier = Modifier.size(28.dp),
-                            )
-                        }
-                    }
-
-                    if (currentImage != null) {
-                        val context = androidx.compose.ui.platform.LocalContext.current
-
-                        IconButton(
-                            onClick = {
-                                val url = "https://civitai.com/images/${currentImage.id}"
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-
-                                context.startActivity(intent)
-                            },
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.OpenInNew,
-                                contentDescription = "Open in Browser",
-                                tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
                                 modifier = Modifier.size(28.dp),
                             )
                         }
