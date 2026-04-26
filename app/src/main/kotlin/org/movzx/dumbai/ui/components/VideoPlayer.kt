@@ -37,6 +37,8 @@ fun VideoPlayer(
     playbackSpeed: Float = 1.0f,
     scaleMode: ScaleMode = ScaleMode.NORMAL,
     onProgressUpdate: (Long, Long) -> Unit = { _, _ -> },
+    onFpsUpdate: (Int) -> Unit = {},
+    onPlayerTypeUpdate: (String) -> Unit = {},
     onAudioStateChange: (Boolean) -> Unit = {},
     onPlaybackError: (String?) -> Unit = {},
     onZoomChange: (Boolean) -> Unit = {},
@@ -48,6 +50,8 @@ fun VideoPlayer(
     var useMpv by remember(url) { mutableStateOf(false) }
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+
+    LaunchedEffect(useMpv) { onPlayerTypeUpdate(if (useMpv) "MPV" else "ExoPlayer") }
 
     Box(
         modifier =
@@ -105,6 +109,7 @@ fun VideoPlayer(
                 isMuted = isMuted,
                 playbackSpeed = playbackSpeed,
                 onProgressUpdate = onProgressUpdate,
+                onFpsUpdate = onFpsUpdate,
                 onAudioStateChange = onAudioStateChange,
                 seekPosition = seekPosition,
                 onSeekConsumed = onSeekConsumed,
@@ -117,6 +122,7 @@ fun VideoPlayer(
                 playbackSpeed = playbackSpeed,
                 scaleMode = scaleMode,
                 onProgressUpdate = onProgressUpdate,
+                onFpsUpdate = onFpsUpdate,
                 onAudioStateChange = onAudioStateChange,
                 onPlaybackError = onPlaybackError,
                 onSwitchToMpv = { useMpv = true },
@@ -136,6 +142,7 @@ private fun ExoVideoPlayer(
     playbackSpeed: Float,
     scaleMode: ScaleMode,
     onProgressUpdate: (Long, Long) -> Unit,
+    onFpsUpdate: (Int) -> Unit,
     onAudioStateChange: (Boolean) -> Unit,
     onPlaybackError: (String?) -> Unit,
     onSwitchToMpv: () -> Unit,
@@ -224,9 +231,26 @@ private fun ExoVideoPlayer(
 
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
+            var lastRenderedCount = 0
+            var lastTime = System.currentTimeMillis()
+
             while (true) {
                 if (exoPlayer.duration > 0)
                     onProgressUpdate(exoPlayer.currentPosition, exoPlayer.duration)
+
+                val currentRenderedCount =
+                    exoPlayer.videoDecoderCounters?.renderedOutputBufferCount ?: 0
+                val currentTime = System.currentTimeMillis()
+                val elapsed = currentTime - lastTime
+
+                if (elapsed >= 1000) {
+                    val fps = ((currentRenderedCount - lastRenderedCount) * 1000f / elapsed).toInt()
+
+                    onFpsUpdate(fps)
+
+                    lastRenderedCount = currentRenderedCount
+                    lastTime = currentTime
+                }
 
                 delay(33)
             }

@@ -18,6 +18,7 @@ fun MpvPlayer(
     isMuted: Boolean = true,
     playbackSpeed: Float = 1.0f,
     onProgressUpdate: (Long, Long) -> Unit = { _, _ -> },
+    onFpsUpdate: (Int) -> Unit = {},
     onAudioStateChange: (Boolean) -> Unit = {},
     seekPosition: Long? = null,
     onSeekConsumed: () -> Unit = {},
@@ -33,7 +34,7 @@ fun MpvPlayer(
         MPVLib.initialize(context)
         MPVLib.safeSetOptionString("vo", "gpu")
         MPVLib.safeSetOptionString("gpu-context", "android")
-        MPVLib.safeSetOptionString("hwdec", "no")
+        MPVLib.safeSetOptionString("hwdec", "auto")
         MPVLib.safeSetOptionString("force-window", "yes")
         MPVLib.safeSetOptionString("framedrop", "no")
         MPVLib.safeSetOptionString("hr-seek", "yes")
@@ -46,9 +47,11 @@ fun MpvPlayer(
                 if (MPVLib.lastOwnerId == instanceId) {
                     val pos = MPVLib.safeGetPropertyDouble("time-pos") ?: lastPos
                     val dur = MPVLib.safeGetPropertyDouble("duration") ?: 0.0
+                    val fps = MPVLib.safeGetPropertyDouble("estimated-vf-fps") ?: 0.0
                     lastPos = pos
 
                     onProgressUpdate((pos * 1000).toLong(), (dur * 1000).toLong())
+                    onFpsUpdate(fps.toInt())
 
                     val aid = MPVLib.safeGetPropertyInt("aid") ?: 0
 
@@ -66,7 +69,7 @@ fun MpvPlayer(
                 delay(50)
 
                 if (MPVLib.lastOwnerId != instanceId) {
-                    Logger.d("MpvPlayer", "[\$instanceId] Taking ownership and loading \$url")
+                    Logger.d("MpvPlayer", "[$instanceId] Taking ownership and loading $url")
 
                     MPVLib.lastOwnerId = instanceId
 
@@ -83,7 +86,7 @@ fun MpvPlayer(
             }
         } else {
             if (MPVLib.lastOwnerId == instanceId) {
-                Logger.d("MpvPlayer", "[\$instanceId] Releasing ownership (pausing)")
+                Logger.d("MpvPlayer", "[$instanceId] Releasing ownership (pausing)")
 
                 mpv.safeSetPropertyBoolean("pause", true)
             }

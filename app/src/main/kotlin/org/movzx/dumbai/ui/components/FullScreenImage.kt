@@ -69,6 +69,8 @@ fun FullScreenImage(
     var isDraggingSeekBar by remember { mutableStateOf(false) }
     var hasAudio by remember { mutableStateOf(false) }
     var videoPlaybackError by remember { mutableStateOf<String?>(null) }
+    var currentFps by remember { mutableIntStateOf(0) }
+    var currentPlayerType by remember { mutableStateOf("ExoPlayer") }
 
     val density = LocalDensity.current
 
@@ -174,6 +176,7 @@ fun FullScreenImage(
                         hasAudio = false
                         videoPlaybackError = null
                         isZoomed = false
+                        currentFps = 0
                     }
 
                     with(sharedTransitionScope) {
@@ -197,6 +200,8 @@ fun FullScreenImage(
                                         videoDuration = if (dur > 0) dur else 0L
                                     }
                                 },
+                                onFpsUpdate = { currentFps = it },
+                                onPlayerTypeUpdate = { currentPlayerType = it },
                                 onAudioStateChange = { hasAudio = it },
                                 onPlaybackError = { videoPlaybackError = it },
                                 onZoomChange = { isZoomed = it },
@@ -257,36 +262,57 @@ fun FullScreenImage(
             visible = showUI && offsetY == 0f,
             enter = fadeIn() + slideInVertically { -it / 2 },
             exit = fadeOut() + slideOutVertically { -it / 2 },
-            modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp),
         ) {
             val currentImage =
                 if (pagerState.currentPage < images.size) images[pagerState.currentPage] else null
 
-            if (currentImage != null) {
-                val context = androidx.compose.ui.platform.LocalContext.current
+            Box(modifier = Modifier.fillMaxWidth()) {
+                if (currentImage?.type == "video" && currentFps > 0) {
+                    Surface(
+                        color =
+                            androidx.compose.ui.res
+                                .colorResource(R.color.pure_black)
+                                .copy(alpha = 0.5f),
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.align(Alignment.CenterStart),
+                    ) {
+                        Text(
+                            text = "$currentPlayerType: $currentFps FPS",
+                            color = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                }
 
-                FilledTonalIconButton(
-                    onClick = {
-                        val url = "https://civitai.com/images/${currentImage.id}"
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                if (currentImage != null) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
 
-                        context.startActivity(intent)
-                    },
-                    colors =
-                        IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor =
-                                androidx.compose.ui.res
-                                    .colorResource(R.color.pure_black)
-                                    .copy(alpha = 0.5f),
-                            contentColor = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                        ),
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = "Open in Browser",
-                        modifier = Modifier.size(24.dp),
-                    )
+                    FilledTonalIconButton(
+                        onClick = {
+                            val url = "https://civitai.com/images/${currentImage.id}"
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+
+                            context.startActivity(intent)
+                        },
+                        colors =
+                            IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor =
+                                    androidx.compose.ui.res
+                                        .colorResource(R.color.pure_black)
+                                        .copy(alpha = 0.5f),
+                                contentColor =
+                                    androidx.compose.ui.res.colorResource(R.color.pure_white),
+                            ),
+                        modifier = Modifier.size(48.dp).align(Alignment.CenterEnd),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = "Open in Browser",
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
                 }
             }
         }
@@ -339,6 +365,8 @@ fun FullScreenImage(
                             ),
                         modifier = Modifier.fillMaxWidth().height(32.dp),
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
                 Row(
