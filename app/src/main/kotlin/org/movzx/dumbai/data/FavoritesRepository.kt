@@ -16,6 +16,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.movzx.dumbai.model.CivitaiImage
 import org.movzx.dumbai.model.FavoriteImage
+import org.movzx.dumbai.util.FileUtils
 import org.movzx.dumbai.util.Logger
 import org.movzx.dumbai.util.getThumbnailUrl
 import org.movzx.dumbai.util.getVideoPreviewUrl
@@ -45,51 +46,6 @@ class FavoritesRepository(
         Logger.d("DumbAI", "toggleFavorite: ${image.id} isFav=$isFav")
 
         if (isFav) removeFavorite(image) else addFavorite(image)
-    }
-
-    private fun isValidImage(file: File): Boolean = isValidImageWithExt(file) != null
-
-    private fun isValidImageWithExt(file: File): String? {
-        if (!file.exists() || file.length() < 100) return null
-
-        return try {
-            val bytes =
-                file.inputStream().use { input ->
-                    val buffer = ByteArray(24)
-
-                    input.read(buffer)
-                    buffer
-                }
-
-            val ext = org.movzx.dumbai.util.FileUtils.getExtensionFromBytes(bytes)
-
-            if (ext in setOf("png", "jpg", "webp", "gif", "avif")) ext else null
-        } catch (e: Exception) {
-            if (file.length() > 1024) "jpg" else null
-        }
-    }
-
-    private fun isValidVideo(file: File): Boolean = isValidVideoWithExt(file) != null
-
-    private fun isValidVideoWithExt(file: File): String? {
-        if (!file.exists() || file.length() < 1000) return null
-
-        return try {
-            val bytes =
-                file.inputStream().use { input ->
-                    val buffer = ByteArray(12)
-
-                    input.read(buffer)
-                    buffer
-                }
-
-            val ext = org.movzx.dumbai.util.FileUtils.getExtensionFromBytes(bytes)
-
-            if (ext in setOf("mp4", "webm", "mkv")) ext
-            else if (file.length() > 50 * 1024) "mp4" else null
-        } catch (e: Exception) {
-            if (file.length() > 1024) "mp4" else null
-        }
     }
 
     private fun extractVideoFrame(videoFile: File, outputFile: File): Boolean {
@@ -157,7 +113,7 @@ class FavoritesRepository(
                 var currentStep = 0f
                 val currentThumbFile = thumbPath?.let { File(it) } ?: thumbFile
 
-                if (!isValidImage(currentThumbFile)) {
+                if (!FileUtils.isRealMedia(currentThumbFile)) {
                     val thumbUrl =
                         if (image.type == "video") getVideoThumbnailUrl(image.url)
                         else getThumbnailUrl(image.url, 640)
@@ -171,9 +127,10 @@ class FavoritesRepository(
                             onProgress((currentStep + p) / totalSteps)
                         }
                     ) {
-                        val ext = isValidImageWithExt(tempFile)
+                        val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                        val ext = FileUtils.getExtensionFromBytes(bytes)
 
-                        if (ext != null) {
+                        if (ext != null && ext in setOf("png", "jpg", "webp", "gif", "avif")) {
                             val finalFile = File(favoritesDir, "${image.id}.$ext")
 
                             if (finalFile.exists()) finalFile.delete()
@@ -183,9 +140,7 @@ class FavoritesRepository(
                             thumbPath = finalFile.absolutePath
                             updated = true
                         } else {
-                            val videoExt = isValidVideoWithExt(tempFile)
-
-                            if (videoExt != null) {
+                            if (ext != null && ext in setOf("mp4", "webm", "mkv")) {
                                 val frameFile = File(favoritesDir, "${image.id}.jpg")
 
                                 if (extractVideoFrame(tempFile, frameFile)) {
@@ -203,7 +158,7 @@ class FavoritesRepository(
                 if (image.type != "video") {
                     val currentFullFile = fullPath?.let { File(it) } ?: fullFile
 
-                    if (!isValidImage(currentFullFile)) {
+                    if (!FileUtils.isRealMedia(currentFullFile)) {
                         Logger.d("DumbAI_Res", "ID: ${image.id} | Cache | Downloading Full Image")
 
                         val tempFile = File(context.cacheDir, "temp_full_${image.id}")
@@ -213,9 +168,10 @@ class FavoritesRepository(
                                 onProgress((currentStep + p) / totalSteps)
                             }
                         ) {
-                            val ext = isValidImageWithExt(tempFile)
+                            val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                            val ext = FileUtils.getExtensionFromBytes(bytes)
 
-                            if (ext != null) {
+                            if (ext != null && ext in setOf("png", "jpg", "webp", "gif", "avif")) {
                                 val finalFile = File(favoritesDir, "${image.id}_full.$ext")
 
                                 if (finalFile.exists()) finalFile.delete()
@@ -230,7 +186,7 @@ class FavoritesRepository(
                 } else {
                     val currentVideoFile = videoPath?.let { File(it) } ?: videoFile!!
 
-                    if (!isValidVideo(currentVideoFile)) {
+                    if (!FileUtils.isRealMedia(currentVideoFile)) {
                         val videoUrl = getVideoPreviewUrl(image.url)
 
                         Logger.d("DumbAI_Res", "ID: ${image.id} | Cache | Downloading Video")
@@ -250,9 +206,10 @@ class FavoritesRepository(
                         }
 
                         if (success) {
-                            val ext = isValidVideoWithExt(tempFile)
+                            val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                            val ext = FileUtils.getExtensionFromBytes(bytes)
 
-                            if (ext != null) {
+                            if (ext != null && ext in setOf("mp4", "webm", "mkv")) {
                                 val finalFile = File(favoritesDir, "${image.id}.$ext")
 
                                 if (finalFile.exists()) finalFile.delete()
@@ -303,20 +260,12 @@ class FavoritesRepository(
             okHttpClient.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
                     val contentType = response.header("Content-Type")
-                    val contentLength = response.body?.contentLength() ?: 0L
+                    val body = response.body ?: return false
+                    val contentLength = body.contentLength()
 
                     Logger.d("DumbAI_Res", "Download: $url Type: $contentType Size: $contentLength")
 
-                    if (contentLength < 100) {
-                        Logger.e(
-                            "DumbAI_Res",
-                            "Download Failed: File too small ($contentLength bytes)",
-                        )
-
-                        return false
-                    }
-
-                    response.body?.byteStream()?.use { input ->
+                    body.byteStream().use { input ->
                         tempFile.outputStream().use { output ->
                             val buffer = ByteArray(8192)
                             var bytesRead: Int
@@ -333,8 +282,16 @@ class FavoritesRepository(
                         }
                     }
 
-                    // Atomic move with fallback
-                    if (tempFile.exists() && tempFile.length() > 100) {
+                    if (tempFile.exists() && tempFile.length() > 10) {
+                        if (!FileUtils.isRealMedia(tempFile)) {
+                            Logger.e(
+                                "DumbAI_Res",
+                                "Download Failed: Invalid media content for $url",
+                            )
+
+                            return false
+                        }
+
                         if (destination.exists()) destination.delete()
 
                         val success = tempFile.renameTo(destination)
@@ -351,7 +308,7 @@ class FavoritesRepository(
                             }
                         } else true
                     } else {
-                        Logger.e("DumbAI_Res", "Download Failed: Temp file invalid")
+                        Logger.e("DumbAI_Res", "Download Failed: Temp file invalid or empty")
 
                         false
                     }

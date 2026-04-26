@@ -38,6 +38,7 @@ object AppModule {
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(interceptor)
+            .addInterceptor(org.movzx.dumbai.api.CivitaiThumbnailInterceptor())
             .build()
     }
 

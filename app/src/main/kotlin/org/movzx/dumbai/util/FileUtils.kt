@@ -1,5 +1,7 @@
 package org.movzx.dumbai.util
 
+import java.io.File
+import java.io.FileInputStream
 import okio.BufferedSource
 import okio.ByteString.Companion.decodeHex
 
@@ -60,18 +62,41 @@ object FileUtils {
         return "jpg"
     }
 
-    fun getExtensionFromBytes(bytes: ByteArray): String {
-        val hex = bytes.take(12).joinToString("") { "%02X".format(it) }
+    fun getExtensionFromBytes(bytes: ByteArray): String? {
+        if (bytes.size < 4) return null
+
+        val hex = bytes.joinToString("") { "%02X".format(it) }
 
         return when {
             hex.startsWith("89504E47") -> "png"
             hex.startsWith("FFD8FF") -> "jpg"
-            hex.startsWith("52494646") && hex.substring(16, 24) == "57454250" -> "webp"
+            hex.startsWith("52494646") && hex.length >= 24 && hex.substring(16, 24) == "57454250" ->
+                "webp"
             hex.startsWith("47494638") -> "gif"
             hex.contains("61766966") -> "avif"
             hex.contains("66747970") -> "mp4"
             hex.startsWith("1A45DFA3") -> "webm"
-            else -> "jpg"
+            else -> null
+        }
+    }
+
+    fun isRealMedia(file: File): Boolean {
+        if (!file.exists() || file.length() < 12) return false
+
+        return try {
+            val bytes =
+                FileInputStream(file).use { input ->
+                    val buffer = ByteArray(12)
+
+                    input.read(buffer)
+                    buffer
+                }
+
+            if (bytes[0] == '{'.code.toByte()) return false
+
+            getExtensionFromBytes(bytes) != null
+        } catch (e: Exception) {
+            false
         }
     }
 }

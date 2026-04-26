@@ -18,9 +18,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 import java.io.File
+import org.movzx.dumbai.data.UserPreferencesRepository
 import org.movzx.dumbai.model.CivitaiImage
 import org.movzx.dumbai.model.FavoriteImage
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface UtilsEntryPoint {
+    fun userPreferencesRepository(): UserPreferencesRepository
+}
 
 fun Modifier.scrollbar(state: ScrollState, width: Dp = 4.dp, color: Color? = null): Modifier =
     composed {
