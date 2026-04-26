@@ -94,6 +94,22 @@
         <item>5133</item>
     </integer-array>
 
+    <string-array name="nsfw_tag_names">
+        <item>Fellatio</item>
+        <item>Oral</item>
+        <item>Cum</item>
+        <item>Cum in Mouth</item>
+        <item>Facial</item>
+    </string-array>
+
+    <integer-array name="nsfw_tag_ids">
+        <item>2084</item>
+        <item>231</item>
+        <item>5195</item>
+        <item>109814</item>
+        <item>1599</item>
+    </integer-array>
+
     <!-- Display Settings -->
     <integer-array name="page_limits">
         <item>20</item>

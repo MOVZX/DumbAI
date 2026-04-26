@@ -50,6 +50,14 @@ fun FilterSidebar(
             currentTagIds?.split(",")?.mapNotNull { it.trim().toIntOrNull() } ?: emptyList()
         }
 
+    val nsfwTags =
+        remember(context) {
+            val names = context.resources.getStringArray(R.array.nsfw_tag_names)
+            val ids = context.resources.getIntArray(R.array.nsfw_tag_ids)
+
+            names.mapIndexed { index, name -> CivitaiTag(ids[index], name) }
+        }
+
     val scrollState = rememberScrollState()
 
     BaseSidebar(
@@ -139,6 +147,49 @@ fun FilterSidebar(
                                 },
                                 label = { Text(tag.name) },
                             )
+                        }
+                    }
+                }
+
+                if (currentNsfw != "None") {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "NSFW Tags",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        nsfwTags.forEach { tag ->
+                            if (tag.id != null) {
+                                val isSelected = selectedTagIdsList.contains(tag.id)
+
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        val newList =
+                                            if (isSelected) selectedTagIdsList - tag.id
+                                            else selectedTagIdsList + tag.id
+
+                                        currentTagIds =
+                                            if (newList.isEmpty()) null
+                                            else newList.joinToString(",")
+                                    },
+                                    label = { Text(tag.name) },
+                                )
+                            }
                         }
                     }
                 }
