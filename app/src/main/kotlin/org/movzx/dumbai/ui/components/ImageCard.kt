@@ -137,7 +137,11 @@ fun ImageCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             ),
     ) {
-        Box(modifier = Modifier.fillMaxSize().shimmerBackground()) {
+        var isError by remember { mutableStateOf(false) }
+
+        Box(
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
             with(sharedTransitionScope) {
                 AsyncImage(
                     model =
@@ -154,7 +158,21 @@ fun ImageCard(
                                 animatedVisibilityScope = animatedVisibilityScope,
                             ),
                     contentScale = ContentScale.Crop,
+                    onState = { state ->
+                        isError = state is coil3.compose.AsyncImagePainter.State.Error
+                    },
                 )
+            }
+
+            if (isError) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.BrokenImage,
+                        contentDescription = "Failed to load",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
             }
 
             Box(

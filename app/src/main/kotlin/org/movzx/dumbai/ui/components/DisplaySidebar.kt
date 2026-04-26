@@ -15,11 +15,14 @@ import org.movzx.dumbai.util.scrollbar
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DisplaySidebar(
+    currentRoute: String,
     pageLimit: Int,
     gridColumns: Int,
+    type: String,
     onDismiss: () -> Unit,
     onUpdatePageLimit: (Int) -> Unit,
     onUpdateGridColumns: (Int) -> Unit,
+    onUpdateType: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val pageLimits = remember(context) { context.resources.getIntArray(R.array.page_limits) }
@@ -29,6 +32,7 @@ fun DisplaySidebar(
 
     var currentPageLimit by remember(pageLimit) { mutableStateOf(pageLimit) }
     var currentGridColumns by remember(gridColumns) { mutableStateOf(gridColumns) }
+    var currentType by remember(type) { mutableStateOf(type) }
     val scrollState = rememberScrollState()
 
     BaseSidebar(
@@ -39,6 +43,7 @@ fun DisplaySidebar(
                 onClick = {
                     onUpdatePageLimit(currentPageLimit)
                     onUpdateGridColumns(currentGridColumns)
+                    onUpdateType(currentType)
                     onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -53,23 +58,55 @@ fun DisplaySidebar(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             SidebarSection(title = stringResource(R.string.section_app_config)) {
-                Text(
-                    stringResource(R.string.label_images_per_request),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (currentRoute == "feed") {
+                    Text(
+                        stringResource(R.string.label_images_per_request),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    pageLimits.forEach { limit ->
-                        FilterChip(
-                            selected = currentPageLimit == limit,
-                            onClick = { currentPageLimit = limit },
-                            label = { Text(limit.toString()) },
-                        )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        pageLimits.forEach { limit ->
+                            FilterChip(
+                                selected = currentPageLimit == limit,
+                                onClick = { currentPageLimit = limit },
+                                label = { Text(limit.toString()) },
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                if (currentRoute != "feed") {
+                    Text(
+                        stringResource(R.string.content_type),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = currentType == "all",
+                            onClick = { currentType = "all" },
+                            label = { Text(stringResource(R.string.opt_all)) },
+                        )
+
+                        FilterChip(
+                            selected = currentType == "image",
+                            onClick = { currentType = "image" },
+                            label = { Text(stringResource(R.string.opt_image)) },
+                        )
+
+                        FilterChip(
+                            selected = currentType == "video",
+                            onClick = { currentType = "video" },
+                            label = { Text(stringResource(R.string.opt_video)) },
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
                 Text(
                     stringResource(R.string.label_grid_columns),

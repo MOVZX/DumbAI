@@ -14,14 +14,18 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -100,6 +104,22 @@ fun MainScreen(imageLoader: ImageLoader) {
     val leftDrawerState = rememberDrawerState(DrawerValue.Closed)
     val rightDrawerState = rememberDrawerState(DrawerValue.Closed)
     var rightSidebarType by remember { mutableStateOf(RightSidebarType.FILTERS) }
+    var gestureSide by remember { mutableStateOf(LayoutDirection.Rtl) }
+
+    LaunchedEffect(rightDrawerState.isClosed) {
+        if (rightDrawerState.isClosed) rightSidebarType = RightSidebarType.FILTERS
+    }
+
+    val leftGesturesEnabled =
+        selectedImageIndex == null &&
+            (leftDrawerState.isOpen ||
+                (gestureSide == LayoutDirection.Ltr && rightDrawerState.isClosed))
+
+    val rightGesturesEnabled =
+        selectedImageIndex == null &&
+            (rightDrawerState.isOpen ||
+                (gestureSide == LayoutDirection.Rtl && leftDrawerState.isClosed))
+
     val feedViewModel: FeedViewModel = hiltViewModel(activity)
     val favoritesViewModel: FavoritesViewModel = hiltViewModel(activity)
     val galleryViewModel: GalleryViewModel = hiltViewModel(activity)
@@ -216,26 +236,45 @@ fun MainScreen(imageLoader: ImageLoader) {
 
     ModalNavigationDrawer(
         drawerState = leftDrawerState,
-        gesturesEnabled = selectedImageIndex == null,
+        gesturesEnabled = leftGesturesEnabled,
         drawerContent = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = navBackStackEntry?.destination?.route
+            val currentRoute = navBackStackEntry?.destination?.route ?: ""
 
             if (currentRoute == "feed") {
                 DisplaySidebar(
+                    currentRoute = currentRoute,
                     pageLimit = feedUiState.pageLimit,
                     gridColumns = feedUiState.gridColumns,
+                    type = "all",
                     onDismiss = { scope.launch { leftDrawerState.close() } },
                     onUpdatePageLimit = { feedViewModel.updatePageLimit(it) },
                     onUpdateGridColumns = { feedViewModel.updateGridColumns(it) },
+                    onUpdateType = {},
                 )
             } else if (currentRoute == "favorites") {
                 DisplaySidebar(
+                    currentRoute = currentRoute,
                     pageLimit = 100,
                     gridColumns = favoritesUiState.gridColumns,
+                    type = favoritesUiState.type,
                     onDismiss = { scope.launch { leftDrawerState.close() } },
-                    onUpdatePageLimit = { favoritesViewModel.updatePageLimit(it) },
+                    onUpdatePageLimit = {},
                     onUpdateGridColumns = { favoritesViewModel.updateGridColumns(it) },
+                    onUpdateType = { favoritesViewModel.updateType(it) },
+                )
+            } else if (currentRoute == "gallery") {
+                val galleryUiState by galleryViewModel.uiState.collectAsState()
+
+                DisplaySidebar(
+                    currentRoute = currentRoute,
+                    pageLimit = 100,
+                    gridColumns = galleryUiState.gridColumns,
+                    type = galleryUiState.type,
+                    onDismiss = { scope.launch { leftDrawerState.close() } },
+                    onUpdatePageLimit = {},
+                    onUpdateGridColumns = { galleryViewModel.updateGridColumns(it) },
+                    onUpdateType = { galleryViewModel.updateType(it) },
                 )
             } else {
                 ModalDrawerSheet(
@@ -250,18 +289,12 @@ fun MainScreen(imageLoader: ImageLoader) {
             }
         },
     ) {
-        CompositionLocalProvider(
-            androidx.compose.ui.platform.LocalLayoutDirection provides
-                androidx.compose.ui.unit.LayoutDirection.Rtl
-        ) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             ModalNavigationDrawer(
                 drawerState = rightDrawerState,
-                gesturesEnabled = selectedImageIndex == null,
+                gesturesEnabled = rightGesturesEnabled,
                 drawerContent = {
-                    CompositionLocalProvider(
-                        androidx.compose.ui.platform.LocalLayoutDirection provides
-                            androidx.compose.ui.unit.LayoutDirection.Ltr
-                    ) {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         if (rightSidebarType == RightSidebarType.FILTERS) {
                             FilterSidebar(
                                 nsfw = feedUiState.nsfw,
@@ -302,113 +335,141 @@ fun MainScreen(imageLoader: ImageLoader) {
                     }
                 },
             ) {
-                CompositionLocalProvider(
-                    androidx.compose.ui.platform.LocalLayoutDirection provides
-                        androidx.compose.ui.unit.LayoutDirection.Ltr
-                ) {
-                    SharedTransitionLayout {
-                        AnimatedContent(
-                            targetState = selectedImageIndex,
-                            label = "FullScreenTransition",
-                            transitionSpec = {
-                                fadeIn(animationSpec = tween(300)) togetherWith
-                                    fadeOut(animationSpec = tween(300))
-                            },
-                        ) { targetIndex ->
-                            if (targetIndex == null) {
-                                AppNavigation(
-                                    navController = navController,
-                                    imageLoader = imageLoader,
-                                    feedGridState = feedGridState,
-                                    favoritesGridState = favoritesGridState,
-                                    galleryGridState = galleryGridState,
-                                    favoritesRestored = favoritesRestored,
-                                    onFavoritesRestored = { favoritesRestored = it },
-                                    galleryRestored = galleryRestored,
-                                    onGalleryRestored = { galleryRestored = it },
-                                    onOpenLeftSidebar = { scope.launch { leftDrawerState.open() } },
-                                    onOpenRightSidebar = { type ->
-                                        rightSidebarType = type
-                                        scope.launch { rightDrawerState.open() }
-                                    },
-                                    onImageClick = { images, index, viewMode ->
-                                        fullScreenImages = images
-                                        selectedImageIndex = index
-                                        fullScreenViewMode = viewMode
-                                    },
-                                    sharedTransitionScope = this@SharedTransitionLayout,
-                                    animatedVisibilityScope = this@AnimatedContent,
-                                )
-                            } else {
-                                val favoriteIds by favoritesViewModel.uiState.collectAsState()
-                                val galleryState by galleryViewModel.uiState.collectAsState()
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Box(
+                        modifier =
+                            Modifier.fillMaxSize().pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                        val down = event.changes.find { it.changedToDown() }
 
-                                val downloadProgresses =
-                                    when (fullScreenViewMode) {
-                                        "feed" ->
-                                            feedViewModel.uiState
-                                                .collectAsState()
-                                                .value
-                                                .downloadProgresses
-                                        "favorites" ->
-                                            favoritesViewModel.uiState
-                                                .collectAsState()
-                                                .value
-                                                .downloadProgresses
-                                        "gallery" ->
-                                            galleryViewModel.uiState
-                                                .collectAsState()
-                                                .value
-                                                .downloadProgresses
-                                        else -> emptyMap()
+                                        if (
+                                            down != null &&
+                                                leftDrawerState.isClosed &&
+                                                rightDrawerState.isClosed
+                                        ) {
+                                            val x = down.position.x
+                                            val threshold = 80.dp.toPx()
+
+                                            if (x < threshold) gestureSide = LayoutDirection.Ltr
+                                            else if (x > size.width - threshold)
+                                                gestureSide = LayoutDirection.Rtl
+                                        }
                                     }
+                                }
+                            }
+                    ) {
+                        SharedTransitionLayout {
+                            AnimatedContent(
+                                targetState = selectedImageIndex,
+                                label = "FullScreenTransition",
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(300)) togetherWith
+                                        fadeOut(animationSpec = tween(300))
+                                },
+                            ) { targetIndex ->
+                                if (targetIndex == null) {
+                                    AppNavigation(
+                                        navController = navController,
+                                        imageLoader = imageLoader,
+                                        feedGridState = feedGridState,
+                                        favoritesGridState = favoritesGridState,
+                                        galleryGridState = galleryGridState,
+                                        favoritesRestored = favoritesRestored,
+                                        onFavoritesRestored = { favoritesRestored = it },
+                                        galleryRestored = galleryRestored,
+                                        onGalleryRestored = { galleryRestored = it },
+                                        onOpenLeftSidebar = {
+                                            scope.launch { leftDrawerState.open() }
+                                        },
+                                        onOpenRightSidebar = { type ->
+                                            rightSidebarType = type
+                                            scope.launch { rightDrawerState.open() }
+                                        },
+                                        onImageClick = { images, index, viewMode ->
+                                            fullScreenImages = images
+                                            selectedImageIndex = index
+                                            fullScreenViewMode = viewMode
+                                        },
+                                        sharedTransitionScope = this@SharedTransitionLayout,
+                                        animatedVisibilityScope = this@AnimatedContent,
+                                    )
+                                } else {
+                                    val favoriteIds by favoritesViewModel.uiState.collectAsState()
+                                    val galleryState by galleryViewModel.uiState.collectAsState()
 
-                                FullScreenImage(
-                                    images = fullScreenImages,
-                                    initialIndex = targetIndex,
-                                    imageLoader = imageLoader,
-                                    favoriteIds = favoriteIds.favoriteIds,
-                                    downloadedIds = galleryState.downloadedIds,
-                                    downloadProgresses = downloadProgresses,
-                                    viewMode = fullScreenViewMode,
-                                    onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
-                                    onEnsureFavoriteResources = { img, force, onProgress ->
-                                        if (fullScreenViewMode == "feed")
-                                            feedViewModel.ensureFavoriteResources(
-                                                img,
-                                                force,
-                                                onProgress,
-                                            )
-                                        else if (fullScreenViewMode == "favorites")
-                                            favoritesViewModel.ensureFavoriteResources(
-                                                img,
-                                                force,
-                                                onProgress,
-                                            )
-                                        else
-                                            galleryViewModel.ensureFavoriteResources(
-                                                img,
-                                                force,
-                                                onProgress,
-                                            )
-                                    },
-                                    onToggleFavorite = {
-                                        if (fullScreenViewMode == "feed")
-                                            feedViewModel.toggleFavorite(it)
-                                        else favoritesViewModel.toggleFavorite(it)
-                                    },
-                                    onDownloadImage = {
-                                        if (fullScreenViewMode == "feed")
-                                            feedViewModel.downloadImage(it)
-                                        else if (fullScreenViewMode == "favorites")
-                                            favoritesViewModel.downloadImage(it)
-                                        else galleryViewModel.downloadImage(it)
-                                    },
-                                    onDeleteLocalFile = { galleryViewModel.deleteLocalFile(it) },
-                                    onDismiss = { selectedImageIndex = null },
-                                    sharedTransitionScope = this@SharedTransitionLayout,
-                                    animatedVisibilityScope = this@AnimatedContent,
-                                )
+                                    val downloadProgresses =
+                                        when (fullScreenViewMode) {
+                                            "feed" ->
+                                                feedViewModel.uiState
+                                                    .collectAsState()
+                                                    .value
+                                                    .downloadProgresses
+                                            "favorites" ->
+                                                favoritesViewModel.uiState
+                                                    .collectAsState()
+                                                    .value
+                                                    .downloadProgresses
+                                            "gallery" ->
+                                                galleryViewModel.uiState
+                                                    .collectAsState()
+                                                    .value
+                                                    .downloadProgresses
+                                            else -> emptyMap()
+                                        }
+
+                                    FullScreenImage(
+                                        images = fullScreenImages,
+                                        initialIndex = targetIndex,
+                                        imageLoader = imageLoader,
+                                        favoriteIds = favoriteIds.favoriteIds,
+                                        downloadedIds = galleryState.downloadedIds,
+                                        downloadProgresses = downloadProgresses,
+                                        viewMode = fullScreenViewMode,
+                                        onGetFavoriteFlow = {
+                                            favoritesViewModel.getFavoriteFlow(it)
+                                        },
+                                        onEnsureFavoriteResources = { img, force, onProgress ->
+                                            if (fullScreenViewMode == "feed")
+                                                feedViewModel.ensureFavoriteResources(
+                                                    img,
+                                                    force,
+                                                    onProgress,
+                                                )
+                                            else if (fullScreenViewMode == "favorites")
+                                                favoritesViewModel.ensureFavoriteResources(
+                                                    img,
+                                                    force,
+                                                    onProgress,
+                                                )
+                                            else
+                                                galleryViewModel.ensureFavoriteResources(
+                                                    img,
+                                                    force,
+                                                    onProgress,
+                                                )
+                                        },
+                                        onToggleFavorite = {
+                                            if (fullScreenViewMode == "feed")
+                                                feedViewModel.toggleFavorite(it)
+                                            else favoritesViewModel.toggleFavorite(it)
+                                        },
+                                        onDownloadImage = {
+                                            if (fullScreenViewMode == "feed")
+                                                feedViewModel.downloadImage(it)
+                                            else if (fullScreenViewMode == "favorites")
+                                                favoritesViewModel.downloadImage(it)
+                                            else galleryViewModel.downloadImage(it)
+                                        },
+                                        onDeleteLocalFile = {
+                                            galleryViewModel.deleteLocalFile(it)
+                                        },
+                                        onDismiss = { selectedImageIndex = null },
+                                        sharedTransitionScope = this@SharedTransitionLayout,
+                                        animatedVisibilityScope = this@AnimatedContent,
+                                    )
+                                }
                             }
                         }
                     }
@@ -483,6 +544,7 @@ fun AppNavigation(
             GalleryScreen(
                 imageLoader = imageLoader,
                 gridState = galleryGridState,
+                onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,
                 currentRoute = currentRoute,
@@ -675,6 +737,7 @@ fun FavoritesScreen(
 fun GalleryScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
+    onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
     currentRoute: String?,
@@ -760,22 +823,12 @@ fun GalleryScreen(
 
     AppScaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.nav_gallery)) },
-                actions = {
-                    IconButton(onClick = { onOpenRightSidebar(RightSidebarType.SETTINGS) }) {
-                        Icon(Icons.Default.Settings, stringResource(R.string.settings))
-                    }
-                },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
-                modifier =
-                    Modifier.windowInsetsPadding(
-                        WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                    ),
+            MainTopBar(
+                gridColumns = uiState.gridColumns,
+                onShowDisplayOptions = onOpenLeftSidebar,
+                onUpdateGridColumns = { viewModel.updateGridColumns(it) },
+                onShowFilters = {},
+                onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
             )
         },
         bottomBar = { MainBottomBar(currentRoute, onNavigate) },
@@ -790,7 +843,7 @@ fun GalleryScreen(
                 isLoading = uiState.isLoading,
                 favoriteIds = favoritesState.favoriteIds,
                 downloadProgresses = favoritesState.downloadProgresses,
-                columnCount = 3,
+                columnCount = uiState.gridColumns,
                 showFavorite = false,
                 viewMode = "gallery",
                 onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },

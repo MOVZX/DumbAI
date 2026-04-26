@@ -34,8 +34,8 @@ object AppModule {
     @Singleton
     fun provideOkHttpClient(interceptor: org.movzx.dumbai.api.CivitaiInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(interceptor)
             .addInterceptor(org.movzx.dumbai.api.CivitaiThumbnailInterceptor())
@@ -65,7 +65,10 @@ object AppModule {
         okHttpClient: OkHttpClient,
     ): coil3.ImageLoader {
         return coil3.ImageLoader.Builder(context)
-            .components { add(coil3.video.VideoFrameDecoder.Factory()) }
+            .components {
+                add(coil3.network.okhttp.OkHttpNetworkFetcherFactory(okHttpClient))
+                add(coil3.video.VideoFrameDecoder.Factory())
+            }
             .memoryCache {
                 coil3.memory.MemoryCache.Builder()
                     .maxSizePercent(context, 0.25)

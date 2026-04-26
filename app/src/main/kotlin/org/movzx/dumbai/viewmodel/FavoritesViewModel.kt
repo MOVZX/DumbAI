@@ -34,13 +34,30 @@ constructor(
                     favoritesRepository.allFavorites,
                     favoritesRepository.favoriteIds,
                     repository.gridColumns,
-                ) { favorites, ids, columns ->
+                    repository.favoritesType,
+                ) { favorites, ids, columns, type ->
+                    val filtered =
+                        when (type) {
+                            "image" -> favorites.filter { it.type == "image" }
+                            "video" -> favorites.filter { it.type == "video" }
+                            else -> favorites
+                        }
+
                     _uiState.update {
-                        it.copy(images = favorites, favoriteIds = ids, gridColumns = columns)
+                        it.copy(
+                            images = filtered,
+                            favoriteIds = ids,
+                            gridColumns = columns,
+                            type = type,
+                        )
                     }
                 }
                 .collect {}
         }
+    }
+
+    fun updateType(type: String) {
+        viewModelScope.launch { repository.updateFavoritesType(type) }
     }
 
     fun getFavoriteFlow(id: Long): Flow<FavoriteImage?> = favoritesRepository.getFavoriteFlow(id)

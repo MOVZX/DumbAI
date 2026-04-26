@@ -6,6 +6,7 @@ data class FavoritesUiState(
     override val images: List<CivitaiImage> = emptyList(),
     override val isLoading: Boolean = false,
     val favoriteIds: Set<Long> = emptySet(),
+    val type: String = "all",
     override val gridColumns: Int = 3,
     override val scrollIndex: Int = 0,
     override val scrollOffset: Int = 0,

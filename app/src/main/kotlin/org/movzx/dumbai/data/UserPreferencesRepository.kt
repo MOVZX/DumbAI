@@ -34,6 +34,8 @@ class UserPreferencesRepository(private val context: Context) {
         val GRID_COLUMNS = intPreferencesKey("grid_columns")
         val DOWNLOAD_PATH = stringPreferencesKey("download_path")
         val DEBUG_ENABLED = booleanPreferencesKey("debug_enabled")
+        val FAVORITES_TYPE = stringPreferencesKey("favorites_type")
+        val GALLERY_TYPE = stringPreferencesKey("gallery_type")
     }
 
     val nsfw: Flow<String> =
@@ -116,6 +118,16 @@ class UserPreferencesRepository(private val context: Context) {
     val debugEnabled: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
             preferences[PreferencesKeys.DEBUG_ENABLED] ?: false
+        }
+
+    val favoritesType: Flow<String> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.FAVORITES_TYPE] ?: "all"
+        }
+
+    val galleryType: Flow<String> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.GALLERY_TYPE] ?: "all"
         }
 
     suspend fun getCurrentSettings(): AppSettingsBackup {
@@ -244,6 +256,18 @@ class UserPreferencesRepository(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEBUG_ENABLED] = enabled
         }
+    }
+
+    suspend fun updateFavoritesType(type: String) {
+        Logger.d("DumbAI_Prefs", "updateFavoritesType: $type")
+
+        context.dataStore.edit { preferences -> preferences[PreferencesKeys.FAVORITES_TYPE] = type }
+    }
+
+    suspend fun updateGalleryType(type: String) {
+        Logger.d("DumbAI_Prefs", "updateGalleryType: $type")
+
+        context.dataStore.edit { preferences -> preferences[PreferencesKeys.GALLERY_TYPE] = type }
     }
 
     suspend fun getInterceptorSettings() =

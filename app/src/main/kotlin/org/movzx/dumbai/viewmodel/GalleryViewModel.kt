@@ -28,10 +28,18 @@ constructor(
 
             _uiState.update { it.copy(scrollIndex = initialIndex, scrollOffset = initialOffset) }
 
-            repository.downloadPath.collect { path ->
-                _uiState.update { it.copy(downloadPath = path) }
-                refresh()
-            }
+            combine(repository.downloadPath, repository.galleryType, repository.gridColumns) {
+                    path,
+                    type,
+                    columns ->
+                    Triple(path, type, columns)
+                }
+                .collect { (path, type, columns) ->
+                    _uiState.update {
+                        it.copy(downloadPath = path, type = type, gridColumns = columns)
+                    }
+                    refresh()
+                }
         }
 
         viewModelScope.launch {
@@ -47,8 +55,19 @@ constructor(
 
             val images = galleryRepository.scanDirectory(_uiState.value.downloadPath)
 
-            _uiState.update { it.copy(images = images, isLoading = false) }
+            val filtered =
+                when (_uiState.value.type) {
+                    "image" -> images.filter { it.type == "image" }
+                    "video" -> images.filter { it.type == "video" }
+                    else -> images
+                }
+
+            _uiState.update { it.copy(images = filtered, isLoading = false) }
         }
+    }
+
+    fun updateType(type: String) {
+        viewModelScope.launch { repository.updateGalleryType(type) }
     }
 
     fun deleteLocalFile(image: CivitaiImage) {

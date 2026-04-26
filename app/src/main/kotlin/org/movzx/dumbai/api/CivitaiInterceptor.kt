@@ -15,25 +15,38 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
         val original = chain.request()
         val requestBuilder = original.newBuilder()
         val host = original.url.host
+        val path = original.url.encodedPath
         val isCivitai = host.contains("civitai.com")
+        val isApi = isCivitai && path.contains("/api/")
+        val isImage = host == "image.civitai.com"
         val (key, debugEnabled) = runBlocking { repository.getInterceptorSettings() }
 
-        if (isCivitai) if (key.isNotBlank()) requestBuilder.header("Authorization", "Bearer $key")
+        if (isCivitai) {
+            requestBuilder.header(
+                "User-Agent",
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+            )
+
+            if (isApi && key.isNotBlank()) requestBuilder.header("Authorization", "Bearer $key")
+        }
 
         val request = requestBuilder.build()
 
-        Logger.d("DumbAI_Net", "Request: ${request.method} ${request.url}")
-
-        request.headers.forEach { (name, value) ->
-            if (name != "Authorization") Logger.d("DumbAI_Net", "Header: $name: $value")
+        if (debugEnabled) {
+            Logger.d("DumbAI_Net", "Request: ${request.method} ${request.url}")
+            request.headers.forEach { (name, value) ->
+                if (name != "Authorization") Logger.d("DumbAI_Net", "Header: $name: $value")
+            }
         }
 
         val response = chain.proceed(request)
 
-        Logger.d(
-            "DumbAI_Net",
-            "Response: ${response.code} ${response.message} for ${response.request.url}",
-        )
+        if (debugEnabled) {
+            Logger.d(
+                "DumbAI_Net",
+                "Response: ${response.code} ${response.message} for ${response.request.url}",
+            )
+        }
 
         return response
     }
