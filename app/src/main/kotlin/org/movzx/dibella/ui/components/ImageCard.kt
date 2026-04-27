@@ -26,6 +26,7 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -60,10 +61,16 @@ fun ImageCard(
             }
             .collectAsState(initial = null)
 
-    val imageData =
-        remember(image.url, favoriteInfo) {
-            org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
-        }
+    var imageData by remember { mutableStateOf<Any?>(null) }
+
+    LaunchedEffect(image.url, favoriteInfo) {
+        kotlinx.coroutines.delay(30)
+
+        imageData =
+            kotlinx.coroutines.withContext(Dispatchers.IO) {
+                org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
+            }
+    }
 
     LaunchedEffect(isFavorite, image.url) {
         if (isFavorite && image.url.startsWith("http"))
@@ -152,26 +159,30 @@ fun ImageCard(
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            with(sharedTransitionScope) {
-                AsyncImage(
-                    model =
-                        ImageRequest.Builder(LocalContext.current)
-                            .data(imageData)
-                            .crossfade(true)
-                            .build(),
-                    imageLoader = imageLoader,
-                    contentDescription = null,
-                    modifier =
-                        Modifier.fillMaxSize()
-                            .sharedElement(
-                                rememberSharedContentState(key = "image-${image.id}"),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                            ),
-                    contentScale = ContentScale.Crop,
-                    onState = { state ->
-                        isError = state is coil3.compose.AsyncImagePainter.State.Error
-                    },
-                )
+            if (imageData != null) {
+                with(sharedTransitionScope) {
+                    AsyncImage(
+                        model =
+                            ImageRequest.Builder(LocalContext.current)
+                                .data(imageData)
+                                .crossfade(true)
+                                .build(),
+                        imageLoader = imageLoader,
+                        contentDescription = null,
+                        modifier =
+                            Modifier.fillMaxSize()
+                                .sharedElement(
+                                    rememberSharedContentState(key = "image-${image.id}"),
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                ),
+                        contentScale = ContentScale.Crop,
+                        onState = { state ->
+                            isError = state is coil3.compose.AsyncImagePainter.State.Error
+                        },
+                    )
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize().shimmerBackground())
             }
 
             if (isSelected) {
