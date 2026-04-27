@@ -256,3 +256,18 @@ fun hasStoragePermissions(context: Context): Boolean {
 
     return granted
 }
+
+fun formatDuration(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val seconds = totalSeconds % 60
+    val totalMinutes = totalSeconds / 60
+    val minutes = totalMinutes % 60
+    val hours = totalMinutes / 60
+    val centiseconds = (ms % 1000) / 10
+
+    return when {
+        hours > 0 -> String.format("%d:%02d:%02d:%02d", hours, minutes, seconds, centiseconds)
+        minutes > 0 -> String.format("%02d:%02d:%02d", minutes, seconds, centiseconds)
+        else -> String.format("%02d:%02d", seconds, centiseconds)
+    }
+}

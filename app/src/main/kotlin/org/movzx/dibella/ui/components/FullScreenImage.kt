@@ -177,6 +177,7 @@ fun FullScreenImage(
                         videoPlaybackError = null
                         isZoomed = false
                         currentFps = 0
+                        userIsPlaying = true
                     }
 
                     with(sharedTransitionScope) {
@@ -342,29 +343,46 @@ fun FullScreenImage(
                     else null
 
                 if (currentImage?.type == "video" && videoDuration > 0) {
-                    Slider(
-                        value = videoProgress.toFloat(),
-                        onValueChange = {
-                            isDraggingSeekBar = true
-                            userIsPlaying = false
-                            videoProgress = it.toLong()
-                            seekToPosition = it.toLong()
-                        },
-                        onValueChangeFinished = { isDraggingSeekBar = false },
-                        valueRange = 0f..videoDuration.toFloat(),
-                        colors =
-                            SliderDefaults.colors(
-                                thumbColor =
-                                    androidx.compose.ui.res.colorResource(R.color.pure_white),
-                                activeTrackColor =
-                                    androidx.compose.ui.res.colorResource(R.color.pure_white),
-                                inactiveTrackColor =
-                                    androidx.compose.ui.res
-                                        .colorResource(R.color.pure_white)
-                                        .copy(alpha = 0.3f),
-                            ),
-                        modifier = Modifier.fillMaxWidth().height(32.dp),
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = org.movzx.dibella.util.formatDuration(videoProgress),
+                            color = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                            fontSize = 12.sp,
+                        )
+
+                        Slider(
+                            value = videoProgress.toFloat(),
+                            onValueChange = {
+                                isDraggingSeekBar = true
+                                videoProgress = it.toLong()
+                                seekToPosition = it.toLong()
+                            },
+                            onValueChangeFinished = { isDraggingSeekBar = false },
+                            valueRange = 0f..videoDuration.toFloat(),
+                            colors =
+                                SliderDefaults.colors(
+                                    thumbColor =
+                                        androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                    activeTrackColor =
+                                        androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                    inactiveTrackColor =
+                                        androidx.compose.ui.res
+                                            .colorResource(R.color.pure_white)
+                                            .copy(alpha = 0.3f),
+                                ),
+                            modifier = Modifier.weight(1f).height(32.dp),
+                        )
+
+                        Text(
+                            text = org.movzx.dibella.util.formatDuration(videoDuration),
+                            color = androidx.compose.ui.res.colorResource(R.color.pure_white),
+                            fontSize = 12.sp,
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
                 }
