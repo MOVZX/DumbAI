@@ -100,6 +100,16 @@
         <item>Cum</item>
         <item>Cum in Mouth</item>
         <item>Facial</item>
+        <item>Sexy Attire</item>
+        <item>Lingerie</item>
+        <item>Nude</item>
+        <item>Partial Nudity</item>
+        <item>Nudity</item>
+        <item>Explicit Female Nudity</item>
+        <item>Breats</item>
+        <item>Huge Breasts</item>
+        <item>Vagina</item>
+        <item>Sexual Acts</item>
     </string-array>
 
     <integer-array name="nsfw_tag_ids">
@@ -108,6 +118,16 @@
         <item>5195</item>
         <item>109814</item>
         <item>1599</item>
+        <item>6924</item>
+        <item>1718</item>
+        <item>304</item>
+        <item>111942</item>
+        <item>2013</item>
+        <item>112683</item>
+        <item>5148</item>
+        <item>5219</item>
+        <item>1994</item>
+        <item>111991</item>
     </integer-array>
 
     <!-- Display Settings -->
