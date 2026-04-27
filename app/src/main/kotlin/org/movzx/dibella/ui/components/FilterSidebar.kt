@@ -120,6 +120,52 @@ fun FilterSidebar(
                 }
             }
 
+            SidebarSection(title = stringResource(R.string.sort)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    sortOptions.forEach { option ->
+                        FilterChip(
+                            selected = currentSort == option,
+                            onClick = { currentSort = option },
+                            label = {
+                                Text(
+                                    when (option) {
+                                        "Most Reactions" ->
+                                            stringResource(R.string.opt_most_reactions)
+                                        "Most Comments" ->
+                                            stringResource(R.string.opt_most_comments)
+                                        "Newest" -> stringResource(R.string.opt_newest)
+                                        else -> option
+                                    }
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+
+            SidebarSection(title = stringResource(R.string.period)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    periods.forEach { option ->
+                        FilterChip(
+                            selected = currentPeriod == option,
+                            onClick = { currentPeriod = option },
+                            label = {
+                                Text(
+                                    when (option) {
+                                        "AllTime" -> stringResource(R.string.opt_all_time)
+                                        "Year" -> stringResource(R.string.opt_year)
+                                        "Month" -> stringResource(R.string.opt_month)
+                                        "Week" -> stringResource(R.string.opt_week)
+                                        "Day" -> stringResource(R.string.opt_day)
+                                        else -> option
+                                    }
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+
             SidebarSection(title = stringResource(R.string.tags)) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -152,21 +198,15 @@ fun FilterSidebar(
                 }
 
                 if (currentNsfw != "None") {
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = stringResource(R.string.nsfw_tags),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
 
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -208,52 +248,6 @@ fun FilterSidebar(
                                         "Soft" -> stringResource(R.string.opt_soft)
                                         "Mature" -> stringResource(R.string.opt_mature)
                                         "X" -> stringResource(R.string.opt_x)
-                                        else -> option
-                                    }
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-
-            SidebarSection(title = stringResource(R.string.sort)) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    sortOptions.forEach { option ->
-                        FilterChip(
-                            selected = currentSort == option,
-                            onClick = { currentSort = option },
-                            label = {
-                                Text(
-                                    when (option) {
-                                        "Most Reactions" ->
-                                            stringResource(R.string.opt_most_reactions)
-                                        "Most Comments" ->
-                                            stringResource(R.string.opt_most_comments)
-                                        "Newest" -> stringResource(R.string.opt_newest)
-                                        else -> option
-                                    }
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-
-            SidebarSection(title = stringResource(R.string.period)) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    periods.forEach { option ->
-                        FilterChip(
-                            selected = currentPeriod == option,
-                            onClick = { currentPeriod = option },
-                            label = {
-                                Text(
-                                    when (option) {
-                                        "AllTime" -> stringResource(R.string.opt_all_time)
-                                        "Year" -> stringResource(R.string.opt_year)
-                                        "Month" -> stringResource(R.string.opt_month)
-                                        "Week" -> stringResource(R.string.opt_week)
-                                        "Day" -> stringResource(R.string.opt_day)
                                         else -> option
                                     }
                                 )
