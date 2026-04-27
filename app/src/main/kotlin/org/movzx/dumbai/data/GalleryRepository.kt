@@ -164,9 +164,12 @@ constructor(
         withContext(Dispatchers.IO) {
             try {
                 val file = File(image.url)
-
                 val result = file.exists() && file.delete()
-                if (result) refreshDownloadedIds()
+
+                if (result) {
+                    MediaScannerConnection.scanFile(context, arrayOf(image.url), null, null)
+                    refreshDownloadedIds()
+                }
                 result
             } catch (e: Exception) {
                 false
@@ -224,6 +227,84 @@ constructor(
                 Result.failure(e)
             }
         }
+
+    suspend fun findDuplicateGroups(): List<List<CivitaiImage>> =
+        withContext(Dispatchers.IO) {
+            val path = preferencesRepository.downloadPath.first()
+            val rootDir = getDownloadDir(path)
+
+            if (!rootDir.exists()) return@withContext emptyList()
+
+            val files =
+                rootDir.listFiles()?.filter {
+                    it.isFile &&
+                        (it.extension.lowercase() in setOf("mp4", "jpg", "jpeg", "png", "webp"))
+                } ?: return@withContext emptyList()
+
+            val duplicateFiles = internalCalculateDuplicates(files)
+
+            duplicateFiles.map { group ->
+                group.map { file ->
+                    val id =
+                        if (file.name.startsWith("DumbAI_")) {
+                            file.nameWithoutExtension.removePrefix("DumbAI_").toLongOrNull()
+                                ?: file.absolutePath.hashCode().toLong()
+                        } else {
+                            file.nameWithoutExtension.filter { it.isDigit() }.toLongOrNull()
+                                ?: file.absolutePath.hashCode().toLong()
+                        }
+                    CivitaiImage(
+                        id = id,
+                        url = file.absolutePath,
+                        width = 0,
+                        height = 0,
+                        nsfw = false,
+                        type = if (file.extension.lowercase() == "mp4") "video" else "image",
+                        meta = null,
+                    )
+                }
+            }
+        }
+
+    suspend fun removeDuplicates(duplicateGroups: List<List<CivitaiImage>>): Int =
+        withContext(Dispatchers.IO) {
+            var removedCount = 0
+
+            duplicateGroups.forEach { group ->
+                val sortedGroup = group.sortedBy { File(it.url).lastModified() }
+                val toRemove = sortedGroup.drop(1)
+
+                toRemove.forEach { image ->
+                    if (File(image.url).delete()) {
+                        MediaScannerConnection.scanFile(context, arrayOf(image.url), null, null)
+                        removedCount++
+                    }
+                }
+            }
+
+            if (removedCount > 0) refreshDownloadedIds()
+
+            removedCount
+        }
+
+    private fun internalCalculateDuplicates(files: List<File>): List<List<File>> {
+        val sizeGroups = files.groupBy { it.length() }.filter { it.value.size > 1 }
+        val duplicates = mutableListOf<List<File>>()
+
+        sizeGroups.forEach { (_, group) ->
+            val validHashes = group.mapNotNull { file ->
+                val hash = FileUtils.calculateHash(file)
+
+                if (hash != null) file to hash else null
+            }
+
+            val hashGroups = validHashes.groupBy { it.second }.filter { it.value.size > 1 }
+
+            hashGroups.forEach { entry -> duplicates.add(entry.value.map { it.first }) }
+        }
+
+        return duplicates
+    }
 
     private fun getDownloadDir(path: String?): File {
         return path?.let { File(it) }

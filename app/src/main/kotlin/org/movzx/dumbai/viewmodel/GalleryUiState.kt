@@ -15,4 +15,6 @@ data class GalleryUiState(
     override val downloadProgresses: Map<Long, Float> = emptyMap(),
     val downloadedIds: Set<Long> = emptySet(),
     val isRestored: Boolean = false,
+    val isShowingDuplicates: Boolean = false,
+    val duplicateGroups: List<List<CivitaiImage>> = emptyList(),
 ) : BaseUiState

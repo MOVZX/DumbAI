@@ -23,6 +23,7 @@ fun DisplaySidebar(
     onUpdatePageLimit: (Int) -> Unit,
     onUpdateGridColumns: (Int) -> Unit,
     onUpdateType: (String) -> Unit,
+    onScanDuplicates: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val pageLimits = remember(context) { context.resources.getIntArray(R.array.page_limits) }
@@ -126,6 +127,27 @@ fun DisplaySidebar(
                                 )
                             },
                         )
+                    }
+                }
+
+                if (currentRoute == "favorites" || currentRoute == "gallery") {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = onScanDuplicates,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            ),
+                    ) {
+                        Text(stringResource(R.string.btn_scan_duplicates))
                     }
                 }
             }

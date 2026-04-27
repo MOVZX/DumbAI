@@ -142,6 +142,23 @@ fun MainScreen(imageLoader: ImageLoader) {
 
     var favoritesRestored by remember { mutableStateOf(false) }
     var galleryRestored by remember { mutableStateOf(false) }
+    var showScanDuplicatesDialog by remember { mutableStateOf(false) }
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: ""
+
+    if (showScanDuplicatesDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_scan_duplicates_title),
+            message = stringResource(R.string.dialog_scan_duplicates_msg),
+            onConfirm = {
+                if (currentRoute == "favorites") favoritesViewModel.findDuplicates()
+                else if (currentRoute == "gallery") galleryViewModel.findDuplicates()
+
+                showScanDuplicatesDialog = false
+            },
+            onDismiss = { showScanDuplicatesDialog = false },
+        )
+    }
 
     LaunchedEffect(settingsViewModel.uiMessage) {
         settingsViewModel.uiMessage.collect { resId ->
@@ -263,6 +280,10 @@ fun MainScreen(imageLoader: ImageLoader) {
                     onUpdatePageLimit = {},
                     onUpdateGridColumns = { favoritesViewModel.updateGridColumns(it) },
                     onUpdateType = { favoritesViewModel.updateType(it) },
+                    onScanDuplicates = {
+                        showScanDuplicatesDialog = true
+                        scope.launch { leftDrawerState.close() }
+                    },
                 )
             } else if (currentRoute == "gallery") {
                 val galleryUiState by galleryViewModel.uiState.collectAsState()
@@ -276,6 +297,10 @@ fun MainScreen(imageLoader: ImageLoader) {
                     onUpdatePageLimit = {},
                     onUpdateGridColumns = { galleryViewModel.updateGridColumns(it) },
                     onUpdateType = { galleryViewModel.updateType(it) },
+                    onScanDuplicates = {
+                        showScanDuplicatesDialog = true
+                        scope.launch { leftDrawerState.close() }
+                    },
                 )
             } else {
                 ModalDrawerSheet(
@@ -794,6 +819,15 @@ fun FavoritesScreen(
                     onAction = { showBatchConfirmDialog = true },
                     actionIcon = Icons.Default.HeartBroken,
                 )
+            } else if (uiState.isShowingDuplicates) {
+                SelectionTopBar(
+                    selectedCount = uiState.duplicateGroups.flatten().size,
+                    onClose = { viewModel.clearDuplicatesMode() },
+                    onSelectAll = {},
+                    onAction = { viewModel.removeDuplicates() },
+                    actionIcon = Icons.Default.DeleteSweep,
+                    title = "Found Duplicates",
+                )
             } else {
                 MainTopBar(
                     gridColumns = uiState.gridColumns,
@@ -810,7 +844,9 @@ fun FavoritesScreen(
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             ImageGrid(
-                images = uiState.images,
+                images =
+                    if (uiState.isShowingDuplicates) uiState.duplicateGroups.flatten()
+                    else uiState.images,
                 imageLoader = imageLoader,
                 state = gridState,
                 isLoading = uiState.isLoading,
@@ -826,9 +862,13 @@ fun FavoritesScreen(
                     viewModel.ensureFavoriteResources(img, force, onProgress)
                 },
                 onImageClick = { image ->
-                    val index = uiState.images.indexOf(image)
+                    val images =
+                        if (uiState.isShowingDuplicates) uiState.duplicateGroups.flatten()
+                        else uiState.images
 
-                    if (index != -1) onImageClick(uiState.images, index, "favorites")
+                    val index = images.indexOf(image)
+
+                    if (index != -1) onImageClick(images, index, "favorites")
                 },
                 onToggleFavorite = { viewModel.toggleFavorite(it) },
                 onToggleSelection = { viewModel.toggleSelection(it) },
@@ -837,7 +877,8 @@ fun FavoritesScreen(
                 animatedVisibilityScope = animatedVisibilityScope,
             )
 
-            if (uiState.images.isEmpty() && !uiState.isLoading) EmptyState("favorites")
+            if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)
+                EmptyState("favorites")
         }
     }
 }
@@ -989,6 +1030,15 @@ fun GalleryScreen(
                     onAction = { showBatchConfirmDialog = true },
                     actionIcon = Icons.Default.Delete,
                 )
+            } else if (uiState.isShowingDuplicates) {
+                SelectionTopBar(
+                    selectedCount = uiState.duplicateGroups.flatten().size,
+                    onClose = { viewModel.clearDuplicatesMode() },
+                    onSelectAll = {},
+                    onAction = { viewModel.removeDuplicates() },
+                    actionIcon = Icons.Default.DeleteSweep,
+                    title = "Found Duplicates",
+                )
             } else {
                 MainTopBar(
                     gridColumns = uiState.gridColumns,
@@ -1005,7 +1055,9 @@ fun GalleryScreen(
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             ImageGrid(
-                images = uiState.images,
+                images =
+                    if (uiState.isShowingDuplicates) uiState.duplicateGroups.flatten()
+                    else uiState.images,
                 imageLoader = imageLoader,
                 state = gridState,
                 isLoading = uiState.isLoading,
@@ -1021,9 +1073,13 @@ fun GalleryScreen(
                     favViewModel.ensureFavoriteResources(img, force, onProgress)
                 },
                 onImageClick = { image ->
-                    val index = uiState.images.indexOf(image)
+                    val images =
+                        if (uiState.isShowingDuplicates) uiState.duplicateGroups.flatten()
+                        else uiState.images
 
-                    if (index != -1) onImageClick(uiState.images, index, "gallery")
+                    val index = images.indexOf(image)
+
+                    if (index != -1) onImageClick(images, index, "gallery")
                 },
                 onToggleFavorite = { favViewModel.toggleFavorite(it) },
                 onToggleSelection = { viewModel.toggleSelection(it) },
@@ -1032,7 +1088,8 @@ fun GalleryScreen(
                 animatedVisibilityScope = animatedVisibilityScope,
             )
 
-            if (uiState.images.isEmpty() && !uiState.isLoading) EmptyState("gallery")
+            if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)
+                EmptyState("gallery")
         }
     }
 }

@@ -134,6 +134,62 @@ constructor(
         )
     }
 
+    fun findDuplicates() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val groups = favoritesRepository.findDuplicateGroups()
+
+                if (groups.isNotEmpty()) {
+                    _uiState.update {
+                        it.copy(
+                            duplicateGroups = groups,
+                            isShowingDuplicates = true,
+                            isLoading = false,
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false) }
+                    sendMessage(R.string.msg_no_duplicates_found)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
+                sendMessage(R.string.msg_load_failed)
+            }
+        }
+    }
+
+    fun clearDuplicatesMode() {
+        _uiState.update { it.copy(isShowingDuplicates = false, duplicateGroups = emptyList()) }
+    }
+
+    fun removeDuplicates() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val count = favoritesRepository.removeDuplicates(_uiState.value.duplicateGroups)
+
+                _uiState.update {
+                    it.copy(
+                        isShowingDuplicates = false,
+                        duplicateGroups = emptyList(),
+                        isLoading = false,
+                    )
+                }
+
+                if (count > 0) sendMessage(R.string.msg_duplicates_removed)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isShowingDuplicates = false,
+                        duplicateGroups = emptyList(),
+                        isLoading = false,
+                    )
+                }
+            }
+        }
+    }
+
     fun markRestored() {
         _uiState.update { it.copy(isRestored = true) }
     }

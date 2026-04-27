@@ -25,12 +25,17 @@ fun SelectionTopBar(
     onSelectAll: () -> Unit,
     onAction: () -> Unit,
     actionIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String? = null,
 ) {
     CenterAlignedTopAppBar(
         title = {
             Text(
                 text =
-                    stringResource(org.movzx.dumbai.R.string.label_selected_count, selectedCount),
+                    title
+                        ?: stringResource(
+                            org.movzx.dumbai.R.string.label_selected_count,
+                            selectedCount,
+                        ),
                 style = MaterialTheme.typography.titleMedium,
             )
         },
@@ -43,11 +48,14 @@ fun SelectionTopBar(
             }
         },
         actions = {
-            IconButton(onClick = onSelectAll) {
-                Icon(
-                    Icons.Default.SelectAll,
-                    contentDescription = stringResource(org.movzx.dumbai.R.string.btn_select_all),
-                )
+            if (title == null) {
+                IconButton(onClick = onSelectAll) {
+                    Icon(
+                        Icons.Default.SelectAll,
+                        contentDescription =
+                            stringResource(org.movzx.dumbai.R.string.btn_select_all),
+                    )
+                }
             }
             IconButton(onClick = onAction) {
                 Icon(

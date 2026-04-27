@@ -5,6 +5,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.movzx.dumbai.R
 import org.movzx.dumbai.data.FavoritesRepository
 import org.movzx.dumbai.data.GalleryRepository
 import org.movzx.dumbai.data.UserPreferencesRepository
@@ -129,6 +130,67 @@ constructor(
             },
             onSuccess = { refresh() },
         )
+    }
+
+    fun findDuplicates() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val groups = galleryRepository.findDuplicateGroups()
+
+                if (groups.isNotEmpty()) {
+                    _uiState.update {
+                        it.copy(
+                            duplicateGroups = groups,
+                            isShowingDuplicates = true,
+                            isLoading = false,
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false) }
+                    sendMessage(R.string.msg_no_duplicates_found)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
+                sendMessage(R.string.msg_load_failed)
+            }
+        }
+    }
+
+    fun clearDuplicatesMode() {
+        _uiState.update { it.copy(isShowingDuplicates = false, duplicateGroups = emptyList()) }
+    }
+
+    fun removeDuplicates() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val count = galleryRepository.removeDuplicates(_uiState.value.duplicateGroups)
+
+                _uiState.update {
+                    it.copy(
+                        isShowingDuplicates = false,
+                        duplicateGroups = emptyList(),
+                        isLoading = false,
+                    )
+                }
+
+                if (count > 0) {
+                    refresh()
+                    sendMessage(R.string.msg_duplicates_removed)
+                } else {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isShowingDuplicates = false,
+                        duplicateGroups = emptyList(),
+                        isLoading = false,
+                    )
+                }
+            }
+        }
     }
 
     fun markRestored() {

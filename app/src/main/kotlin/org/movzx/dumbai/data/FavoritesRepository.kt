@@ -371,6 +371,76 @@ class FavoritesRepository(
             }
         }
 
+    suspend fun findDuplicateGroups(): List<List<CivitaiImage>> =
+        withContext(Dispatchers.IO) {
+            val favorites = favoriteImageDao.getAllFavoritesSync()
+            val fileToFavorite = mutableMapOf<File, CivitaiImage>()
+
+            favorites.forEach { fav ->
+                val mainFile =
+                    fav.localVideoPath?.let { File(it) }
+                        ?: fav.localFullImagePath?.let { File(it) }
+                        ?: fav.localPath?.let { File(it) }
+
+                if (mainFile != null && mainFile.exists())
+                    fileToFavorite[mainFile] = fav.toCivitaiImage()
+            }
+
+            val files = fileToFavorite.keys.toList()
+            val duplicateFiles = internalCalculateDuplicates(files)
+
+            duplicateFiles.map { group -> group.mapNotNull { fileToFavorite[it] } }
+        }
+
+    suspend fun removeDuplicates(duplicateGroups: List<List<CivitaiImage>>): Int =
+        withContext(Dispatchers.IO) {
+            var removedCount = 0
+
+            for (group in duplicateGroups) {
+                val imageWithTime = mutableListOf<Pair<CivitaiImage, Long>>()
+
+                for (image in group) {
+                    val fav = favoriteImageDao.getFavorite(image.id)
+
+                    val mainFile =
+                        fav?.localVideoPath?.let { File(it) }
+                            ?: fav?.localFullImagePath?.let { File(it) }
+                            ?: fav?.localPath?.let { File(it) }
+
+                    imageWithTime.add(image to (mainFile?.lastModified() ?: Long.MAX_VALUE))
+                }
+
+                val sortedGroup = imageWithTime.sortedBy { it.second }.map { it.first }
+                val toRemove = sortedGroup.drop(1)
+
+                for (image in toRemove) {
+                    removeFavorite(image)
+                    removedCount++
+                }
+            }
+
+            removedCount
+        }
+
+    private fun internalCalculateDuplicates(files: List<File>): List<List<File>> {
+        val sizeGroups = files.groupBy { it.length() }.filter { it.value.size > 1 }
+        val duplicates = mutableListOf<List<File>>()
+
+        sizeGroups.forEach { (_, group) ->
+            val validHashes = group.mapNotNull { file ->
+                val hash = FileUtils.calculateHash(file)
+
+                if (hash != null) file to hash else null
+            }
+
+            val hashGroups = validHashes.groupBy { it.second }.filter { it.value.size > 1 }
+
+            hashGroups.forEach { entry -> duplicates.add(entry.value.map { it.first }) }
+        }
+
+        return duplicates
+    }
+
     suspend fun getAllFavoritesSync(): List<FavoriteImage> = favoriteImageDao.getAllFavoritesSync()
 
     suspend fun importFavorites(favorites: List<FavoriteImage>) {

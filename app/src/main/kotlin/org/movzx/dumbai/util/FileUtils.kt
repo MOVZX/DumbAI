@@ -99,4 +99,25 @@ object FileUtils {
             false
         }
     }
+
+    fun calculateHash(file: File): String? {
+        if (!file.exists()) return null
+
+        return try {
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            val buffer = ByteArray(8192)
+
+            FileInputStream(file).use { input ->
+                var bytesRead: Int
+
+                while (input.read(buffer).also { bytesRead = it } != -1) {
+                    digest.update(buffer, 0, bytesRead)
+                }
+            }
+
+            digest.digest().joinToString("") { "%02x".format(it) }
+        } catch (e: Exception) {
+            null
+        }
+    }
 }

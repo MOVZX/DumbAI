@@ -6,7 +6,7 @@
 
     <!-- Navigation (Bottom Bar & Top Bar) -->
     <string name="nav_feed">Feed</string>
-    <string name="nav_favorites">Likes</string>
+    <string name="nav_favorites">Favorites</string>
     <string name="nav_gallery">Gallery</string>
 
     <!-- Sidebar Titles & Common Headers -->
@@ -56,6 +56,7 @@
     <string name="btn_confirm">Confirm</string>
     <string name="btn_download">Download</string>
     <string name="btn_delete">Delete</string>
+    <string name="btn_scan_duplicates">Scan for Duplicates</string>
 
     <!-- Dialogs -->
     <string name="dialog_unfavorite_title">Unfavorite Media</string>
@@ -68,6 +69,8 @@
     <string name="dialog_batch_unfavorite_msg">Unfavorite %1$d items?</string>
     <string name="dialog_batch_delete_title">Delete items?</string>
     <string name="dialog_batch_delete_msg">Delete %1$d items from your device?</string>
+    <string name="dialog_scan_duplicates_title">Scan for Duplicates</string>
+    <string name="dialog_scan_duplicates_msg">Are you sure you want to scan and remove duplicate local files? This will keep only the oldest version of each identical file.</string>
 
     <!-- Selectable Options (Filter Chips) -->
     <string name="opt_image">Images</string>
@@ -100,6 +103,8 @@
     <string name="msg_playback_error">Unsupported video format or playback error</string>
     <string name="msg_saved_to">Media saved to gallery</string>
     <string name="msg_download_failed">Download failed</string>
+    <string name="msg_duplicates_removed">Duplicates removed successfully</string>
+    <string name="msg_no_duplicates_found">No duplicates found</string>
     <string name="msg_exit_confirm">Press back again to exit</string>
 
     <!-- Empty States -->
@@ -119,5 +124,6 @@
 
     <!-- Internal / Technical Constants -->
     <string name="backup_filename">dumbai_backup.json</string>
+    <string name="backup_filename_with_ext">dumbai_backup.json</string>
     <string name="mime_json">application/json</string>
 </resources>
