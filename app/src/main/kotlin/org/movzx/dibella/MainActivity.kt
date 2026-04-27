@@ -512,6 +512,13 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     val favoriteIds by favoritesViewModel.uiState.collectAsState()
                                     val galleryState by galleryViewModel.uiState.collectAsState()
 
+                                    val activeViewModel: org.movzx.dibella.viewmodel.BaseViewModel =
+                                        when (fullScreenViewMode) {
+                                            "feed" -> feedViewModel
+                                            "favorites" -> favoritesViewModel
+                                            else -> galleryViewModel
+                                        }
+
                                     val downloadProgresses =
                                         when (fullScreenViewMode) {
                                             "feed" ->
@@ -544,37 +551,14 @@ fun MainScreen(imageLoader: ImageLoader) {
                                             favoritesViewModel.getFavoriteFlow(it)
                                         },
                                         onEnsureFavoriteResources = { img, force, onProgress ->
-                                            if (fullScreenViewMode == "feed")
-                                                feedViewModel.ensureFavoriteResources(
-                                                    img,
-                                                    force,
-                                                    onProgress,
-                                                )
-                                            else if (fullScreenViewMode == "favorites")
-                                                favoritesViewModel.ensureFavoriteResources(
-                                                    img,
-                                                    force,
-                                                    onProgress,
-                                                )
-                                            else
-                                                galleryViewModel.ensureFavoriteResources(
-                                                    img,
-                                                    force,
-                                                    onProgress,
-                                                )
+                                            activeViewModel.ensureFavoriteResources(
+                                                img,
+                                                force,
+                                                onProgress,
+                                            )
                                         },
-                                        onToggleFavorite = {
-                                            if (fullScreenViewMode == "feed")
-                                                feedViewModel.toggleFavorite(it)
-                                            else favoritesViewModel.toggleFavorite(it)
-                                        },
-                                        onDownloadImage = {
-                                            if (fullScreenViewMode == "feed")
-                                                feedViewModel.downloadImage(it)
-                                            else if (fullScreenViewMode == "favorites")
-                                                favoritesViewModel.downloadImage(it)
-                                            else galleryViewModel.downloadImage(it)
-                                        },
+                                        onToggleFavorite = { activeViewModel.toggleFavorite(it) },
+                                        onDownloadImage = { activeViewModel.downloadImage(it) },
                                         onDeleteLocalFile = {
                                             galleryViewModel.deleteLocalFile(it)
                                         },

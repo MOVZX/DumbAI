@@ -48,6 +48,8 @@ abstract class BaseViewModel(
         favoritesRepository.ensureFavoriteResources(image, force, onProgress)
     }
 
+    abstract fun downloadImage(image: CivitaiImage)
+
     protected fun performDownload(
         image: CivitaiImage,
         currentProgresses: Map<Long, Float>,

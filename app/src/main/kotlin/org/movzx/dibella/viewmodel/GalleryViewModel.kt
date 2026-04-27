@@ -113,7 +113,7 @@ constructor(
         viewModelScope.launch { if (galleryRepository.deleteLocalFile(image)) refresh() }
     }
 
-    fun downloadImage(image: CivitaiImage) {
+    override fun downloadImage(image: CivitaiImage) {
         performDownload(
             image = image,
             currentProgresses = _uiState.value.downloadProgresses,

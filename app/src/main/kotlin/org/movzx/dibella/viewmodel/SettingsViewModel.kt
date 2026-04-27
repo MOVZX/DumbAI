@@ -53,6 +53,8 @@ constructor(
         }
     }
 
+    override fun downloadImage(image: org.movzx.dibella.model.CivitaiImage) {}
+
     fun updateApiKey(key: String) {
         viewModelScope.launch {
             repository.updateApiKey(key)

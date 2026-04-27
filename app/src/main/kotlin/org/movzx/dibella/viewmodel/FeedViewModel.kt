@@ -265,7 +265,7 @@ constructor(
         }
     }
 
-    fun downloadImage(image: CivitaiImage) {
+    override fun downloadImage(image: CivitaiImage) {
         performDownload(
             image = image,
             currentProgresses = _uiState.value.downloadProgresses,
