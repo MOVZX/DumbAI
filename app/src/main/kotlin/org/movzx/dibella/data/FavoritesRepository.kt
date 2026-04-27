@@ -263,7 +263,10 @@ class FavoritesRepository(
                     val body = response.body ?: return false
                     val contentLength = body.contentLength()
 
-                    Logger.d("Dibella_Res", "Download: $url Type: $contentType Size: $contentLength")
+                    Logger.d(
+                        "Dibella_Res",
+                        "Download: $url Type: $contentType Size: $contentLength",
+                    )
 
                     body.byteStream().use { input ->
                         tempFile.outputStream().use { output ->

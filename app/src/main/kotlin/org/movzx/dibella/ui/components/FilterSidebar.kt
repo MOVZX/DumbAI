@@ -161,7 +161,7 @@ fun FilterSidebar(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "NSFW Tags",
+                        text = stringResource(R.string.nsfw_tags),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

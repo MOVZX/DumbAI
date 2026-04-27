@@ -826,7 +826,7 @@ fun FavoritesScreen(
                     onSelectAll = {},
                     onAction = { viewModel.removeDuplicates() },
                     actionIcon = Icons.Default.DeleteSweep,
-                    title = "Found Duplicates",
+                    title = stringResource(R.string.found_duplicates),
                 )
             } else {
                 MainTopBar(
@@ -1037,7 +1037,7 @@ fun GalleryScreen(
                     onSelectAll = {},
                     onAction = { viewModel.removeDuplicates() },
                     actionIcon = Icons.Default.DeleteSweep,
-                    title = "Found Duplicates",
+                    title = stringResource(R.string.found_duplicates),
                 )
             } else {
                 MainTopBar(

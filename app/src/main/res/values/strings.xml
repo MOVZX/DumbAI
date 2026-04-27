@@ -73,6 +73,8 @@
     <string name="dialog_scan_duplicates_msg">Are you sure you want to scan and remove duplicate local files? This will keep only the oldest version of each identical file.</string>
 
     <!-- Selectable Options (Filter Chips) -->
+    <string name="found_duplicates">Found Duplicates</string>
+    <string name="nsfw_tags">NSFW Tags</string>
     <string name="opt_image">Images</string>
     <string name="opt_video">Videos</string>
     <string name="opt_all">All</string>
