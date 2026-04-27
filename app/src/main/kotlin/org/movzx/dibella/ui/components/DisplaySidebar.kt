@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.movzx.dibella.R
@@ -143,8 +144,8 @@ fun DisplaySidebar(
                         shape = MaterialTheme.shapes.medium,
                         colors =
                             ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                containerColor = colorResource(R.color.error),
+                                contentColor = androidx.compose.ui.graphics.Color.White,
                             ),
                     ) {
                         Text(stringResource(R.string.btn_scan_duplicates))
