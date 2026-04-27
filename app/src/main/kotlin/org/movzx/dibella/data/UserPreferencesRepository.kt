@@ -36,10 +36,16 @@ class UserPreferencesRepository(private val context: Context) {
         val DEBUG_ENABLED = booleanPreferencesKey("debug_enabled")
         val FAVORITES_TYPE = stringPreferencesKey("favorites_type")
         val GALLERY_TYPE = stringPreferencesKey("gallery_type")
+        val LAST_ROUTE = stringPreferencesKey("last_route")
     }
 
     val nsfw: Flow<String> =
         context.dataStore.data.map { preferences -> preferences[PreferencesKeys.NSFW] ?: "None" }
+
+    val lastRoute: Flow<String> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.LAST_ROUTE] ?: "feed"
+        }
 
     val sort: Flow<String> =
         context.dataStore.data.map { preferences ->
@@ -268,6 +274,12 @@ class UserPreferencesRepository(private val context: Context) {
         Logger.d("Dibella_Prefs", "updateGalleryType: $type")
 
         context.dataStore.edit { preferences -> preferences[PreferencesKeys.GALLERY_TYPE] = type }
+    }
+
+    suspend fun updateLastRoute(route: String) {
+        Logger.d("Dibella_Prefs", "updateLastRoute: $route")
+
+        context.dataStore.edit { preferences -> preferences[PreferencesKeys.LAST_ROUTE] = route }
     }
 
     suspend fun getInterceptorSettings() =

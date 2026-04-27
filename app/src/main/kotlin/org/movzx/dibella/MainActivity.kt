@@ -476,8 +476,11 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 },
                             ) { targetIndex ->
                                 if (targetIndex == null) {
+                                    val startDestination =
+                                        settingsState.lastRoute ?: return@AnimatedContent
                                     AppNavigation(
                                         navController = navController,
+                                        startDestination = startDestination,
                                         imageLoader = imageLoader,
                                         feedGridState = feedGridState,
                                         favoritesGridState = favoritesGridState,
@@ -497,6 +500,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                                             fullScreenImages = images
                                             selectedImageIndex = index
                                             fullScreenViewMode = viewMode
+                                        },
+                                        onUpdateLastRoute = {
+                                            settingsViewModel.updateLastRoute(it)
                                         },
                                         leftDrawerState = leftDrawerState,
                                         rightDrawerState = rightDrawerState,
@@ -580,6 +586,7 @@ fun MainScreen(imageLoader: ImageLoader) {
 @Composable
 fun AppNavigation(
     navController: NavHostController,
+    startDestination: String,
     imageLoader: ImageLoader,
     feedGridState: LazyStaggeredGridState,
     favoritesGridState: LazyStaggeredGridState,
@@ -591,6 +598,7 @@ fun AppNavigation(
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
+    onUpdateLastRoute: (String) -> Unit,
     leftDrawerState: DrawerState,
     rightDrawerState: DrawerState,
     scope: kotlinx.coroutines.CoroutineScope,
@@ -604,6 +612,8 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    LaunchedEffect(currentRoute) { currentRoute?.let { onUpdateLastRoute(it) } }
+
     val onNavigate: (String) -> Unit = { route ->
         if (currentRoute != route) {
             navController.navigate(route) {
@@ -615,7 +625,7 @@ fun AppNavigation(
         }
     }
 
-    NavHost(navController = navController, startDestination = "feed") {
+    NavHost(navController = navController, startDestination = startDestination) {
         composable("feed") {
             FeedScreen(
                 imageLoader = imageLoader,

@@ -31,18 +31,26 @@ constructor(
 
     init {
         viewModelScope.launch {
-            combine(repository.apiKey, repository.downloadPath, repository.debugEnabled) {
-                    apiKey,
-                    downloadPath,
-                    debugEnabled ->
-                    Triple(apiKey, downloadPath, debugEnabled)
+            combine(
+                    repository.apiKey,
+                    repository.downloadPath,
+                    repository.debugEnabled,
+                    repository.lastRoute,
+                ) { apiKey, downloadPath, debugEnabled, lastRoute ->
+                    mutableListOf<Any?>(apiKey, downloadPath, debugEnabled, lastRoute)
                 }
-                .onEach { (apiKey, downloadPath, debugEnabled) ->
+                .onEach { values ->
+                    val apiKey = values[0] as String
+                    val downloadPath = values[1] as String?
+                    val debugEnabled = values[2] as Boolean
+                    val lastRoute = values[3] as String
+
                     _uiState.update { state ->
                         state.copy(
                             apiKey = apiKey,
                             downloadPath = downloadPath ?: "",
                             debugEnabled = debugEnabled,
+                            lastRoute = lastRoute,
                         )
                     }
                     Logger.debugEnabled = debugEnabled
@@ -54,6 +62,10 @@ constructor(
     }
 
     override fun downloadImage(image: org.movzx.dibella.model.CivitaiImage) {}
+
+    fun updateLastRoute(route: String) {
+        viewModelScope.launch { repository.updateLastRoute(route) }
+    }
 
     fun updateApiKey(key: String) {
         viewModelScope.launch {
