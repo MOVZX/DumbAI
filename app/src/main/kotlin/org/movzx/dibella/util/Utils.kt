@@ -172,51 +172,42 @@ fun resolveImageData(
     return image.url
 }
 
-fun getThumbnailUrl(url: String, width: Int): String {
+fun modifyCivitaiUrl(url: String, variant: String): String {
     if (!url.contains("image.civitai.com")) return url
 
-    val baseUrl =
-        when {
-            url.contains("/original=true/") -> url.replace("/original=true/", "/width=$width/")
-            url.contains(Regex("/width=\\d+/")) ->
-                url.replace(Regex("/width=\\d+/"), "/width=$width/")
-            else -> {
-                val lastSlashIndex = url.lastIndexOf('/')
+    return when {
+        url.contains("/original=true/") -> url.replace("/original=true/", "/$variant/")
+        url.contains("/original=false/") -> url.replace("/original=false/", "/$variant/")
+        url.contains(Regex("/width=\\d+/")) -> url.replace(Regex("/width=\\d+/"), "/$variant/")
+        else -> {
+            val lastSlashIndex = url.lastIndexOf('/')
 
-                if (lastSlashIndex != -1) {
-                    val prefix = url.substring(0, lastSlashIndex)
-                    val fileName = url.substring(lastSlashIndex + 1)
+            if (lastSlashIndex != -1) {
+                val prefix = url.substring(0, lastSlashIndex)
+                val fileName = url.substring(lastSlashIndex + 1)
 
-                    "$prefix/width=$width/$fileName"
-                } else url
-            }
+                "$prefix/$variant/$fileName"
+            } else url
         }
+    }
+}
 
-    return baseUrl
+fun getThumbnailUrl(url: String, width: Int): String {
+    return modifyCivitaiUrl(url, "width=$width")
 }
 
 fun getVideoThumbnailUrl(url: String): String {
+    return modifyCivitaiUrl(url, "original=false")
+}
+
+fun getOriginalUrl(url: String): String {
     if (!url.contains("image.civitai.com")) return url
 
-    val result =
-        when {
-            url.contains("/original=false/") -> url
-            url.contains("/original=true/") -> url.replace("/original=true/", "/original=false/")
-            url.contains(Regex("/width=\\d+/")) ->
-                url.replace(Regex("/width=\\d+/"), "/original=false/")
-            else -> {
-                val lastSlashIndex = url.lastIndexOf('/')
-
-                if (lastSlashIndex != -1) {
-                    val prefix = url.substring(0, lastSlashIndex)
-                    val fileName = url.substring(lastSlashIndex + 1)
-
-                    "$prefix/original=false/$fileName"
-                } else url
-            }
-        }
-
-    return result
+    return when {
+        url.contains(Regex("/width=\\d+/")) -> url.replace(Regex("/width=\\d+/"), "/original=true/")
+        url.contains("/original=false/") -> url.replace("/original=false/", "/original=true/")
+        else -> url
+    }
 }
 
 fun getVideoPreviewUrl(url: String): String {

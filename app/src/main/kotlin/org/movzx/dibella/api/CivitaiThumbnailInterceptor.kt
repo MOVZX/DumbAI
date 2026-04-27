@@ -3,6 +3,8 @@ package org.movzx.dibella.api
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.movzx.dibella.util.Logger
+import org.movzx.dibella.util.getOriginalUrl
+import org.movzx.dibella.util.getThumbnailUrl
 
 class CivitaiThumbnailInterceptor : Interceptor {
     private val fallbackWidths = listOf(450, 720, 1280)
@@ -71,48 +73,9 @@ class CivitaiThumbnailInterceptor : Interceptor {
 
             if (bytes.isNotEmpty() && bytes[0] == '{'.code.toByte()) return false
 
-            val hex = bytes.joinToString("") { "%02X".format(it) }
-
-            val hasHeader =
-                hex.startsWith("89504E47") ||
-                    hex.startsWith("FFD8FF") ||
-                    hex.startsWith("52494646") ||
-                    hex.startsWith("47494638") ||
-                    hex.contains("61766966") ||
-                    hex.contains("66747970") ||
-                    hex.startsWith("1A45DFA3")
-
-            hasHeader
+            org.movzx.dibella.util.FileUtils.getExtensionFromBytes(bytes) != null
         } catch (e: Exception) {
             false
-        }
-    }
-
-    private fun getThumbnailUrl(url: String, width: Int): String {
-        return when {
-            url.contains("/original=true/") -> url.replace("/original=true/", "/width=$width/")
-            url.contains("/original=false/") -> url.replace("/original=false/", "/width=$width/")
-            url.contains(Regex("/width=\\d+/")) ->
-                url.replace(Regex("/width=\\d+/"), "/width=$width/")
-            else -> {
-                val lastSlashIndex = url.lastIndexOf('/')
-
-                if (lastSlashIndex != -1) {
-                    val prefix = url.substring(0, lastSlashIndex)
-                    val fileName = url.substring(lastSlashIndex + 1)
-
-                    "$prefix/width=$width/$fileName"
-                } else url
-            }
-        }
-    }
-
-    private fun getOriginalUrl(url: String): String {
-        return when {
-            url.contains(Regex("/width=\\d+/")) ->
-                url.replace(Regex("/width=\\d+/"), "/original=true/")
-            url.contains("/original=false/") -> url.replace("/original=false/", "/original=true/")
-            else -> url
         }
     }
 }
