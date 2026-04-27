@@ -86,27 +86,11 @@ fun MainTopBar(
 ) {
     CenterAlignedTopAppBar(
         title = {
-            Box(
-                modifier =
-                    Modifier.size(42.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(12.dp),
-                        )
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
-                            RoundedCornerShape(12.dp),
-                        )
-                        .clip(RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                androidx.compose.foundation.Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    contentDescription = stringResource(R.string.app_name),
-                    modifier = Modifier.size(32.dp),
-                )
-            }
+            androidx.compose.foundation.Image(
+                painter = painterResource(id = R.drawable.ic_app_logo),
+                contentDescription = stringResource(R.string.app_name),
+                modifier = Modifier.size(42.dp),
+            )
         },
         navigationIcon = {
             Row(verticalAlignment = Alignment.CenterVertically) {
