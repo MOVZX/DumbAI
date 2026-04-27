@@ -56,6 +56,91 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Composable
+fun UiMessageEffect(uiMessage: kotlinx.coroutines.flow.Flow<Int>) {
+    val context = LocalContext.current
+
+    LaunchedEffect(uiMessage) {
+        uiMessage.collect { resId ->
+            android.widget.Toast.makeText(
+                    context,
+                    context.getString(resId),
+                    android.widget.Toast.LENGTH_SHORT,
+                )
+                .show()
+        }
+    }
+}
+
+@Composable
+fun AppBackHandler(
+    enabled: Boolean,
+    isSelectionMode: Boolean = false,
+    clearSelection: () -> Unit = {},
+    leftDrawerState: DrawerState,
+    rightDrawerState: DrawerState,
+    scope: kotlinx.coroutines.CoroutineScope,
+    backPressedTime: Long,
+    onUpdateBackPressedTime: (Long) -> Unit,
+    exitConfirmMsg: String,
+) {
+    val context = LocalContext.current
+    BackHandler(enabled = enabled) {
+        if (isSelectionMode) {
+            clearSelection()
+        } else if (leftDrawerState.isOpen) {
+            scope.launch { leftDrawerState.close() }
+        } else if (rightDrawerState.isOpen) {
+            scope.launch { rightDrawerState.close() }
+        } else {
+            val currentTime = System.currentTimeMillis()
+
+            if (currentTime - backPressedTime < 2000) {
+                (context as? Activity)?.finish()
+            } else {
+                onUpdateBackPressedTime(currentTime)
+                android.widget.Toast.makeText(
+                        context,
+                        exitConfirmMsg,
+                        android.widget.Toast.LENGTH_SHORT,
+                    )
+                    .show()
+            }
+        }
+    }
+}
+
+@Composable
+fun ScrollRestorationEffect(
+    gridState: LazyStaggeredGridState,
+    isRestored: Boolean,
+    imagesNotEmpty: Boolean,
+    scrollIndex: Int,
+    scrollOffset: Int,
+    scrollPositionType: String,
+    saveScrollPosition: (String, Int, Int) -> Unit,
+    markRestored: () -> Unit,
+) {
+    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
+        if (isRestored) {
+            kotlinx.coroutines.delay(500)
+
+            saveScrollPosition(
+                scrollPositionType,
+                gridState.firstVisibleItemIndex,
+                gridState.firstVisibleItemScrollOffset,
+            )
+        }
+    }
+
+    LaunchedEffect(imagesNotEmpty) {
+        if (!isRestored && imagesNotEmpty) {
+            gridState.scrollToItem(scrollIndex, scrollOffset)
+            markRestored()
+        }
+    }
+}
+
 enum class RightSidebarType {
     FILTERS,
     SETTINGS,
@@ -160,49 +245,10 @@ fun MainScreen(imageLoader: ImageLoader) {
         )
     }
 
-    LaunchedEffect(settingsViewModel.uiMessage) {
-        settingsViewModel.uiMessage.collect { resId ->
-            android.widget.Toast.makeText(
-                    context,
-                    context.getString(resId),
-                    android.widget.Toast.LENGTH_SHORT,
-                )
-                .show()
-        }
-    }
-
-    LaunchedEffect(feedViewModel.uiMessage) {
-        feedViewModel.uiMessage.collect { resId ->
-            android.widget.Toast.makeText(
-                    context,
-                    context.getString(resId),
-                    android.widget.Toast.LENGTH_SHORT,
-                )
-                .show()
-        }
-    }
-
-    LaunchedEffect(favoritesViewModel.uiMessage) {
-        favoritesViewModel.uiMessage.collect { resId ->
-            android.widget.Toast.makeText(
-                    context,
-                    context.getString(resId),
-                    android.widget.Toast.LENGTH_SHORT,
-                )
-                .show()
-        }
-    }
-
-    LaunchedEffect(galleryViewModel.uiMessage) {
-        galleryViewModel.uiMessage.collect { resId ->
-            android.widget.Toast.makeText(
-                    context,
-                    context.getString(resId),
-                    android.widget.Toast.LENGTH_SHORT,
-                )
-                .show()
-        }
-    }
+    UiMessageEffect(settingsViewModel.uiMessage)
+    UiMessageEffect(feedViewModel.uiMessage)
+    UiMessageEffect(favoritesViewModel.uiMessage)
+    UiMessageEffect(galleryViewModel.uiMessage)
 
     val dirPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -230,27 +276,15 @@ fun MainScreen(imageLoader: ImageLoader) {
             uri?.let { settingsViewModel.importData(it) }
         }
 
-    BackHandler(enabled = selectedImageIndex == null) {
-        if (leftDrawerState.isOpen) {
-            scope.launch { leftDrawerState.close() }
-        } else if (rightDrawerState.isOpen) {
-            scope.launch { rightDrawerState.close() }
-        } else {
-            val currentTime = System.currentTimeMillis()
-
-            if (currentTime - backPressedTime < 2000) {
-                (context as? Activity)?.finish()
-            } else {
-                backPressedTime = currentTime
-                android.widget.Toast.makeText(
-                        context,
-                        exitConfirmMsg,
-                        android.widget.Toast.LENGTH_SHORT,
-                    )
-                    .show()
-            }
-        }
-    }
+    AppBackHandler(
+        enabled = selectedImageIndex == null,
+        leftDrawerState = leftDrawerState,
+        rightDrawerState = rightDrawerState,
+        scope = scope,
+        backPressedTime = backPressedTime,
+        onUpdateBackPressedTime = { backPressedTime = it },
+        exitConfirmMsg = exitConfirmMsg,
+    )
 
     ModalNavigationDrawer(
         drawerState = leftDrawerState,
@@ -771,29 +805,17 @@ fun FavoritesScreen(
 
     var showBatchConfirmDialog by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = selectedImageIndex == null) {
-        if (uiState.isSelectionMode) {
-            viewModel.clearSelection()
-        } else if (leftDrawerState.isOpen) {
-            scope.launch { leftDrawerState.close() }
-        } else if (rightDrawerState.isOpen) {
-            scope.launch { rightDrawerState.close() }
-        } else {
-            val currentTime = System.currentTimeMillis()
-
-            if (currentTime - backPressedTime < 2000) {
-                (context as? Activity)?.finish()
-            } else {
-                onUpdateBackPressedTime(currentTime)
-                android.widget.Toast.makeText(
-                        context,
-                        exitConfirmMsg,
-                        android.widget.Toast.LENGTH_SHORT,
-                    )
-                    .show()
-            }
-        }
-    }
+    AppBackHandler(
+        enabled = selectedImageIndex == null,
+        isSelectionMode = uiState.isSelectionMode,
+        clearSelection = { viewModel.clearSelection() },
+        leftDrawerState = leftDrawerState,
+        rightDrawerState = rightDrawerState,
+        scope = scope,
+        backPressedTime = backPressedTime,
+        onUpdateBackPressedTime = onUpdateBackPressedTime,
+        exitConfirmMsg = exitConfirmMsg,
+    )
 
     if (showBatchConfirmDialog) {
         ConfirmationDialog(
@@ -964,48 +986,30 @@ fun GalleryScreen(
 
     var showBatchConfirmDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
-        if (uiState.isRestored) {
-            kotlinx.coroutines.delay(500)
+    ScrollRestorationEffect(
+        gridState = gridState,
+        isRestored = uiState.isRestored,
+        imagesNotEmpty = uiState.images.isNotEmpty(),
+        scrollIndex = uiState.scrollIndex,
+        scrollOffset = uiState.scrollOffset,
+        scrollPositionType = "gallery",
+        saveScrollPosition = { type, idx, offset ->
+            viewModel.saveScrollPosition(type, idx, offset)
+        },
+        markRestored = { viewModel.markRestored() },
+    )
 
-            viewModel.saveScrollPosition(
-                "gallery",
-                gridState.firstVisibleItemIndex,
-                gridState.firstVisibleItemScrollOffset,
-            )
-        }
-    }
-
-    LaunchedEffect(uiState.images.isNotEmpty()) {
-        if (!uiState.isRestored && uiState.images.isNotEmpty()) {
-            gridState.scrollToItem(uiState.scrollIndex, uiState.scrollOffset)
-            viewModel.markRestored()
-        }
-    }
-
-    BackHandler(enabled = selectedImageIndex == null) {
-        if (uiState.isSelectionMode) {
-            viewModel.clearSelection()
-        } else if (leftDrawerState.isOpen) {
-            scope.launch { leftDrawerState.close() }
-        } else if (rightDrawerState.isOpen) {
-            scope.launch { rightDrawerState.close() }
-        } else {
-            val currentTime = System.currentTimeMillis()
-
-            if (currentTime - backPressedTime < 2000) {
-                (context as? Activity)?.finish()
-            } else {
-                onUpdateBackPressedTime(currentTime)
-                android.widget.Toast.makeText(
-                        context,
-                        exitConfirmMsg,
-                        android.widget.Toast.LENGTH_SHORT,
-                    )
-                    .show()
-            }
-        }
-    }
+    AppBackHandler(
+        enabled = selectedImageIndex == null,
+        isSelectionMode = uiState.isSelectionMode,
+        clearSelection = { viewModel.clearSelection() },
+        leftDrawerState = leftDrawerState,
+        rightDrawerState = rightDrawerState,
+        scope = scope,
+        backPressedTime = backPressedTime,
+        onUpdateBackPressedTime = onUpdateBackPressedTime,
+        exitConfirmMsg = exitConfirmMsg,
+    )
 
     if (showBatchConfirmDialog) {
         ConfirmationDialog(
