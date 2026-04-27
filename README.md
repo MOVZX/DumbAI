@@ -1,6 +1,6 @@
-# DumbAI
+# Dibella
 
-**DumbAI** is a sophisticated **Android** client for the **Civitai** platform, built using modern software engineering principles and the latest **Android** development technologies. The application focuses on providing a high-performance, maintainable, and visually consistent experience for browsing and managing AI-generated media.
+**Dibella** is a sophisticated **Android** client for the **Civitai** platform, built using modern software engineering principles and the latest **Android** development technologies. The application focuses on providing a high-performance, maintainable, and visually consistent experience for browsing and managing AI-generated media.
 
 ## Project Overview
 
@@ -34,40 +34,48 @@ The data layer is highly modular and utilizes specialized repositories:
 
 ### Dual-Sidebar Navigation
 
-The application employs a unique navigation system based on nested **ModalNavigationDrawers**:
+The application employs a unique navigation system based on nested **ModalNavigationDrawers** with intelligent gesture control:
 
-- **Left Sidebar**: Dedicated to display configurations, including grid column adjustments and request limits.
+- **Left Sidebar**: Dedicated to display configurations, including grid column adjustments, request limits, and per-screen media type filtering.
 - **Right Sidebar**: A multi-mode panel that switches between advanced content filters and core application settings.
-- **Direction Normalization**: Intelligent handling of layout directions to ensure the right-hand drawer content renders correctly in LTR mode within the RTL hack.
+- **Gesture Reliability**: Dynamic edge-peeking logic ensures that left and right swipe gestures are correctly routed to the appropriate drawer without interception conflicts.
 - **Consistent UI**: All sidebars utilize a unified `BaseSidebar` foundation with square edges and dynamic scrollbars for a professional aesthetic.
 
 ### Modern UI/UX Experience
 
-DumbAI adheres to professional Android standards to deliver a premium user experience:
+Dibella adheres to professional Android standards to deliver a premium user experience:
 
 - **Immersive Edge-to-Edge**: The interface flows seamlessly behind system navigation and status bars for maximum content engagement.
 - **Material You Design**: Full support for Dynamic Colors _(Android 12+)_ and reactive themes that adapt to the user's system preferences.
-- **Fluid Motion**: All primary actions and state transitions, including Floating Action Buttons and loading shimmers, utilize high-quality animations.
-- **Full Internationalization**: Zero hardcoded strings or colors, with every asset strictly managed via system resources for seamless localizability.
+- **Fluid Motion**: All primary actions and state transitions, including Floating Action Buttons and shared element transitions, utilize high-quality animations.
+- **Efficiency-First Loading**: Skeleton grids and error-aware image cards replace power-hungry shimmers with optimized static states and clear failure feedback.
 
 ### Local Resource Caching
 
-DumbAI prioritizes accessibility by automatically downloading and managing local copies of favorited images and video previews. This system ensures that the user's collection remains browseable regardless of network status.
+Dibella prioritizes accessibility by automatically downloading and managing local copies of favorited images and video previews. This system ensures that the user's collection remains browseable regardless of network status.
 
-### Smart Image Resolution
+### Smart Image Resolution & Verification
 
-A dedicated utility layer dynamically resolves the most appropriate media source based on context. It intelligently switches between local cached files and remote URLs while optimizing thumbnail dimensions to conserve bandwidth without sacrificing visual quality.
+A dedicated utility layer dynamically resolves the most appropriate media source based on context. The application verifies the integrity of downloaded media through **magic byte sniffing**, ensuring that only valid images are displayed and automatically retrying failed thumbnails with alternative resolutions.
+
+### Duplicate Detection
+
+The app includes advanced duplicate detection for managing large collections of AI-generated media, allowing users to identify and remove duplicate files efficiently in both favorites and local gallery.
 
 ### Dynamic Networking
 
-The networking layer uses a custom **OkHttp Interceptor** to handle secure API key injection. Performance is optimized through atomic DataStore preference lookups, minimizing blocking calls during request interception.
+The networking layer uses custom **OkHttp Interceptors** to handle:
+
+- **Secure Auth**: Scoped API key injection for API requests only.
+- **Anti-Bot Protection**: Browser-like headers (User-Agent/Referer) to ensure reliable CDN access.
+- **Robust Fallbacks**: Content-aware retries for 404/403 errors and increased 60s timeouts for stability on slow connections.
 
 ## Screenshots
 
 ![Main Page: 3 grids](screenshots/1.png)
 ![Main Page: 2 grids](screenshots/2.png)
 ![Main Page: 1 grids](screenshots/3.png)
-![Favourite Page](screenshots/4.png)
+![Favorite Page](screenshots/4.png)
 ![Gallery Page](screenshots/5.png)
 ![Filter Options](screenshots/6.png)
 ![View Options](screenshots/7.png)
@@ -80,7 +88,7 @@ The networking layer uses a custom **OkHttp Interceptor** to handle secure API k
 - **Networking**: Retrofit / OkHttp / Moshi
 - **Database**: Room
 - **Persistence**: Jetpack DataStore
-- **Image Loading**: Coil _(including Video Frame support)_
+- **Image Loading**: Coil3 _(including Video Frame support)_
 - **Media Playback**: Media3 / ExoPlayer
 
 ## Project Structure
