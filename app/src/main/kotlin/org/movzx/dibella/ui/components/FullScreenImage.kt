@@ -159,7 +159,7 @@ fun FullScreenImage(
                             context = context,
                             image = image,
                             favoriteInfo = favoriteInfo,
-                            thumbnailWidth = 640,
+                            thumbnailWidth = 450,
                             useVideoPath = true,
                         )
                     }

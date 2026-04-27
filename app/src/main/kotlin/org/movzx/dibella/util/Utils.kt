@@ -63,14 +63,19 @@ fun Modifier.scrollbar(state: ScrollState, width: Dp = 4.dp, color: Color? = nul
 
 fun hasLocalCache(context: Context, imageId: Long, isVideo: Boolean): Boolean {
     val favoritesDir = File(context.filesDir, "favorites")
+
     val extensions =
         if (isVideo) listOf("mp4", "webm", "mkv") else listOf("jpg", "png", "webp", "gif", "avif")
 
-    return extensions.any { ext ->
+    val found = extensions.any { ext ->
         val file = File(favoritesDir, "$imageId.$ext")
 
         file.exists() && file.length() > 100
     }
+
+    if (found) Logger.v("Dibella_IO", "[$imageId] Local cache found (Thumbnail/Video)")
+
+    return found
 }
 
 fun hasFullCache(context: Context, imageId: Long, isVideo: Boolean): Boolean {
@@ -79,11 +84,15 @@ fun hasFullCache(context: Context, imageId: Long, isVideo: Boolean): Boolean {
     val favoritesDir = File(context.filesDir, "favorites")
     val extensions = listOf("jpg", "png", "webp", "gif", "avif")
 
-    return extensions.any { ext ->
+    val found = extensions.any { ext ->
         val file = File(favoritesDir, "${imageId}_full.$ext")
 
         file.exists() && file.length() > 100
     }
+
+    if (found) Logger.v("Dibella_IO", "[$imageId] Full resolution cache found")
+
+    return found
 }
 
 fun resolveImageData(
@@ -116,6 +125,7 @@ fun resolveImageData(
     val extensions =
         if (image.type == "video") listOf("mp4", "webm", "mkv")
         else listOf("jpg", "png", "webp", "gif", "avif")
+
     val baseName =
         if (thumbnailWidth > 400 && image.type != "video") "${image.id}_full" else "${image.id}"
 
@@ -169,6 +179,8 @@ fun resolveImageData(
         return remoteUrl
     }
 
+    Logger.e("Dibella_Res", "[${image.id}] Failed to resolve any valid path/URL, returning raw URL")
+
     return image.url
 }
 
@@ -197,7 +209,23 @@ fun getThumbnailUrl(url: String, width: Int): String {
 }
 
 fun getVideoThumbnailUrl(url: String): String {
-    return modifyCivitaiUrl(url, "original=false")
+    if (!url.contains("image.civitai.com")) return url
+
+    val baseUrl =
+        if (url.contains("/original=true/")) url.substringBefore("/original=true/")
+        else url.substringBeforeLast("/")
+
+    return "$baseUrl/anim=false,transcode=true,width=450,original=false,optimized=true"
+}
+
+fun getVideoPreviewUrl(url: String): String {
+    if (!url.contains("image.civitai.com")) return url
+
+    val baseUrl =
+        if (url.contains("/original=true/")) url.substringBefore("/original=true/")
+        else url.substringBeforeLast("/")
+
+    return "$baseUrl/transcode=true,width=450,optimized=true"
 }
 
 fun getOriginalUrl(url: String): String {
@@ -210,10 +238,6 @@ fun getOriginalUrl(url: String): String {
     }
 }
 
-fun getVideoPreviewUrl(url: String): String {
-    return url
-}
-
 fun getRequiredStoragePermissions(): List<String> {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
@@ -223,7 +247,12 @@ fun getRequiredStoragePermissions(): List<String> {
 }
 
 fun hasStoragePermissions(context: Context): Boolean {
-    return getRequiredStoragePermissions().all {
-        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-    }
+    val granted =
+        getRequiredStoragePermissions().all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
+
+    if (!granted) Logger.w("Dibella_IO", "Storage permissions NOT granted")
+
+    return granted
 }
