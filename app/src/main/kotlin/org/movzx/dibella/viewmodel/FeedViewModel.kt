@@ -16,6 +16,7 @@ import org.movzx.dibella.data.GalleryRepository
 import org.movzx.dibella.data.UserPreferencesRepository
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FeedItemCache
+import org.movzx.dibella.util.Logger
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -67,6 +68,11 @@ constructor(
                     val typeChanged = type != _uiState.value.type
                     val tagsChanged = tagIds != _uiState.value.tagIds
 
+                    Logger.d(
+                        "Dibella_Cache",
+                        "Settings Update | NSFW: $nsfw, Sort: $sort, Period: $period, Type: $type, Tags: $tagIds",
+                    )
+
                     _uiState.update {
                         it.copy(
                             nsfw = nsfw,
@@ -99,6 +105,8 @@ constructor(
                                 tagsChanged ||
                                 typeChanged)
                     ) {
+                        Logger.d("Dibella_Cache", "Feed Refresh Triggered by Settings Change")
+
                         refresh()
                     }
 
@@ -123,6 +131,12 @@ constructor(
             videoCursor = repository.nextCursor("video").first()
             val cachedImages = feedCacheDao.getFeed("image").map { it.toCivitaiImage() }
             val cachedVideos = feedCacheDao.getFeed("video").map { it.toCivitaiImage() }
+
+            Logger.d(
+                "Dibella_DB",
+                "Restoring Feed Cache | Images: ${cachedImages.size}, Videos: ${cachedVideos.size}",
+            )
+
             imageFeed = cachedImages
             videoFeed = cachedVideos
             val currentType = repository.type.first()
@@ -135,7 +149,11 @@ constructor(
                 )
             }
 
-            if (_uiState.value.images.isEmpty()) loadImages(isNew = true)
+            if (_uiState.value.images.isEmpty()) {
+                Logger.d("Dibella_Cache", "Cache empty, initiating first load")
+
+                loadImages(isNew = true)
+            }
         }
     }
 
@@ -152,6 +170,8 @@ constructor(
         }
 
         val currentType = _uiState.value.type
+
+        Logger.d("Dibella_Cache", "Refreshing Feed | Type: $currentType")
 
         if (currentType == "video") {
             videoFeed = emptyList()
@@ -172,7 +192,11 @@ constructor(
     fun loadMore() {
         val currentCursor = if (_uiState.value.type == "video") videoCursor else imageCursor
 
-        if (currentCursor != null && !_uiState.value.isLoading) loadImages(isNew = false)
+        if (currentCursor != null && !_uiState.value.isLoading) {
+            Logger.d("Dibella_Cache", "Loading More Content | Cursor: $currentCursor")
+
+            loadImages(isNew = false)
+        }
     }
 
     private fun loadImages(isNew: Boolean) {
@@ -192,6 +216,11 @@ constructor(
 
             while (!success) {
                 try {
+                    Logger.d(
+                        "Dibella_Net",
+                        "API Request (isNew: $isNew) | Type: $targetType, Limit: ${_uiState.value.pageLimit}, Cursor: $targetCursor",
+                    )
+
                     val response =
                         civitaiApi.getImages(
                             limit = _uiState.value.pageLimit,
@@ -203,7 +232,14 @@ constructor(
                             cursor = targetCursor,
                         )
 
-                    if (_uiState.value.type != targetType) break
+                    if (_uiState.value.type != targetType) {
+                        Logger.w(
+                            "Dibella_Cache",
+                            "Feed type changed during load, discarding results",
+                        )
+
+                        break
+                    }
 
                     val items =
                         if (isNew) {
@@ -215,6 +251,11 @@ constructor(
                         }
 
                     val cursor = response.metadata.nextCursor?.substringBefore('|')
+
+                    Logger.d(
+                        "Dibella_Net",
+                        "API Success | Received ${response.items.size} items, Next Cursor: $cursor",
+                    )
 
                     if (targetType == "video") {
                         videoFeed = items
@@ -233,6 +274,11 @@ constructor(
                         FeedItemCache.fromCivitaiImage(image, targetType, index)
                     }
 
+                    Logger.d(
+                        "Dibella_DB",
+                        "Updating Feed Cache for $targetType | Items: ${items.size}",
+                    )
+
                     feedCacheDao.replaceFeed(targetType, cacheItems)
 
                     success = true
@@ -240,6 +286,8 @@ constructor(
                     if (e is kotlinx.coroutines.CancellationException) throw e
 
                     attempt++
+
+                    Logger.e("Dibella_Net", "API Error (Attempt $attempt): ${e.message}")
 
                     if (attempt >= 3) {
                         sendMessage(R.string.msg_load_failed)
@@ -256,16 +304,27 @@ constructor(
     }
 
     fun updateFilters(nsfw: String, sort: String, period: String, type: String, tagIds: String?) {
-        viewModelScope.launch { repository.updateFilters(nsfw, sort, period, type, tagIds) }
+        viewModelScope.launch {
+            Logger.d(
+                "Dibella_Cache",
+                "Updating Filters | NSFW: $nsfw, Sort: $sort, Period: $period, Type: $type",
+            )
+
+            repository.updateFilters(nsfw, sort, period, type, tagIds)
+        }
     }
 
     fun resetFilters() {
         viewModelScope.launch {
+            Logger.d("Dibella_Cache", "Resetting Filters to Default")
+
             repository.updateFilters("None", "Most Reactions", "AllTime", "image", null)
         }
     }
 
     override fun downloadImage(image: CivitaiImage) {
+        Logger.d("Dibella_Cache", "Download Initiated | ID: ${image.id}")
+
         performDownload(
             image = image,
             currentProgresses = _uiState.value.downloadProgresses,

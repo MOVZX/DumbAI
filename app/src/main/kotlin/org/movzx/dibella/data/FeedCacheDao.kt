@@ -2,6 +2,7 @@ package org.movzx.dibella.data
 
 import androidx.room.*
 import org.movzx.dibella.model.FeedItemCache
+import org.movzx.dibella.util.Logger
 
 @Dao
 interface FeedCacheDao {
@@ -16,6 +17,8 @@ interface FeedCacheDao {
 
     @Transaction
     suspend fun replaceFeed(feedType: String, items: List<FeedItemCache>) {
+        Logger.d("Dibella_DB", "Replacing Feed Cache | Type: $feedType, Items: ${items.size}")
+
         clearFeed(feedType)
         insertFeed(items)
     }

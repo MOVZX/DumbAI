@@ -54,6 +54,8 @@ constructor(
                 }
                 .toSet()
 
+        Logger.d("Dibella_IO", "Refreshed Downloaded IDs: ${ids.size} found in ${rootDir.name}")
+
         _downloadedIds.value = ids
     }
 
@@ -61,11 +63,20 @@ constructor(
         withContext(videoMetadataDispatcher) {
             val rootDir = getDownloadDir(path)
 
-            if (!rootDir.exists()) return@withContext emptyList()
+            if (!rootDir.exists()) {
+                Logger.w("Dibella_IO", "Scan Aborted: Directory does not exist | Path: $path")
+
+                return@withContext emptyList()
+            }
 
             val files = rootDir.listFiles() ?: emptyArray()
             val list = mutableListOf<CivitaiImage>()
             val ids = mutableSetOf<Long>()
+
+            Logger.d(
+                "Dibella_IO",
+                "Scanning Directory: ${rootDir.absolutePath} (${files.size} files)",
+            )
 
             for (file in files) {
                 if (file.isFile) {
@@ -102,6 +113,7 @@ constructor(
                             h = options.outHeight
                         } else if (isVideo) {
                             val retriever = MediaMetadataRetriever()
+                            val metaStart = System.currentTimeMillis()
 
                             try {
                                 retriever.setDataSource(file.absolutePath)
@@ -134,8 +146,13 @@ constructor(
                                     w = vidW
                                     h = vidH
                                 }
+
+                                Logger.v(
+                                    "Dibella_Codec",
+                                    "[$id] Video Meta: ${w}x${h} (Rot: $rotation) in ${System.currentTimeMillis() - metaStart}ms",
+                                )
                             } catch (e: Exception) {
-                                Logger.e("GalleryRepo", "Error reading video meta: ${e.message}")
+                                Logger.e("Dibella_Codec", "Error reading video meta: ${e.message}")
                             } finally {
                                 retriever.release()
                             }
@@ -157,6 +174,9 @@ constructor(
             }
 
             _downloadedIds.value = ids
+
+            Logger.d("Dibella_Res", "Scan Complete: ${list.size} items indexed")
+
             list.sortedByDescending { File(it.url).lastModified() }
         }
 
@@ -166,28 +186,50 @@ constructor(
                 val file = File(image.url)
                 val result = file.exists() && file.delete()
 
+                Logger.d(
+                    "Dibella_IO",
+                    "[${image.id}] Delete local file: $result | Path: ${image.url}",
+                )
+
                 if (result) {
                     MediaScannerConnection.scanFile(context, arrayOf(image.url), null, null)
                     refreshDownloadedIds()
                 }
+
                 result
             } catch (e: Exception) {
+                Logger.e("Dibella_IO", "[${image.id}] Delete Exception: ${e.message}")
+
                 false
             }
         }
 
     suspend fun downloadImage(image: CivitaiImage, onProgress: (Float) -> Unit): Result<String> =
         withContext(Dispatchers.IO) {
+            val startTime = System.currentTimeMillis()
+
             try {
                 val downloadDir = getDownloadDir(preferencesRepository.downloadPath.first())
 
-                if (!downloadDir.exists()) downloadDir.mkdirs()
+                if (!downloadDir.exists()) {
+                    val created = downloadDir.mkdirs()
+
+                    Logger.d("Dibella_IO", "Creating download directory: $created")
+                }
 
                 val request = Request.Builder().url(image.url).build()
 
+                Logger.d("Dibella_Net", "[${image.id}] Download Start | URL: ${image.url}")
+
                 okHttpClient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful)
+                    if (!response.isSuccessful) {
+                        Logger.e(
+                            "Dibella_Net",
+                            "[${image.id}] Download Failed | HTTP ${response.code}",
+                        )
+
                         return@withContext Result.failure(Exception("HTTP ${response.code}"))
+                    }
 
                     val body =
                         response.body ?: return@withContext Result.failure(Exception("Empty body"))
@@ -203,6 +245,11 @@ constructor(
                         )
 
                     val file = File(downloadDir, "Dibella_${image.id}.$ext")
+
+                    Logger.d(
+                        "Dibella_Net",
+                        "[${image.id}] Detected extension: $ext | Size: ${contentLength / 1024}KB",
+                    )
 
                     FileOutputStream(file).use { output ->
                         val buffer = ByteArray(8192)
@@ -221,9 +268,17 @@ constructor(
 
                     MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null, null)
                     refreshDownloadedIds()
+
+                    Logger.d(
+                        "Dibella_IO",
+                        "[${image.id}] Download complete in ${System.currentTimeMillis() - startTime}ms | Path: ${file.name}",
+                    )
+
                     Result.success(file.absolutePath)
                 }
             } catch (e: Exception) {
+                Logger.e("Dibella_Net", "[${image.id}] Download Exception: ${e.message}")
+
                 Result.failure(e)
             }
         }
@@ -241,6 +296,8 @@ constructor(
                         (it.extension.lowercase() in setOf("mp4", "jpg", "jpeg", "png", "webp"))
                 } ?: return@withContext emptyList()
 
+            Logger.d("Dibella_IO", "Checking duplicates in ${rootDir.name} (${files.size} files)")
+
             val duplicateFiles = internalCalculateDuplicates(files)
 
             duplicateFiles.map { group ->
@@ -253,6 +310,7 @@ constructor(
                             file.nameWithoutExtension.filter { it.isDigit() }.toLongOrNull()
                                 ?: file.absolutePath.hashCode().toLong()
                         }
+
                     CivitaiImage(
                         id = id,
                         url = file.absolutePath,
@@ -270,19 +328,29 @@ constructor(
         withContext(Dispatchers.IO) {
             var removedCount = 0
 
+            Logger.d("Dibella_IO", "Removing duplicates from ${duplicateGroups.size} groups")
+
             duplicateGroups.forEach { group ->
                 val sortedGroup = group.sortedBy { File(it.url).lastModified() }
                 val toRemove = sortedGroup.drop(1)
 
                 toRemove.forEach { image ->
-                    if (File(image.url).delete()) {
+                    val file = File(image.url)
+
+                    if (file.delete()) {
+                        Logger.v("Dibella_IO", "Deleted duplicate: ${file.name}")
+
                         MediaScannerConnection.scanFile(context, arrayOf(image.url), null, null)
                         removedCount++
                     }
                 }
             }
 
-            if (removedCount > 0) refreshDownloadedIds()
+            if (removedCount > 0) {
+                Logger.d("Dibella_IO", "Duplicate removal finished: $removedCount files purged")
+
+                refreshDownloadedIds()
+            }
 
             removedCount
         }
@@ -300,7 +368,14 @@ constructor(
 
             val hashGroups = validHashes.groupBy { it.second }.filter { it.value.size > 1 }
 
-            hashGroups.forEach { entry -> duplicates.add(entry.value.map { it.first }) }
+            hashGroups.forEach { entry ->
+                Logger.d(
+                    "Dibella_IO",
+                    "Found hash match: ${entry.value.size} files | Hash: ${entry.key.take(8)}...",
+                )
+
+                duplicates.add(entry.value.map { it.first })
+            }
         }
 
         return duplicates

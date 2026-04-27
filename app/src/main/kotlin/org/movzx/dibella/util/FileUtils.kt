@@ -27,10 +27,16 @@ object FileUtils {
                 "video/x-matroska" -> "mkv"
                 else -> null
             }
-        if (mappedExt != null) return mappedExt
+
+        if (mappedExt != null) {
+            Logger.v("Dibella_Codec", "Extension detected via Content-Type: $mappedExt")
+
+            return mappedExt
+        }
 
         try {
             val peek = source.peek()
+
             if (peek.rangeEquals(0, PNG_HEADER)) return "png"
             if (peek.rangeEquals(0, JPEG_HEADER)) return "jpg"
             if (peek.rangeEquals(0, WEBP_HEADER)) return "webp"
@@ -39,8 +45,11 @@ object FileUtils {
             if (peek.rangeEquals(0, EBML_HEADER)) {
                 if (peek.request(64)) {
                     val data = peek.readByteString(64).hex()
+                    val ext = if (data.contains("7765626D")) "webm" else "mkv"
 
-                    return if (data.contains("7765626D")) "webm" else "mkv"
+                    Logger.v("Dibella_Codec", "Extension detected via EBML Headers: $ext")
+
+                    return ext
                 }
 
                 return "webm"
@@ -52,12 +61,22 @@ object FileUtils {
                 if (head.contains("61766966")) return "avif"
                 if (head.contains("66747970")) return "mp4"
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            Logger.e("Dibella_Codec", "Error peeking headers: ${e.message}")
+        }
 
         val urlExt = url.substringAfterLast('.', "").lowercase()
         val validExts = setOf("png", "jpg", "jpeg", "webp", "gif", "avif", "mp4", "webm", "mkv")
 
-        if (urlExt in validExts) return if (urlExt == "jpeg") "jpg" else urlExt
+        if (urlExt in validExts) {
+            val result = if (urlExt == "jpeg") "jpg" else urlExt
+
+            Logger.v("Dibella_Codec", "Extension detected via URL: $result")
+
+            return result
+        }
+
+        Logger.w("Dibella_Codec", "Could not detect extension, defaulting to jpg")
 
         return "jpg"
     }
@@ -67,21 +86,29 @@ object FileUtils {
 
         val hex = bytes.joinToString("") { "%02X".format(it) }
 
-        return when {
-            hex.startsWith("89504E47") -> "png"
-            hex.startsWith("FFD8FF") -> "jpg"
-            hex.startsWith("52494646") && hex.length >= 24 && hex.substring(16, 24) == "57454250" ->
-                "webp"
-            hex.startsWith("47494638") -> "gif"
-            hex.contains("61766966") -> "avif"
-            hex.contains("66747970") -> "mp4"
-            hex.startsWith("1A45DFA3") -> "webm"
-            else -> null
-        }
+        val detected =
+            when {
+                hex.startsWith("89504E47") -> "png"
+                hex.startsWith("FFD8FF") -> "jpg"
+                hex.startsWith("52494646") &&
+                    hex.length >= 24 &&
+                    hex.substring(16, 24) == "57454250" -> "webp"
+                hex.startsWith("47494638") -> "gif"
+                hex.contains("61766966") -> "avif"
+                hex.contains("66747970") -> "mp4"
+                hex.startsWith("1A45DFA3") -> "webm"
+                else -> null
+            }
+
+        return detected
     }
 
     fun isRealMedia(file: File): Boolean {
-        if (!file.exists() || file.length() < 12) return false
+        if (!file.exists() || file.length() < 12) {
+            Logger.w("Dibella_IO", "Media Check Failed: File too small or missing | ${file.name}")
+
+            return false
+        }
 
         return try {
             val bytes =
@@ -92,16 +119,36 @@ object FileUtils {
                     buffer
                 }
 
-            if (bytes[0] == '{'.code.toByte()) return false
+            if (bytes[0] == '{'.code.toByte()) {
+                Logger.e(
+                    "Dibella_Codec",
+                    "Media Validation Error: File is actually JSON/API error | ${file.name}",
+                )
 
-            getExtensionFromBytes(bytes) != null
+                return false
+            }
+
+            val hasExtension = getExtensionFromBytes(bytes) != null
+
+            if (!hasExtension) {
+                Logger.e(
+                    "Dibella_Codec",
+                    "Media Validation Error: Unknown or invalid file headers | ${file.name}",
+                )
+            }
+
+            hasExtension
         } catch (e: Exception) {
+            Logger.e("Dibella_Codec", "Exception during media check: ${e.message}")
+
             false
         }
     }
 
     fun calculateHash(file: File): String? {
         if (!file.exists()) return null
+
+        val startTime = System.currentTimeMillis()
 
         return try {
             val digest = java.security.MessageDigest.getInstance("SHA-256")
@@ -115,8 +162,17 @@ object FileUtils {
                 }
             }
 
-            digest.digest().joinToString("") { "%02x".format(it) }
+            val hash = digest.digest().joinToString("") { "%02x".format(it) }
+
+            Logger.v(
+                "Dibella_IO",
+                "Hash Calculated: ${file.name} | Duration: ${System.currentTimeMillis() - startTime}ms",
+            )
+
+            hash
         } catch (e: Exception) {
+            Logger.e("Dibella_IO", "Hash Calculation Failed: ${e.message}")
+
             null
         }
     }

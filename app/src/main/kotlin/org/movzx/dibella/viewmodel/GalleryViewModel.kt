@@ -10,6 +10,7 @@ import org.movzx.dibella.data.FavoritesRepository
 import org.movzx.dibella.data.GalleryRepository
 import org.movzx.dibella.data.UserPreferencesRepository
 import org.movzx.dibella.model.CivitaiImage
+import org.movzx.dibella.util.Logger
 
 @HiltViewModel
 class GalleryViewModel
@@ -27,6 +28,11 @@ constructor(
             val initialIndex = repository.feedScrollIndex("gallery").first()
             val initialOffset = repository.feedScrollOffset("gallery").first()
 
+            Logger.d(
+                "Dibella_Cache",
+                "Gallery: Restoring scroll pos ($initialIndex, $initialOffset)",
+            )
+
             _uiState.update { it.copy(scrollIndex = initialIndex, scrollOffset = initialOffset) }
 
             combine(repository.downloadPath, repository.galleryType, repository.gridColumns) {
@@ -36,9 +42,12 @@ constructor(
                     Triple(path, type, columns)
                 }
                 .collect { (path, type, columns) ->
+                    Logger.d("Dibella_Cache", "Gallery settings changed | Type: $type, Path: $path")
+
                     _uiState.update {
                         it.copy(downloadPath = path, type = type, gridColumns = columns)
                     }
+
                     refresh()
                 }
         }
@@ -52,6 +61,8 @@ constructor(
 
     fun refresh() {
         viewModelScope.launch {
+            Logger.d("Dibella_IO", "Refreshing gallery content...")
+
             _uiState.update { it.copy(isLoading = true) }
 
             val images = galleryRepository.scanDirectory(_uiState.value.downloadPath)
@@ -63,12 +74,18 @@ constructor(
                     else -> images
                 }
 
+            Logger.d("Dibella_Res", "Gallery refreshed: ${filtered.size} items displayed")
+
             _uiState.update { it.copy(images = filtered, isLoading = false) }
         }
     }
 
     fun updateType(type: String) {
-        viewModelScope.launch { repository.updateGalleryType(type) }
+        viewModelScope.launch {
+            Logger.d("Dibella_Cache", "Updating Gallery Type: $type")
+
+            repository.updateGalleryType(type)
+        }
     }
 
     fun toggleSelection(id: Long) {
@@ -77,18 +94,25 @@ constructor(
                 if (state.selectedIds.contains(id)) state.selectedIds - id
                 else state.selectedIds + id
 
+            Logger.v("Dibella_Cache", "Gallery selection toggled: $id | Total: ${newSelected.size}")
+
             state.copy(selectedIds = newSelected, isSelectionMode = newSelected.isNotEmpty())
         }
     }
 
     fun clearSelection() {
+        Logger.d("Dibella_Cache", "Gallery selection cleared")
+
         _uiState.update { it.copy(selectedIds = emptySet(), isSelectionMode = false) }
     }
 
     fun selectAll() {
         _uiState.update { state ->
             val allIds = state.images.map { it.id }.toSet()
+
             val newSelected = if (state.selectedIds.size == allIds.size) emptySet() else allIds
+
+            Logger.d("Dibella_Cache", "Gallery Select All: ${newSelected.size} items")
 
             state.copy(selectedIds = newSelected, isSelectionMode = newSelected.isNotEmpty())
         }
@@ -98,7 +122,9 @@ constructor(
         viewModelScope.launch {
             val idsToDelete = _uiState.value.selectedIds
 
-            idsToDelete.forEach { id ->
+            Logger.d("Dibella_IO", "Batch Delete: Initializing for ${idsToDelete.size} items")
+
+            for (id in idsToDelete) {
                 val image = _uiState.value.images.find { it.id == id }
 
                 if (image != null) galleryRepository.deleteLocalFile(image)
@@ -110,10 +136,16 @@ constructor(
     }
 
     fun deleteLocalFile(image: CivitaiImage) {
-        viewModelScope.launch { if (galleryRepository.deleteLocalFile(image)) refresh() }
+        viewModelScope.launch {
+            Logger.d("Dibella_IO", "[${image.id}] UI requested file deletion")
+
+            if (galleryRepository.deleteLocalFile(image)) refresh()
+        }
     }
 
     override fun downloadImage(image: CivitaiImage) {
+        Logger.d("Dibella_Cache", "[${image.id}] UI requested gallery download")
+
         performDownload(
             image = image,
             currentProgresses = _uiState.value.downloadProgresses,
@@ -126,11 +158,16 @@ constructor(
 
     fun findDuplicates() {
         viewModelScope.launch {
+            Logger.d("Dibella_IO", "Gallery duplicate search started")
+
             _uiState.update { it.copy(isLoading = true) }
+
             try {
                 val groups = galleryRepository.findDuplicateGroups()
 
                 if (groups.isNotEmpty()) {
+                    Logger.d("Dibella_IO", "Gallery duplicates found: ${groups.size} groups")
+
                     _uiState.update {
                         it.copy(
                             duplicateGroups = groups,
@@ -139,10 +176,14 @@ constructor(
                         )
                     }
                 } else {
+                    Logger.d("Dibella_IO", "No gallery duplicates found")
+
                     _uiState.update { it.copy(isLoading = false) }
                     sendMessage(R.string.msg_no_duplicates_found)
                 }
             } catch (e: Exception) {
+                Logger.e("Dibella_IO", "Gallery duplicate scan failed: ${e.message}")
+
                 _uiState.update { it.copy(isLoading = false) }
                 sendMessage(R.string.msg_load_failed)
             }
@@ -150,14 +191,21 @@ constructor(
     }
 
     fun clearDuplicatesMode() {
+        Logger.d("Dibella_Cache", "Exiting gallery duplicate mode")
+
         _uiState.update { it.copy(isShowingDuplicates = false, duplicateGroups = emptyList()) }
     }
 
     fun removeDuplicates() {
         viewModelScope.launch {
+            Logger.d("Dibella_IO", "Removing gallery duplicates...")
+
             _uiState.update { it.copy(isLoading = true) }
+
             try {
                 val count = galleryRepository.removeDuplicates(_uiState.value.duplicateGroups)
+
+                Logger.d("Dibella_IO", "Gallery duplicate removal complete: $count files purged")
 
                 _uiState.update {
                     it.copy(
@@ -174,6 +222,8 @@ constructor(
                     _uiState.update { it.copy(isLoading = false) }
                 }
             } catch (e: Exception) {
+                Logger.e("Dibella_IO", "Gallery duplicate removal error: ${e.message}")
+
                 _uiState.update {
                     it.copy(
                         isShowingDuplicates = false,
