@@ -289,6 +289,21 @@ constructor(
 
                     Logger.e("Dibella_Net", "API Error (Attempt $attempt): ${e.message}")
 
+                    val currentCursor = if (targetType == "video") videoCursor else imageCursor
+                    val newCursor = currentCursor?.toLongOrNull()?.let { (it + 1).toString() }
+
+                    if (newCursor != null) {
+                        if (targetType == "video") videoCursor = newCursor
+                        else imageCursor = newCursor
+
+                        repository.updateNextCursor(targetType, newCursor)
+
+                        Logger.d(
+                            "Dibella_Cache",
+                            "Cursor incremented from $currentCursor to $newCursor due to API error",
+                        )
+                    }
+
                     if (attempt >= 3) {
                         sendMessage(R.string.msg_load_failed)
 

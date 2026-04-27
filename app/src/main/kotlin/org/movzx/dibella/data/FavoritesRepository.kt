@@ -175,6 +175,18 @@ class FavoritesRepository(
                             }
                     }
 
+                    if (image.type == "video" && !downloadSuccess) {
+                        Logger.w(
+                            "Dibella_Net",
+                            "│ [${image.id}] Video preview failed, trying original video URL for frame extraction",
+                        )
+
+                        downloadSuccess =
+                            downloadFile(image.url, tempFile) { p ->
+                                onProgress((currentStep + p) / totalSteps)
+                            }
+                    }
+
                     if (downloadSuccess) {
                         val bytes = tempFile.inputStream().use { it.readNBytes(12) }
                         val ext = FileUtils.getExtensionFromBytes(bytes)

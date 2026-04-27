@@ -17,8 +17,8 @@ class CivitaiThumbnailInterceptor : Interceptor {
         if (url.contains("image.civitai.com")) {
             if (response.isSuccessful && isRealImage(response)) return response
 
-            val isDebug = true
             val isVideoThumbnail = url.contains("/original=false/")
+            val isVideo = url.contains("anim=false") || url.contains("transcode=true")
 
             for (width in fallbackWidths) {
                 val newUrl = getThumbnailUrl(url, width)
@@ -29,11 +29,34 @@ class CivitaiThumbnailInterceptor : Interceptor {
 
                 val newRequest = request.newBuilder().url(newUrl).build()
 
-                if (isDebug) Logger.d("Dibella_Net", "Retrying with width $width: $newUrl")
+                Logger.d("Dibella_Net", "Retrying with width $width: $newUrl")
 
                 response = chain.proceed(newRequest)
 
                 if (response.isSuccessful && isRealImage(response)) return response
+            }
+
+            if (
+                (!response.isSuccessful || !isRealImage(response)) &&
+                    isVideo &&
+                    !url.contains("original=true")
+            ) {
+                val baseUrl =
+                    if (url.contains("/original=true/")) url.substringBefore("/original=true/")
+                    else url.substringBeforeLast("/")
+
+                if (baseUrl != url) {
+                    response.close()
+
+                    val originalRequest = request.newBuilder().url(baseUrl).build()
+
+                    Logger.d(
+                        "Dibella_Net",
+                        "Video thumbnail failed, trying original video URL for frame extraction: $baseUrl",
+                    )
+
+                    response = chain.proceed(originalRequest)
+                }
             }
 
             if (
@@ -48,7 +71,7 @@ class CivitaiThumbnailInterceptor : Interceptor {
 
                     val originalRequest = request.newBuilder().url(originalUrl).build()
 
-                    if (isDebug) Logger.d("Dibella_Net", "Final retry with original: $originalUrl")
+                    Logger.d("Dibella_Net", "Final retry with original: $originalUrl")
 
                     response = chain.proceed(originalRequest)
                 }
