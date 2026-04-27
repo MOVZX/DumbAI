@@ -78,7 +78,7 @@ object AppModule {
             .diskCache {
                 coil3.disk.DiskCache.Builder()
                     .directory(context.cacheDir.resolve("image_cache").toOkioPath())
-                    .maxSizeBytes(5L * 1024 * 1024 * 1024)
+                    .maxSizeBytes(10L * 1024 * 1024 * 1024)
                     .build()
             }
             .crossfade(true)
