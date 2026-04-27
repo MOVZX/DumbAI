@@ -62,7 +62,7 @@ fun SelectionTopBar(
             }
         },
         colors =
-            TopAppBarDefaults.centerAlignedTopAppBarColors(
+            TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                 titleContentColor = MaterialTheme.colorScheme.onSurface,
             ),

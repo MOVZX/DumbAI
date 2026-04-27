@@ -40,6 +40,14 @@ abstract class BaseViewModel(
         viewModelScope.launch { favoritesRepository.toggleFavorite(image) }
     }
 
+    suspend fun ensureFavoriteResources(
+        image: CivitaiImage,
+        force: Boolean = false,
+        onProgress: (Float) -> Unit = {},
+    ) {
+        favoritesRepository.ensureFavoriteResources(image, force, onProgress)
+    }
+
     protected fun performDownload(
         image: CivitaiImage,
         currentProgresses: Map<Long, Float>,

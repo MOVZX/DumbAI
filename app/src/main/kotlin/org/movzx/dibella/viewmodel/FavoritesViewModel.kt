@@ -99,14 +99,6 @@ constructor(
 
     fun getFavoriteFlow(id: Long): Flow<FavoriteImage?> = favoritesRepository.getFavoriteFlow(id)
 
-    suspend fun ensureFavoriteResources(
-        image: CivitaiImage,
-        force: Boolean = false,
-        onProgress: (Float) -> Unit = {},
-    ) {
-        favoritesRepository.ensureFavoriteResources(image, force, onProgress)
-    }
-
     fun forceRedownload(image: CivitaiImage) {
         viewModelScope.launch {
             val currentProgresses = _uiState.value.downloadProgresses

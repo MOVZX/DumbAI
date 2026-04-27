@@ -141,6 +141,52 @@ fun ScrollRestorationEffect(
     }
 }
 
+@Composable
+fun InteractiveTopBar(
+    isSelectionMode: Boolean,
+    isShowingDuplicates: Boolean,
+    selectedIdsSize: Int,
+    duplicateGroupsSize: Int,
+    gridColumns: Int,
+    selectionActionIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onShowBatchConfirmDialog: () -> Unit,
+    onClearDuplicatesMode: () -> Unit,
+    onRemoveDuplicates: () -> Unit,
+    onOpenLeftSidebar: () -> Unit,
+    onUpdateGridColumns: (Int) -> Unit,
+    onShowFilters: () -> Unit,
+    onShowSettings: () -> Unit,
+) {
+    if (isSelectionMode) {
+        SelectionTopBar(
+            selectedCount = selectedIdsSize,
+            onClose = onClearSelection,
+            onSelectAll = onSelectAll,
+            onAction = onShowBatchConfirmDialog,
+            actionIcon = selectionActionIcon,
+        )
+    } else if (isShowingDuplicates) {
+        SelectionTopBar(
+            selectedCount = duplicateGroupsSize,
+            onClose = onClearDuplicatesMode,
+            onSelectAll = {},
+            onAction = onRemoveDuplicates,
+            actionIcon = Icons.Default.DeleteSweep,
+            title = stringResource(R.string.found_duplicates),
+        )
+    } else {
+        MainTopBar(
+            gridColumns = gridColumns,
+            onShowDisplayOptions = onOpenLeftSidebar,
+            onUpdateGridColumns = onUpdateGridColumns,
+            onShowFilters = onShowFilters,
+            onShowSettings = onShowSettings,
+        )
+    }
+}
+
 enum class RightSidebarType {
     FILTERS,
     SETTINGS,
@@ -1026,32 +1072,23 @@ fun GalleryScreen(
 
     AppScaffold(
         topBar = {
-            if (uiState.isSelectionMode) {
-                SelectionTopBar(
-                    selectedCount = uiState.selectedIds.size,
-                    onClose = { viewModel.clearSelection() },
-                    onSelectAll = { viewModel.selectAll() },
-                    onAction = { showBatchConfirmDialog = true },
-                    actionIcon = Icons.Default.Delete,
-                )
-            } else if (uiState.isShowingDuplicates) {
-                SelectionTopBar(
-                    selectedCount = uiState.duplicateGroups.flatten().size,
-                    onClose = { viewModel.clearDuplicatesMode() },
-                    onSelectAll = {},
-                    onAction = { viewModel.removeDuplicates() },
-                    actionIcon = Icons.Default.DeleteSweep,
-                    title = stringResource(R.string.found_duplicates),
-                )
-            } else {
-                MainTopBar(
-                    gridColumns = uiState.gridColumns,
-                    onShowDisplayOptions = onOpenLeftSidebar,
-                    onUpdateGridColumns = { viewModel.updateGridColumns(it) },
-                    onShowFilters = {},
-                    onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
-                )
-            }
+            InteractiveTopBar(
+                isSelectionMode = uiState.isSelectionMode,
+                isShowingDuplicates = uiState.isShowingDuplicates,
+                selectedIdsSize = uiState.selectedIds.size,
+                duplicateGroupsSize = uiState.duplicateGroups.flatten().size,
+                gridColumns = uiState.gridColumns,
+                selectionActionIcon = Icons.Default.Delete,
+                onClearSelection = { viewModel.clearSelection() },
+                onSelectAll = { viewModel.selectAll() },
+                onShowBatchConfirmDialog = { showBatchConfirmDialog = true },
+                onClearDuplicatesMode = { viewModel.clearDuplicatesMode() },
+                onRemoveDuplicates = { viewModel.removeDuplicates() },
+                onOpenLeftSidebar = onOpenLeftSidebar,
+                onUpdateGridColumns = { viewModel.updateGridColumns(it) },
+                onShowFilters = {},
+                onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
+            )
         },
         bottomBar = { MainBottomBar(currentRoute, onNavigate) },
         gridState = gridState,
