@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "org.movzx.dumbai"
+    namespace = "org.movzx.dibella"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "org.movzx.dumbai"
+        applicationId = "org.movzx.dibella"
         minSdk = 30
         targetSdk = 36
         versionCode = 1

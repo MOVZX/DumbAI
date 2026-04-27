@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DumbAI-Android"
+rootProject.name = "Dibella-Android"
 
 include(":app")

@@ -3,7 +3,7 @@ package `is`.xyz.mpv
 import android.content.Context
 import android.view.Surface
 import androidx.annotation.Keep
-import org.movzx.dumbai.util.Logger
+import org.movzx.dibella.util.Logger
 
 @Keep
 object MPVLib {

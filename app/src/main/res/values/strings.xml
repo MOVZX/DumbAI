@@ -2,7 +2,7 @@
 
 <resources>
     <!-- General App Information -->
-    <string name="app_name">DumbAI</string>
+    <string name="app_name">Dibella</string>
 
     <!-- Navigation (Bottom Bar & Top Bar) -->
     <string name="nav_feed">Feed</string>
@@ -120,10 +120,10 @@
 
     <!-- Permissions -->
     <string name="perm_storage_title">Storage Permission</string>
-    <string name="perm_storage_desc">DumbAI needs access to your storage to scan for downloaded media.</string>
+    <string name="perm_storage_desc">Dibella needs access to your storage to scan for downloaded media.</string>
 
     <!-- Internal / Technical Constants -->
-    <string name="backup_filename">dumbai_backup.json</string>
-    <string name="backup_filename_with_ext">dumbai_backup.json</string>
+    <string name="backup_filename">dibella_backup.json</string>
+    <string name="backup_filename_with_ext">dibella_backup.json</string>
     <string name="mime_json">application/json</string>
 </resources>
