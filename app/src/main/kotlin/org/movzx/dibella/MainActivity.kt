@@ -224,6 +224,8 @@ fun MainScreen(imageLoader: ImageLoader) {
     }
 
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: ""
     var selectedImageIndex by remember { mutableStateOf<Int?>(null) }
     var fullScreenImages by remember { mutableStateOf<List<CivitaiImage>>(emptyList()) }
     var fullScreenViewMode by remember { mutableStateOf("") }
@@ -238,8 +240,11 @@ fun MainScreen(imageLoader: ImageLoader) {
     var rightSidebarType by remember { mutableStateOf(RightSidebarType.FILTERS) }
     var gestureSide by remember { mutableStateOf(LayoutDirection.Rtl) }
 
-    LaunchedEffect(rightDrawerState.isClosed) {
-        if (rightDrawerState.isClosed) rightSidebarType = RightSidebarType.FILTERS
+    LaunchedEffect(rightDrawerState.isClosed, currentRoute) {
+        if (rightDrawerState.isClosed) {
+            rightSidebarType =
+                if (currentRoute == "feed") RightSidebarType.FILTERS else RightSidebarType.SETTINGS
+        }
     }
 
     val leftGesturesEnabled =
@@ -274,8 +279,6 @@ fun MainScreen(imageLoader: ImageLoader) {
     var favoritesRestored by remember { mutableStateOf(false) }
     var galleryRestored by remember { mutableStateOf(false) }
     var showScanDuplicatesDialog by remember { mutableStateOf(false) }
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: ""
 
     if (showScanDuplicatesDialog) {
         ConfirmationDialog(
@@ -401,7 +404,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                 gesturesEnabled = rightGesturesEnabled,
                 drawerContent = {
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                        if (rightSidebarType == RightSidebarType.FILTERS) {
+                        if (
+                            rightSidebarType == RightSidebarType.FILTERS && currentRoute == "feed"
+                        ) {
                             FilterSidebar(
                                 nsfw = feedUiState.nsfw,
                                 sort = feedUiState.sort,
@@ -895,7 +900,7 @@ fun FavoritesScreen(
                     gridColumns = uiState.gridColumns,
                     onShowDisplayOptions = onOpenLeftSidebar,
                     onUpdateGridColumns = { viewModel.updateGridColumns(it) },
-                    onShowFilters = { onOpenRightSidebar(RightSidebarType.FILTERS) },
+                    onShowFilters = {},
                     onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
                 )
             }
