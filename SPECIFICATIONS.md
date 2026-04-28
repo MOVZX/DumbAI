@@ -89,7 +89,7 @@ The networking layer is highly optimized for reliability and performance:
 - **Fallback Logic**: Retries failed requests with widths 450, 720, and 1280px. A final fallback to `original=true` is attempted for images (but skipped for video thumbnails to prevent massive data loads).
 - **Anti-Bot Headers**: All Civitai requests include standard `User-Agent` and `Referer` headers to avoid CDN blocking.
 - **Authorization Scoping**: API keys are only injected into `/api/` paths and explicitly excluded from image CDN requests to avoid auth-related rejections.
-- **Network Performance**: OkHttp timeouts are increased to 60s for connect and read operations. Coil is explicitly configured to use the app's `OkHttpClient` as its `callFactory`.
+- **Network Performance**: OkHttp timeouts are increased to 30s for connect, read, and write operations. Coil is explicitly configured to use the app's `OkHttpClient` as its `callFactory`.
 
 ### Persistence & Gallery Synchronization
 

@@ -7,18 +7,18 @@ This document provides a comprehensive mapping of all function and method names 
 ### DibellaApplication.kt
 
 - `L11`: `class DibellaApplication` - Main application class implementing SingletonImageLoader.Factory
-- `L14`: `override fun newImageLoader()` - Provides singleton Coil image loader
+- `L14`: `override fun newImageLoader(context: PlatformContext)` - Provides singleton Coil image loader
 
 ### MainActivity.kt
 
 - `L49`: `class MainActivity` - Main activity with Hilt injection
 - `L52`: `override fun onCreate()` - Sets up edge-to-edge UI and content
-- `L59`: `enum class RightSidebarType` - Defines right sidebar modes (FILTERS, SETTINGS)
-- `L66`: `fun MainScreen()` - Root composable with shared transition scope
-- `L517`: `fun AppNavigation()` - NavHost with feed/favorites/gallery destinations
-- `L626`: `fun FeedScreen()` - Feed composable with ViewModel and UI state
-- `L728`: `fun FavoritesScreen()` - Favorites list composable
-- `L888`: `fun GalleryScreen()` - Local gallery browser composable
+- `L190`: `enum class RightSidebarType` - Defines right sidebar modes (FILTERS, SETTINGS)
+- `L197`: `fun MainScreen()` - Root composable with shared transition scope
+- `L592`: `fun AppNavigation()` - NavHost with feed/favorites/gallery destinations
+- `L705`: `fun FeedScreen()` - Feed composable with ViewModel and UI state
+- `L807`: `fun FavoritesScreen()` - Favorites list composable
+- `L955`: `fun GalleryScreen()` - Local gallery browser composable
 
 ## app/src/main/kotlin/org/movzx/dibella/api/
 
@@ -34,11 +34,11 @@ This document provides a comprehensive mapping of all function and method names 
 
 ### CivitaiThumbnailInterceptor.kt
 
-- `L7`: `class CivitaiThumbnailInterceptor` - Handles 404/403 fallbacks for image thumbnails
-- `L10`: `override fun intercept()` - Retries with different widths and verifies magic bytes
-- `L59`: `private fun isRealImage()` - Verifies if response contains valid image data
-- `L91`: `private fun getThumbnailUrl()` - Internal thumbnail URL builder
-- `L110`: `private fun getOriginalUrl()` - Internal original URL builder
+- `L9`: `class CivitaiThumbnailInterceptor` - Handles 404/403 fallbacks for image thumbnails
+- `L12`: `override fun intercept()` - Retries with different widths and verifies magic bytes
+- `L84`: `private fun isRealImage()` - Verifies if response contains valid image data
+- `L24`: `val newUrl = getThumbnailUrl(url, width)` - Internal thumbnail URL builder (via Utils)
+- `L67`: `val originalUrl = getOriginalUrl(url)` - Internal original URL builder (via Utils)
 
 ## app/src/main/kotlin/org/movzx/dibella/data/
 
@@ -57,44 +57,49 @@ This document provides a comprehensive mapping of all function and method names 
 
 ### FavoriteImageDao.kt
 
-- `L8`: `interface FavoriteImageDao` - Room DAO for favorite_images table
-- `L10`: `fun getAllFavorites()` - Returns Flow of all favorites
-- `L13`: `suspend fun getAllFavoritesSync()` - Blocking fetch of all favorites
-- `L16`: `suspend fun insertFavorite()` - Inserts or replaces a favorite
-- `L19`: `suspend fun insertFavorites()` - Bulk insert of favorites
-- `L21`: `suspend fun deleteFavorite()` - Deletes a favorite
-- `L24`: `fun isFavorite()` - Flow checking if ID is favorited
-- `L27`: `suspend fun isFavoriteDirect()` - Blocking favorite check
-- `L29`: `fun getAllFavoriteIds()` - Flow of all favorite IDs
-- `L32`: `suspend fun getFavorite()` - Fetch single favorite by ID
-- `L35`: `fun getFavoriteFlow()` - Flow of single favorite by ID
+- `L9`: `interface FavoriteImageDao` - Room DAO for favorite_images table
+- `L11`: `fun getAllFavorites()` - Returns Flow of all favorites
+- `L14`: `suspend fun _getAllFavoritesSync()` - Blocking fetch of all favorites (internal)
+- `L16`: `suspend fun getAllFavoritesSync()` - Blocking fetch of all favorites
+- `L25`: `suspend fun _insertFavorite()` - Inserts or replaces a favorite (internal)
+- `L28`: `suspend fun insertFavorite()` - Inserts or replaces a favorite
+- `L35`: `suspend fun _insertFavorites()` - Bulk insert of favorites (internal)
+- `L38`: `suspend fun insertFavorites()` - Bulk insert of favorites
+- `L44`: `suspend fun _deleteFavorite()` - Deletes a favorite (internal)
+- `L47`: `suspend fun deleteFavorite()` - Deletes a favorite
+- `L54`: `fun isFavorite()` - Flow checking if ID is favorited
+- `L57`: `suspend fun isFavoriteDirect()` - Blocking favorite check
+- `L59`: `fun getAllFavoriteIds()` - Flow of all favorite IDs
+- `L62`: `suspend fun getFavorite()` - Fetch single favorite by ID
+- `L65`: `fun getFavoriteFlow()` - Flow of single favorite by ID
 
 ### FeedCacheDao.kt
 
-- `L7`: `interface FeedCacheDao` - Room DAO for feed_cache table
-- `L9`: `suspend fun getFeed()` - Fetch cached feed by type
-- `L12`: `suspend fun insertFeed()` - Cache feed items
-- `L15`: `suspend fun clearFeed()` - Clear cache for feed type
-- `L18`: `suspend fun replaceFeed()` - Replace cache atomically
+- `L8`: `interface FeedCacheDao` - Room DAO for feed_cache table
+- `L10`: `suspend fun getFeed()` - Fetch cached feed by type
+- `L13`: `suspend fun insertFeed()` - Cache feed items
+- `L16`: `suspend fun clearFeed()` - Clear cache for feed type
+- `L19`: `suspend fun replaceFeed()` - Replace cache atomically
 
 ### FavoritesRepository.kt
 
 - `L25`: `class FavoritesRepository` - Manages favorite images and local file caching
 - `L34`: `fun updateOkHttpClient()` - Updates HTTP client with new auth token
 - `L43`: `suspend fun toggleFavorite()` - Adds/removes favorite, manages local resources
-- `L51`: `private fun extractVideoFrame()` - Extracts thumbnail from video file
-- `L77`: `fun getFavoriteFlow()` - Returns Flow of favorite by ID
-- `L79`: `suspend fun ensureFavoriteResources()` - Downloads thumbnail/preview if favorited
+- `L45`: `val allFavorites` - Flow of all favorites as CivitaiImage
+- `L53`: `private fun extractVideoFrame()` - Extracts thumbnail from video file
+- `L89`: `fun getFavoriteFlow()` - Returns Flow of favorite by ID
+- `L91`: `suspend fun ensureFavoriteResources()` - Downloads thumbnail/preview if favorited
 - `L356`: `suspend fun clearUnusedResources()` - Deletes orphaned cached files
 - `L374`: `suspend fun getAllFavoritesSync()` - Blocking fetch all favorites
 - `L376`: `suspend fun importFavorites()` - Bulk import favorites
-- `L380`: `fun isFavorite()` - Flow checking favorite status
+- `L90`: `val favoriteIds` - Flow of all favorite IDs
 
 ### GalleryRepository.kt
 
 - `L26`: `class GalleryRepository` - Scans and manages local downloaded files
 - `L37`: `suspend fun refreshDownloadedIds()` - Rescans download directory for IDs
-- `L60`: `suspend fun scanDirectory()` - Scans for media files in directory, extracts metadata
+- `L62`: `suspend fun scanDirectory()` - Scans for media files in directory, extracts metadata
 - `L163`: `suspend fun deleteLocalFile()` - Deletes local file and updates state
 - `L176`: `suspend fun downloadImage()` - Downloads image/video with progress
 - `L228`: `private fun getDownloadDir()` - Resolves download directory from path
@@ -125,22 +130,41 @@ This document provides a comprehensive mapping of all function and method names 
 
 - `L26`: `object AppModule` - Hilt dependency injection module
 - `L29`: `fun provideMoshi()` - Moshi JSON adapter with Kotlin support
-- `L35`: `fun provideOkHttpClient()` - OkHttp with 60s timeouts and interceptors
-- `L47`: `fun provideRetrofit()` - Retrofit with Civitai base URL
-- `L57`: `fun provideCivitaiApi()` - Creates CivitaiApi service
-- `L63`: `fun provideImageLoader()` - Coil image loader with OkHttp components
-- `L87`: `fun provideDatabase()` - Room database singleton
-- `L92`: `fun provideFavoriteImageDao()` - FavoriteImageDao provider
-- `L97`: `fun provideFeedCacheDao()` - FeedCacheDao provider
-- `L103`: `fun provideUserPreferencesRepository()` - DataStore repo provider
-- `L111`: `fun provideFavoritesRepository()` - Favorites repo provider
+- `L35`: `fun provideOkHttpClient()` - OkHttp with 30s timeouts and interceptors
+- `L48`: `fun provideRetrofit()` - Retrofit with Civitai base URL
+- `L58`: `fun provideCivitaiApi()` - Creates CivitaiApi service
+- `L64`: `fun provideImageLoader()` - Coil image loader with OkHttp components
+- `L93`: `fun provideDatabase()` - Room database singleton
+- `L102`: `fun provideFavoriteImageDao()` - FavoriteImageDao provider
+- `L107`: `fun provideFeedCacheDao()` - FeedCacheDao provider
+- `L112`: `fun provideUserPreferencesRepository()` - DataStore repo provider
+- `L120`: `fun provideFavoritesRepository()` - Favorites repo provider
 
-## app/src/main/kotlin/org/movzx/dibella/model/
+### CivitaiImage.kt
+
+- `L8`: `data class CivitaiImage` - API response model for images/videos
+- `L18`: `data class VideoMeta` - Optional video metadata (size)
+- `L21`: `data class CivitaiApiResponse` - Paginated API response wrapper
+- `L23`: `data class Metadata` - Pagination cursor
+
+### FavoriteImage.kt
+
+- `L9`: `data class FavoriteImage` - Room entity for favorited items
+- `L21`: `fun toCivitaiImage()` - Converts to API model
+- `L33`: `companion object` - Factory methods
+- `L34`: `fun fromCivitaiImage()` - Creates from API model with local paths
+
+### FeedItemCache.kt
+
+- `L9`: `data class FeedItemCache` - Room entity for cached feed items
+- `L19`: `fun toCivitaiImage()` - Converts to API model
+- `L31`: `companion object` - Factory methods
+- `L32`: `fun fromCivitaiImage()` - Creates from API model with ordering
 
 ### AppBackup.kt
 
 - `L6`: `data class AppSettingsBackup` - Serializable settings snapshot
-- `L18`: `data class AppBackup` - Complete backup (settings + favorites)
+- `L17`: `data class AppBackup` - Complete backup (settings + favorites)
 
 ### CivitaiImage.kt
 
@@ -193,11 +217,11 @@ This document provides a comprehensive mapping of all function and method names 
 
 ### FullScreenImage.kt
 
-- `L40`: `fun FullScreenImage()` - Pager with zoom, gestures, favorite toggle
+- `L39`: `fun FullScreenImage()` - Pager with zoom, gestures, favorite toggle
 
 ### ImageCard.kt
 
-- `L37`: `fun ImageCard()` - Dynamic resolution, heart animation, error icon handling
+- `L38`: `fun ImageCard()` - Dynamic resolution, heart animation, error icon handling
 
 ### ImageGrid.kt
 
@@ -234,8 +258,8 @@ This document provides a comprehensive mapping of all function and method names 
 
 ### VideoPlayer.kt
 
-- `L19`: `@OptIn UnstableApi` - Media3 experimental API opt-in
-- `L21`: `fun VideoPlayer()` - ExoPlayer with controls, scaling, looping
+- `L32`: `@OptIn UnstableApi` - Media3 experimental API opt-in
+- `L33`: `fun VideoPlayer()` - ExoPlayer with controls, scaling, looping
 - `L41`: `object : Player.Listener` - Player event callbacks
 - `L42`: `override fun onTracksChanged()` - Detects audio for mute toggle
 - `L51`: `override fun onPlayerError()` - Handles playback errors
@@ -248,7 +272,9 @@ This document provides a comprehensive mapping of all function and method names 
 
 - `L24`: `fun ZoomableImage()` - Pinch-to-zoom with double-tap
 
-## app/src/main/kotlin/org/movzx/dibella/ui/theme/
+### MpvPlayer.kt
+
+- `L15`: `fun MpvPlayer()` - MPV-based video player alternative
 
 ### Theme.kt
 
@@ -258,7 +284,7 @@ This document provides a comprehensive mapping of all function and method names 
 
 ### FileUtils.kt
 
-- `L15`: `object FileUtils` - File encryption and media type detection
+- `L8`: `object FileUtils` - File encryption and media type detection
 - `L16`: `fun detectExtension()` - Sniffs magic bytes for file type
 - `L65`: `fun getExtensionFromBytes()` - Magic byte to extension
 - `L83`: `fun isRealMedia()` - Validates media file signatures
@@ -303,6 +329,25 @@ This document provides a comprehensive mapping of all function and method names 
 - `L35`: `protected fun sendMessage()` - Emits toast message
 - `L39`: `fun toggleFavorite()` - Delegates to FavoritesRepository
 - `L43`: `protected fun performDownload()` - Download with progress tracking
+- `L51`: `abstract fun downloadImage()` - Abstract download implementation
+
+### FeedUiState.kt
+
+- `L5`: `data class FeedUiState` - Feed screen state with filter params
+
+### FeedViewModel.kt
+
+- `L22`: `class FeedViewModel` - Main feed with pagination and filters
+- `L160`: `fun refresh()` - Clears cursor and reloads feed
+- `L172`: `fun loadMore()` - Loads next page with cursor
+- `L178`: `private fun loadImages()` - Fetches and caches feed items
+- `L258`: `fun updateFilters()` - Updates filter params, invalidates restoration
+- `L262`: `fun resetFilters()` - Resets all filters to defaults
+- `L268`: `suspend fun ensureFavoriteResources()` - Pre-fetches favorited media
+- `L276`: `fun downloadImage()` - Initiates image download
+- `L286`: `fun markRestored()` - Sets isRestored flag after scroll restoration
+- `L296`: `fun prefetchThumbnails()` - Prefetches upcoming thumbnails using Coil
+- `L321`: `fun cleanupExpiredTempCache()` - Removes expired temp cache files
 
 ### FavoritesUiState.kt
 
@@ -310,7 +355,7 @@ This document provides a comprehensive mapping of all function and method names 
 
 ### FavoritesViewModel.kt
 
-- `L16`: `class FavoritesViewModel` - Manages favorites list
+- `L17`: `class FavoritesViewModel` - Manages favorites list
 - `L59`: `fun updateType()` - Updates media type filter
 - `L63`: `fun toggleSelection()` - Toggles selection for batch operations
 - `L73`: `fun clearSelection()` - Clears all selections
@@ -324,24 +369,6 @@ This document provides a comprehensive mapping of all function and method names 
 - `L162`: `fun clearDuplicatesMode()` - Exits duplicate detection mode
 - `L166`: `fun removeDuplicates()` - Removes duplicate groups
 - `L193`: `fun markRestored()` - Sets isRestored flag after scroll restoration
-
-### FeedUiState.kt
-
-- `L5`: `data class FeedUiState` - Feed screen state with filter params
-
-### FeedViewModel.kt
-
-- `L22`: `class FeedViewModel` - Main feed with pagination and filters
-- `L142`: `fun refresh()` - Clears cursor and reloads feed
-- `L172`: `fun loadMore()` - Loads next page with cursor
-- `L178`: `private fun loadImages()` - Fetches and caches feed items
-- `L258`: `fun updateFilters()` - Updates filter params, invalidates restoration
-- `L262`: `fun resetFilters()` - Resets all filters to defaults
-- `L268`: `suspend fun ensureFavoriteResources()` - Pre-fetches favorited media
-- `L276`: `fun downloadImage()` - Initiates image download
-- `L286`: `fun markRestored()` - Sets isRestored flag after scroll restoration
-- `L296`: `fun prefetchThumbnails()` - Prefetches upcoming thumbnails using Coil
-- `L321`: `fun cleanupExpiredTempCache()` - Removes expired temp cache files
 
 ### GalleryUiState.kt
 
