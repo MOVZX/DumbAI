@@ -53,8 +53,8 @@ fun MainBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
             label = null,
             colors =
                 NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.tertiary,
-                    indicatorColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
+                    selectedIconColor = colorResource(R.color.error),
+                    indicatorColor = colorResource(R.color.error).copy(alpha = 0.2f),
                 ),
         )
 
