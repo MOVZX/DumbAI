@@ -30,7 +30,7 @@ constructor(
     private val okHttpClient: OkHttpClient,
     private val preferencesRepository: UserPreferencesRepository,
 ) {
-    private val videoMetadataDispatcher = Dispatchers.IO.limitedParallelism(16)
+    private val videoMetadataDispatcher = Dispatchers.IO
     private val _downloadedIds = kotlinx.coroutines.flow.MutableStateFlow<Set<Long>>(emptySet())
     val downloadedIds: kotlinx.coroutines.flow.StateFlow<Set<Long>> = _downloadedIds.asStateFlow()
 
