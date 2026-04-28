@@ -346,12 +346,15 @@ fun FullScreenImage(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
                         Text(
                             text = org.movzx.dibella.util.formatDuration(videoProgress),
                             color = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                            fontSize = 12.sp,
+                            fontSize = 10.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Left,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            modifier = Modifier.width(48.dp),
                         )
 
                         Slider(
@@ -374,13 +377,16 @@ fun FullScreenImage(
                                             .colorResource(R.color.pure_white)
                                             .copy(alpha = 0.3f),
                                 ),
-                            modifier = Modifier.weight(1f).height(32.dp),
+                            modifier = Modifier.weight(1f).height(24.dp),
                         )
 
                         Text(
                             text = org.movzx.dibella.util.formatDuration(videoDuration),
                             color = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                            fontSize = 12.sp,
+                            fontSize = 10.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Right,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            modifier = Modifier.width(48.dp),
                         )
                     }
 
