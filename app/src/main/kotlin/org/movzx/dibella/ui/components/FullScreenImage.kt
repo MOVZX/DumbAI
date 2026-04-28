@@ -468,6 +468,16 @@ fun FullScreenImage(
                         }
                     }
 
+                    if (currentImage?.type == "video") {
+                        VerticalDivider(
+                            modifier = Modifier.height(28.dp).padding(horizontal = 4.dp),
+                            color =
+                                androidx.compose.ui.res
+                                    .colorResource(R.color.pure_white)
+                                    .copy(alpha = 0.3f),
+                        )
+                    }
+
                     if (viewMode != "gallery" && currentImage != null) {
                         val isFavorite = favoriteIds.contains(currentImage.id)
 
