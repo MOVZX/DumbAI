@@ -46,6 +46,7 @@ fun FullScreenImage(
     viewMode: String,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
     onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
+    onEnsureFavoriteResourcesThrottled: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onToggleFavorite: (CivitaiImage) -> Unit,
     onDownloadImage: (CivitaiImage) -> Unit,
     onDeleteLocalFile: (CivitaiImage) -> Unit,
@@ -166,7 +167,7 @@ fun FullScreenImage(
 
                 LaunchedEffect(isFavorite, image.url) {
                     if (isFavorite && image.url.startsWith("http"))
-                        onEnsureFavoriteResources(image, false) { _ -> }
+                        onEnsureFavoriteResourcesThrottled(image, false) { _ -> }
                 }
 
                 if (image.type == "video") {

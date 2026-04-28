@@ -117,187 +117,219 @@ class FavoritesRepository(
                             return@withContext
                         }
 
-                val thumbFile = File(favoritesDir, "${image.id}.jpg")
-                val fullFile = File(favoritesDir, "${image.id}_full.jpg")
-
-                val videoFile =
-                    if (image.type == "video") File(favoritesDir, "${image.id}.mp4") else null
-
                 if (force) {
                     Logger.d("Dibella_IO", "│ [${image.id}] Force cleaning local files")
 
+                    val thumbFile = File(favoritesDir, "${image.id}.jpg")
+                    val fullFile = File(favoritesDir, "${image.id}_full.jpg")
+                    val videoFile = File(favoritesDir, "${image.id}.mp4")
+
                     thumbFile.delete()
                     fullFile.delete()
-                    videoFile?.delete()
+                    videoFile.delete()
 
-                    listOf("png", "webp", "gif", "avif").forEach { ext ->
+                    listOf("png", "webp", "gif", "avif", "webm", "mkv").forEach { ext ->
                         File(favoritesDir, "${image.id}.$ext").delete()
                         File(favoritesDir, "${image.id}_full.$ext").delete()
                     }
                 }
 
-                var thumbPath = if (force) null else favorite.localPath
-                var fullPath = if (force) null else favorite.localFullImagePath
-                var videoPath = if (force) null else favorite.localVideoPath
+                var thumbPath: String? = if (force) null else favorite.localPath
+                var fullPath: String? = if (force) null else favorite.localFullImagePath
+                var videoPath: String? = if (force) null else favorite.localVideoPath
                 var updated = false
-                val totalSteps = 2f
-                var currentStep = 0f
-                val currentThumbFile = thumbPath?.let { File(it) } ?: thumbFile
+                var thumbProgress = 0f
+                var contentProgress = 0f
 
-                if (!FileUtils.isRealMedia(currentThumbFile)) {
-                    val thumbUrl =
-                        if (image.type == "video") getVideoThumbnailUrl(image.url)
-                        else getThumbnailUrl(image.url, 450)
-
-                    Logger.d(
-                        "Dibella_Cache",
-                        "│ [${image.id}] Thumbnail missing -> Initiating download",
-                    )
-
-                    val tempFile = File(context.cacheDir, "temp_thumb_${image.id}")
-
-                    var downloadSuccess =
-                        downloadFile(thumbUrl, tempFile) { p ->
-                            onProgress((currentStep + p) / totalSteps)
-                        }
-
-                    if (image.type == "video" && !downloadSuccess) {
-                        Logger.w(
-                            "Dibella_Net",
-                            "│ [${image.id}] Static thumbnail failed/invalid, trying video preview fallback",
-                        )
-
-                        val fallbackUrl = getVideoPreviewUrl(image.url)
-
-                        downloadSuccess =
-                            downloadFile(fallbackUrl, tempFile) { p ->
-                                onProgress((currentStep + p) / totalSteps)
-                            }
-                    }
-
-                    if (image.type == "video" && !downloadSuccess) {
-                        Logger.w(
-                            "Dibella_Net",
-                            "│ [${image.id}] Video preview failed, trying original video URL for frame extraction",
-                        )
-
-                        downloadSuccess =
-                            downloadFile(image.url, tempFile) { p ->
-                                onProgress((currentStep + p) / totalSteps)
-                            }
-                    }
-
-                    if (downloadSuccess) {
-                        val bytes = tempFile.inputStream().use { it.readNBytes(12) }
-                        val ext = FileUtils.getExtensionFromBytes(bytes)
-
-                        if (ext != null && ext in setOf("png", "jpg", "webp", "gif", "avif")) {
-                            val finalFile = File(favoritesDir, "${image.id}.$ext")
-
-                            if (finalFile.exists()) finalFile.delete()
-
-                            tempFile.renameTo(finalFile)
-
-                            thumbPath = finalFile.absolutePath
-
-                            updated = true
-                        } else if (ext != null && ext in setOf("mp4", "webm", "mkv")) {
-                            val frameFile = File(favoritesDir, "${image.id}.jpg")
-
-                            if (extractVideoFrame(tempFile, frameFile)) {
-                                thumbPath = frameFile.absolutePath
-                                updated = true
-                            }
-                        }
-                    }
-                } else {
-                    Logger.v("Dibella_Cache", "│ [${image.id}] Thumbnail verified locally")
+                fun updateTotalProgress() {
+                    onProgress((thumbProgress + contentProgress) / 2f)
                 }
 
-                currentStep++
-                onProgress(currentStep / totalSteps)
+                kotlinx.coroutines.coroutineScope {
+                    launch {
+                        val currentThumbFile =
+                            thumbPath?.let { File(it) } ?: File(favoritesDir, "${image.id}.jpg")
 
-                if (image.type != "video") {
-                    val currentFullFile = fullPath?.let { File(it) } ?: fullFile
+                        if (!FileUtils.isRealMedia(currentThumbFile)) {
+                            val thumbUrl =
+                                if (image.type == "video") getVideoThumbnailUrl(image.url)
+                                else getThumbnailUrl(image.url, 450)
 
-                    if (!FileUtils.isRealMedia(currentFullFile)) {
-                        Logger.d(
-                            "Dibella_Image",
-                            "│ [${image.id}] Full image missing -> Downloading",
-                        )
-
-                        val tempFile = File(context.cacheDir, "temp_full_${image.id}")
-
-                        if (
-                            downloadFile(image.url, tempFile) { p ->
-                                onProgress((currentStep + p) / totalSteps)
-                            }
-                        ) {
-                            val bytes = tempFile.inputStream().use { it.readNBytes(12) }
-                            val ext = FileUtils.getExtensionFromBytes(bytes)
-
-                            if (ext != null && ext in setOf("png", "jpg", "webp", "gif", "avif")) {
-                                val finalFile = File(favoritesDir, "${image.id}_full.$ext")
-
-                                if (finalFile.exists()) finalFile.delete()
-
-                                tempFile.renameTo(finalFile)
-
-                                fullPath = finalFile.absolutePath
-                                updated = true
-                            }
-                        }
-                    }
-                } else {
-                    val currentVideoFile = videoPath?.let { File(it) } ?: videoFile!!
-
-                    if (!FileUtils.isRealMedia(currentVideoFile)) {
-                        val videoUrl = getVideoPreviewUrl(image.url)
-
-                        Logger.d(
-                            "Dibella_Video",
-                            "│ [${image.id}] Video missing -> Downloading preview",
-                        )
-
-                        val tempFile = File(context.cacheDir, "temp_video_${image.id}")
-
-                        var success =
-                            downloadFile(videoUrl, tempFile) { p ->
-                                onProgress((currentStep + p) / totalSteps)
-                            }
-
-                        if (!success && videoUrl != image.url) {
-                            Logger.w(
-                                "Dibella_Net",
-                                "│ [${image.id}] Preview download failed, trying original URL",
+                            Logger.d(
+                                "Dibella_Cache",
+                                "│ [${image.id}] Thumbnail missing -> Initiating download",
                             )
 
-                            success =
-                                downloadFile(image.url, tempFile) { p ->
-                                    onProgress((currentStep + p) / totalSteps)
+                            val tempFile =
+                                File(
+                                    context.cacheDir,
+                                    "temp_thumb_${image.id}_${System.currentTimeMillis()}",
+                                )
+
+                            var downloadSuccess =
+                                downloadFile(thumbUrl, tempFile) { p ->
+                                    thumbProgress = p
+                                    updateTotalProgress()
                                 }
+
+                            if (image.type == "video" && !downloadSuccess) {
+                                Logger.w(
+                                    "Dibella_Net",
+                                    "│ [${image.id}] Static thumbnail fallback -> Video Preview",
+                                )
+
+                                downloadSuccess =
+                                    downloadFile(getVideoPreviewUrl(image.url), tempFile) { p ->
+                                        thumbProgress = p
+                                        updateTotalProgress()
+                                    }
+                            }
+
+                            if (downloadSuccess) {
+                                val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                                val ext = FileUtils.getExtensionFromBytes(bytes)
+
+                                if (
+                                    ext != null && ext in setOf("png", "jpg", "webp", "gif", "avif")
+                                ) {
+                                    val finalFile = File(favoritesDir, "${image.id}.$ext")
+
+                                    if (finalFile.exists()) finalFile.delete()
+
+                                    tempFile.renameTo(finalFile)
+
+                                    thumbPath = finalFile.absolutePath
+                                    updated = true
+                                } else if (ext != null && ext in setOf("mp4", "webm", "mkv")) {
+                                    val frameFile = File(favoritesDir, "${image.id}.jpg")
+                                    if (extractVideoFrame(tempFile, frameFile)) {
+                                        thumbPath = frameFile.absolutePath
+                                        updated = true
+                                    }
+
+                                    tempFile.delete()
+                                } else {
+                                    tempFile.delete()
+                                }
+                            } else {
+                                if (tempFile.exists()) tempFile.delete()
+                            }
+                        } else {
+                            Logger.v("Dibella_Cache", "│ [${image.id}] Thumbnail verified locally")
+
+                            thumbProgress = 1f
+
+                            updateTotalProgress()
                         }
+                    }
 
-                        if (success) {
-                            val bytes = tempFile.inputStream().use { it.readNBytes(12) }
-                            val ext = FileUtils.getExtensionFromBytes(bytes)
+                    launch {
+                        if (image.type != "video") {
+                            val currentFullFile =
+                                fullPath?.let { File(it) }
+                                    ?: File(favoritesDir, "${image.id}_full.jpg")
 
-                            if (ext != null && ext in setOf("mp4", "webm", "mkv")) {
-                                val finalFile = File(favoritesDir, "${image.id}.$ext")
+                            if (!FileUtils.isRealMedia(currentFullFile)) {
+                                Logger.d(
+                                    "Dibella_Image",
+                                    "│ [${image.id}] Full image missing -> Downloading",
+                                )
 
-                                if (finalFile.exists()) finalFile.delete()
+                                val tempFile =
+                                    File(
+                                        context.cacheDir,
+                                        "temp_full_${image.id}_${System.currentTimeMillis()}",
+                                    )
 
-                                tempFile.renameTo(finalFile)
+                                if (
+                                    downloadFile(image.url, tempFile) { p ->
+                                        contentProgress = p
+                                        updateTotalProgress()
+                                    }
+                                ) {
+                                    val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                                    val ext = FileUtils.getExtensionFromBytes(bytes)
 
-                                videoPath = finalFile.absolutePath
-                                updated = true
+                                    if (
+                                        ext != null &&
+                                            ext in setOf("png", "jpg", "webp", "gif", "avif")
+                                    ) {
+                                        val finalFile = File(favoritesDir, "${image.id}_full.$ext")
+
+                                        if (finalFile.exists()) finalFile.delete()
+
+                                        tempFile.renameTo(finalFile)
+
+                                        fullPath = finalFile.absolutePath
+                                        updated = true
+                                    } else {
+                                        tempFile.delete()
+                                    }
+                                } else {
+                                    if (tempFile.exists()) tempFile.delete()
+                                }
+                            } else {
+                                contentProgress = 1f
+
+                                updateTotalProgress()
+                            }
+                        } else {
+                            val currentVideoFile =
+                                videoPath?.let { File(it) } ?: File(favoritesDir, "${image.id}.mp4")
+
+                            if (!FileUtils.isRealMedia(currentVideoFile)) {
+                                Logger.d(
+                                    "Dibella_Video",
+                                    "│ [${image.id}] Video missing -> Downloading preview",
+                                )
+
+                                val tempFile =
+                                    File(
+                                        context.cacheDir,
+                                        "temp_video_${image.id}_${System.currentTimeMillis()}",
+                                    )
+
+                                var success =
+                                    downloadFile(getVideoPreviewUrl(image.url), tempFile) { p ->
+                                        contentProgress = p
+                                        updateTotalProgress()
+                                    }
+
+                                if (!success) {
+                                    success =
+                                        downloadFile(image.url, tempFile) { p ->
+                                            contentProgress = p
+                                            updateTotalProgress()
+                                        }
+                                }
+
+                                if (success) {
+                                    val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                                    val ext = FileUtils.getExtensionFromBytes(bytes)
+
+                                    if (ext != null && ext in setOf("mp4", "webm", "mkv")) {
+                                        val finalFile = File(favoritesDir, "${image.id}.$ext")
+
+                                        if (finalFile.exists()) finalFile.delete()
+
+                                        tempFile.renameTo(finalFile)
+
+                                        videoPath = finalFile.absolutePath
+                                        updated = true
+                                    } else {
+                                        tempFile.delete()
+                                    }
+                                } else {
+                                    if (tempFile.exists()) tempFile.delete()
+                                }
+                            } else {
+                                contentProgress = 1f
+
+                                updateTotalProgress()
                             }
                         }
                     }
                 }
-
-                currentStep++
-                onProgress(1.0f)
 
                 if (updated) {
                     val updatedFavorite =

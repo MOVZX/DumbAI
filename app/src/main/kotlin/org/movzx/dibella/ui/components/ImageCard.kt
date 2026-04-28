@@ -47,6 +47,7 @@ fun ImageCard(
     isSelectionMode: Boolean = false,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
     onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
+    onEnsureFavoriteResourcesThrottled: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onClick: (CivitaiImage) -> Unit,
     onToggleFavorite: (CivitaiImage) -> Unit,
     onToggleSelection: () -> Unit = {},
@@ -64,17 +65,31 @@ fun ImageCard(
     var imageData by remember { mutableStateOf<Any?>(null) }
 
     LaunchedEffect(image.url, favoriteInfo) {
-        kotlinx.coroutines.delay(30)
-
         imageData =
             kotlinx.coroutines.withContext(Dispatchers.IO) {
                 org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
             }
     }
 
-    LaunchedEffect(isFavorite, image.url) {
-        if (isFavorite && image.url.startsWith("http"))
-            onEnsureFavoriteResources(image, false) { _ -> }
+    var hasEnsuredResources by remember(image.id) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    val isThumbnailCached =
+        remember(context, image.id, image.type, favoriteInfo, downloadProgresses[image.id]) {
+            org.movzx.dibella.util.hasLocalCache(context, image.id, image.type == "video")
+        }
+
+    val isPreviewCached =
+        remember(context, image.id, image.type, favoriteInfo, downloadProgresses[image.id]) {
+            org.movzx.dibella.util.hasFullCache(context, image.id, image.type == "video")
+        }
+
+    LaunchedEffect(image.id, isFavorite) {
+        if (isFavorite && image.url.startsWith("http") && !hasEnsuredResources) {
+            hasEnsuredResources = true
+
+            onEnsureFavoriteResourcesThrottled(image, false) { _ -> }
+        }
     }
 
     val aspectRatio =
@@ -88,7 +103,6 @@ fun ImageCard(
     var isFirstComposition by remember { mutableStateOf(true) }
     var showUnfavoriteDialog by remember { mutableStateOf(false) }
     var showRedownloadDialog by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
     var manualProgress by remember { mutableStateOf<Float?>(null) }
 
     if (showUnfavoriteDialog) {
@@ -275,20 +289,6 @@ fun ImageCard(
                             .clip(androidx.compose.foundation.shape.CircleShape),
                 ) {
                     if (viewMode == "favorites") {
-                        val isThumbnailCached =
-                            org.movzx.dibella.util.hasLocalCache(
-                                context,
-                                image.id,
-                                image.type == "video",
-                            )
-
-                        val isPreviewCached =
-                            org.movzx.dibella.util.hasFullCache(
-                                context,
-                                image.id,
-                                image.type == "video",
-                            )
-
                         val cloudColor =
                             if (isThumbnailCached && isPreviewCached) Color.Green else Color.Yellow
 

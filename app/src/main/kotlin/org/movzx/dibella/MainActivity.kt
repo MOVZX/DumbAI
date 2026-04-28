@@ -562,13 +562,23 @@ fun MainScreen(imageLoader: ImageLoader) {
                                             favoritesViewModel.getFavoriteFlow(it)
                                         },
                                         onEnsureFavoriteResources = { img, force, onProgress ->
-                                            activeViewModel.ensureFavoriteResources(
+                                            activeViewModel.ensureFavoriteResourcesThrottled(
                                                 img,
                                                 force,
                                                 onProgress,
                                             )
                                         },
                                         onToggleFavorite = { activeViewModel.toggleFavorite(it) },
+                                        onEnsureFavoriteResourcesThrottled = {
+                                            img,
+                                            force,
+                                            onProgress ->
+                                            activeViewModel.ensureFavoriteResourcesThrottled(
+                                                img,
+                                                force,
+                                                onProgress,
+                                            )
+                                        },
                                         onDownloadImage = { activeViewModel.downloadImage(it) },
                                         onDeleteLocalFile = {
                                             galleryViewModel.deleteLocalFile(it)
@@ -783,6 +793,9 @@ fun FeedScreen(
                     onEnsureFavoriteResources = { img, force, onProgress ->
                         favViewModel.ensureFavoriteResources(img, force, onProgress)
                     },
+                    onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
+                        favViewModel.ensureFavoriteResourcesThrottled(img, force, onProgress)
+                    },
                     onImageClick = { image ->
                         val index = uiState.images.indexOf(image)
 
@@ -927,6 +940,9 @@ fun FavoritesScreen(
                 onGetFavoriteFlow = { viewModel.getFavoriteFlow(it) },
                 onEnsureFavoriteResources = { img, force, onProgress ->
                     viewModel.ensureFavoriteResources(img, force, onProgress)
+                },
+                onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
+                    viewModel.ensureFavoriteResourcesThrottled(img, force, onProgress)
                 },
                 onImageClick = { image ->
                     val images =
@@ -1111,6 +1127,9 @@ fun GalleryScreen(
                 onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
                 onEnsureFavoriteResources = { img, force, onProgress ->
                     favViewModel.ensureFavoriteResources(img, force, onProgress)
+                },
+                onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
+                    favViewModel.ensureFavoriteResourcesThrottled(img, force, onProgress)
                 },
                 onImageClick = { image ->
                     val images =

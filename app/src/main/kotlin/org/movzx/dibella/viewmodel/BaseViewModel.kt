@@ -3,6 +3,8 @@ package org.movzx.dibella.viewmodel
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
@@ -19,6 +21,7 @@ abstract class BaseViewModel(
 ) : ViewModel() {
     private val _uiMessage = MutableSharedFlow<Int>()
     val uiMessage = _uiMessage.asSharedFlow()
+    val restrictedDispatcher = Dispatchers.IO.limitedParallelism(8)
 
     fun updateGridColumns(columns: Int) {
         viewModelScope.launch { repository.updateGridColumns(columns) }
@@ -46,6 +49,16 @@ abstract class BaseViewModel(
         onProgress: (Float) -> Unit = {},
     ) {
         favoritesRepository.ensureFavoriteResources(image, force, onProgress)
+    }
+
+    suspend fun ensureFavoriteResourcesThrottled(
+        image: CivitaiImage,
+        force: Boolean,
+        onProgress: (Float) -> Unit,
+    ) {
+        withContext(Dispatchers.IO) {
+            favoritesRepository.ensureFavoriteResources(image, force, onProgress)
+        }
     }
 
     abstract fun downloadImage(image: CivitaiImage)

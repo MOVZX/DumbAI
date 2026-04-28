@@ -64,8 +64,9 @@ fun Modifier.scrollbar(state: ScrollState, width: Dp = 4.dp, color: Color? = nul
 fun hasLocalCache(context: Context, imageId: Long, isVideo: Boolean): Boolean {
     val favoritesDir = File(context.filesDir, "favorites")
 
-    val extensions =
-        if (isVideo) listOf("mp4", "webm", "mkv") else listOf("jpg", "png", "webp", "gif", "avif")
+    if (!favoritesDir.exists()) return false
+
+    val extensions = listOf("jpg", "png", "webp", "gif", "avif")
 
     val found = extensions.any { ext ->
         val file = File(favoritesDir, "$imageId.$ext")
@@ -73,22 +74,34 @@ fun hasLocalCache(context: Context, imageId: Long, isVideo: Boolean): Boolean {
         file.exists() && file.length() > 100
     }
 
-    if (found) Logger.v("Dibella_IO", "[$imageId] Local cache found (Thumbnail/Video)")
+    if (found) Logger.v("Dibella_IO", "[$imageId] Local thumbnail cache found")
 
     return found
 }
 
 fun hasFullCache(context: Context, imageId: Long, isVideo: Boolean): Boolean {
-    if (isVideo) return hasLocalCache(context, imageId, true)
-
     val favoritesDir = File(context.filesDir, "favorites")
-    val extensions = listOf("jpg", "png", "webp", "gif", "avif")
 
-    val found = extensions.any { ext ->
-        val file = File(favoritesDir, "${imageId}_full.$ext")
+    if (!favoritesDir.exists()) return false
 
-        file.exists() && file.length() > 100
-    }
+    val found =
+        if (isVideo) {
+            val extensions = listOf("mp4", "webm", "mkv")
+
+            extensions.any { ext ->
+                val file = File(favoritesDir, "$imageId.$ext")
+
+                file.exists() && file.length() > 100
+            }
+        } else {
+            val extensions = listOf("jpg", "png", "webp", "gif", "avif")
+
+            extensions.any { ext ->
+                val file = File(favoritesDir, "${imageId}_full.$ext")
+
+                file.exists() && file.length() > 100
+            }
+        }
 
     if (found) Logger.v("Dibella_IO", "[$imageId] Full resolution cache found")
 

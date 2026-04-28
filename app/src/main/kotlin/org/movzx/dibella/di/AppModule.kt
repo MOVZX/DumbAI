@@ -34,12 +34,12 @@ object AppModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(interceptor: org.movzx.dibella.api.CivitaiInterceptor): OkHttpClient {
-        Logger.d("Dibella_Net", "Initializing OkHttpClient (Timeouts: 30s/30s/30s)")
+        Logger.d("Dibella_Net", "Initializing OkHttpClient (Timeouts: 10s/10s/10s)")
 
         return OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
             .addInterceptor(interceptor)
             .addInterceptor(org.movzx.dibella.api.CivitaiThumbnailInterceptor())
             .build()
