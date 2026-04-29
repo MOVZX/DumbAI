@@ -26,6 +26,7 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 import org.movzx.dibella.util.Logger
 
 @OptIn(UnstableApi::class)
@@ -231,29 +232,35 @@ private fun ExoVideoPlayer(
 
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
-            var lastRenderedCount = 0
+            var lastRenderedCount = 0L
             var lastTime = System.currentTimeMillis()
 
-            while (true) {
-                if (exoPlayer.duration > 0)
-                    onProgressUpdate(exoPlayer.currentPosition, exoPlayer.duration)
-
-                val currentRenderedCount =
-                    exoPlayer.videoDecoderCounters?.renderedOutputBufferCount ?: 0
-                val currentTime = System.currentTimeMillis()
-                val elapsed = currentTime - lastTime
-
-                if (elapsed >= 1000) {
-                    val fps = ((currentRenderedCount - lastRenderedCount) * 1000f / elapsed).toInt()
-
-                    onFpsUpdate(fps)
-
-                    lastRenderedCount = currentRenderedCount
-                    lastTime = currentTime
+            flow {
+                    while (true) {
+                        delay(33)
+                        emit(Unit)
+                    }
                 }
+                .collect {
+                    if (exoPlayer.duration > 0)
+                        onProgressUpdate(exoPlayer.currentPosition, exoPlayer.duration)
 
-                delay(33)
-            }
+                    val currentRenderedCount =
+                        exoPlayer.videoDecoderCounters?.renderedOutputBufferCount?.toLong() ?: 0L
+
+                    val currentTime = System.currentTimeMillis()
+                    val elapsed = currentTime - lastTime
+
+                    if (elapsed >= 1000) {
+                        val fps =
+                            ((currentRenderedCount - lastRenderedCount) * 1000f / elapsed).toInt()
+
+                        onFpsUpdate(fps)
+
+                        lastRenderedCount = currentRenderedCount
+                        lastTime = currentTime
+                    }
+                }
         }
     }
 

@@ -37,6 +37,9 @@ class UserPreferencesRepository(private val context: Context) {
         val FAVORITES_TYPE = stringPreferencesKey("favorites_type")
         val GALLERY_TYPE = stringPreferencesKey("gallery_type")
         val LAST_ROUTE = stringPreferencesKey("last_route")
+        val HIDE_PLAYER_CONTROLS = booleanPreferencesKey("hide_player_controls")
+        val ALWAYS_ENABLE_HD = booleanPreferencesKey("always_enable_hd")
+        val ALWAYS_MUTE_VIDEO = booleanPreferencesKey("always_mute_video")
     }
 
     val nsfw: Flow<String> =
@@ -136,6 +139,21 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.GALLERY_TYPE] ?: "all"
         }
 
+    val hidePlayerControls: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.HIDE_PLAYER_CONTROLS] ?: false
+        }
+
+    val alwaysEnableHD: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.ALWAYS_ENABLE_HD] ?: false
+        }
+
+    val alwaysMuteVideo: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.ALWAYS_MUTE_VIDEO] ?: false
+        }
+
     suspend fun getCurrentSettings(): AppSettingsBackup {
         val prefs = context.dataStore.data.first()
 
@@ -148,6 +166,9 @@ class UserPreferencesRepository(private val context: Context) {
             pageLimit = prefs[PreferencesKeys.PAGE_LIMIT] ?: 100,
             gridColumns = prefs[PreferencesKeys.GRID_COLUMNS] ?: 3,
             apiKey = prefs[PreferencesKeys.API_KEY]?.takeIf { it.isNotBlank() },
+            hidePlayerControls = prefs[PreferencesKeys.HIDE_PLAYER_CONTROLS] ?: false,
+            alwaysEnableHD = prefs[PreferencesKeys.ALWAYS_ENABLE_HD] ?: false,
+            alwaysMuteVideo = prefs[PreferencesKeys.ALWAYS_MUTE_VIDEO] ?: false,
         )
     }
 
@@ -166,6 +187,9 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.PAGE_LIMIT] = settings.pageLimit
             preferences[PreferencesKeys.GRID_COLUMNS] = settings.gridColumns
             settings.apiKey?.let { preferences[PreferencesKeys.API_KEY] = it }
+            preferences[PreferencesKeys.HIDE_PLAYER_CONTROLS] = settings.hidePlayerControls
+            preferences[PreferencesKeys.ALWAYS_ENABLE_HD] = settings.alwaysEnableHD
+            preferences[PreferencesKeys.ALWAYS_MUTE_VIDEO] = settings.alwaysMuteVideo
         }
     }
 
@@ -280,6 +304,30 @@ class UserPreferencesRepository(private val context: Context) {
         Logger.d("Dibella_Prefs", "updateLastRoute: $route")
 
         context.dataStore.edit { preferences -> preferences[PreferencesKeys.LAST_ROUTE] = route }
+    }
+
+    suspend fun updateHidePlayerControls(enabled: Boolean) {
+        Logger.d("Dibella_Prefs", "updateHidePlayerControls: $enabled")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HIDE_PLAYER_CONTROLS] = enabled
+        }
+    }
+
+    suspend fun updateAlwaysEnableHD(enabled: Boolean) {
+        Logger.d("Dibella_Prefs", "updateAlwaysEnableHD: $enabled")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ALWAYS_ENABLE_HD] = enabled
+        }
+    }
+
+    suspend fun updateAlwaysMuteVideo(enabled: Boolean) {
+        Logger.d("Dibella_Prefs", "updateAlwaysMuteVideo: $enabled")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ALWAYS_MUTE_VIDEO] = enabled
+        }
     }
 
     suspend fun getInterceptorSettings() =

@@ -6,4 +6,7 @@ data class SettingsUiState(
     val apiKey: String = "",
     val downloadPath: String? = null,
     val debugEnabled: Boolean = false,
+    val hidePlayerControls: Boolean = false,
+    val alwaysEnableHD: Boolean = false,
+    val alwaysMuteVideo: Boolean = false,
 )

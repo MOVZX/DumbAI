@@ -59,6 +59,24 @@ constructor(
                 }
                 .collect()
         }
+
+        viewModelScope.launch {
+            repository.hidePlayerControls.collect { hidePlayerControls ->
+                _uiState.update { it.copy(hidePlayerControls = hidePlayerControls) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.alwaysEnableHD.collect { alwaysEnableHD ->
+                _uiState.update { it.copy(alwaysEnableHD = alwaysEnableHD) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.alwaysMuteVideo.collect { alwaysMuteVideo ->
+                _uiState.update { it.copy(alwaysMuteVideo = alwaysMuteVideo) }
+            }
+        }
     }
 
     override fun downloadImage(image: org.movzx.dibella.model.CivitaiImage) {}
@@ -80,6 +98,18 @@ constructor(
 
     fun updateDebugEnabled(enabled: Boolean) {
         viewModelScope.launch { repository.updateDebugEnabled(enabled) }
+    }
+
+    fun updateHidePlayerControls(enabled: Boolean) {
+        viewModelScope.launch { repository.updateHidePlayerControls(enabled) }
+    }
+
+    fun updateAlwaysEnableHD(enabled: Boolean) {
+        viewModelScope.launch { repository.updateAlwaysEnableHD(enabled) }
+    }
+
+    fun updateAlwaysMuteVideo(enabled: Boolean) {
+        viewModelScope.launch { repository.updateAlwaysMuteVideo(enabled) }
     }
 
     fun clearImageCache() {

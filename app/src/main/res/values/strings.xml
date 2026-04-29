@@ -24,9 +24,15 @@
     <string name="section_api">API Configuration</string>
     <string name="section_storage">Storage Configuration</string>
     <string name="section_backup">Backup &amp; Restore</string>
+    <string name="section_player">Video Player</string>
     <string name="section_developer">Developer Options</string>
     <string name="section_cache">Storage &amp; Cache</string>
     <string name="section_app_config">App Configuration</string>
+
+    <!-- Player Labels -->
+    <string name="label_hide_player_controls">Hide Player Controls</string>
+    <string name="label_always_enable_hd">Always Enable HD Mode</string>
+    <string name="label_always_mute_video">Always Mute Video</string>
 
     <!-- Selection Mode -->
     <string name="label_selected_count">%1$d Selected</string>

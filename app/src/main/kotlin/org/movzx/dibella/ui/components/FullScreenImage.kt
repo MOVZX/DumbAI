@@ -44,6 +44,9 @@ fun FullScreenImage(
     downloadedIds: Set<Long> = emptySet(),
     downloadProgresses: Map<Long, Float>,
     viewMode: String,
+    hidePlayerControls: Boolean,
+    alwaysEnableHD: Boolean,
+    alwaysMuteVideo: Boolean,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
     onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onEnsureFavoriteResourcesThrottled: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
@@ -56,14 +59,15 @@ fun FullScreenImage(
 ) {
     val pagerState = rememberPagerState(initialPage = initialIndex) { images.size }
     var isZoomed by remember { mutableStateOf(false) }
-    var showUI by remember { mutableStateOf(true) }
+    var showUI by remember { mutableStateOf(!hidePlayerControls) }
     var offsetY by remember { mutableStateOf(0f) }
     var showUnfavoriteDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var userIsPlaying by remember { mutableStateOf(true) }
-    var userIsMuted by remember { mutableStateOf(true) }
+    var userIsMuted by remember { mutableStateOf(alwaysMuteVideo) }
     var playbackSpeed by remember { mutableFloatStateOf(1.0f) }
     var scaleMode by remember { mutableStateOf(ScaleMode.NORMAL) }
+    var isHD by remember { mutableStateOf(alwaysEnableHD) }
     var videoProgress by remember { mutableLongStateOf(0L) }
     var videoDuration by remember { mutableLongStateOf(0L) }
     var seekToPosition by remember { mutableStateOf<Long?>(null) }
@@ -179,6 +183,7 @@ fun FullScreenImage(
                         isZoomed = false
                         currentFps = 0
                         userIsPlaying = true
+                        isHD = false
                     }
 
                     with(sharedTransitionScope) {
@@ -190,8 +195,13 @@ fun FullScreenImage(
                                         animatedVisibilityScope = animatedVisibilityScope,
                                     )
                         ) {
+                            val videoUrl =
+                                if (image.type == "video" && isHD)
+                                    org.movzx.dibella.util.getVideoOriginalUrl(image.url)
+                                else previewData
+
                             VideoPlayer(
-                                url = previewData,
+                                url = videoUrl,
                                 isPlaying = page == pagerState.currentPage && userIsPlaying,
                                 isMuted = userIsMuted,
                                 playbackSpeed = playbackSpeed,
@@ -448,6 +458,21 @@ fun FullScreenImage(
                                 color = colorResource(R.color.pure_white),
                                 fontSize = 14.sp,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            )
+                        }
+
+                        IconButton(onClick = { isHD = !isHD }, modifier = Modifier.size(48.dp)) {
+                            Icon(
+                                Icons.Default.Hd,
+                                contentDescription = "HD",
+                                tint =
+                                    if (isHD)
+                                        androidx.compose.ui.res.colorResource(R.color.pure_white)
+                                    else
+                                        androidx.compose.ui.res
+                                            .colorResource(R.color.pure_white)
+                                            .copy(alpha = 0.5f),
+                                modifier = Modifier.size(28.dp),
                             )
                         }
 

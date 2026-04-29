@@ -425,6 +425,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 apiKey = settingsState.apiKey,
                                 downloadPath = settingsState.downloadPath,
                                 debugEnabled = settingsState.debugEnabled,
+                                hidePlayerControls = settingsState.hidePlayerControls,
+                                alwaysEnableHD = settingsState.alwaysEnableHD,
+                                alwaysMuteVideo = settingsState.alwaysMuteVideo,
                                 onDismiss = { scope.launch { rightDrawerState.close() } },
                                 onClearCache = { settingsViewModel.clearImageCache() },
                                 onSaveApiKey = { settingsViewModel.updateApiKey(it) },
@@ -441,6 +444,11 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     )
                                 },
                                 onToggleDebug = { settingsViewModel.updateDebugEnabled(it) },
+                                onHidePlayerControls = {
+                                    settingsViewModel.updateHidePlayerControls(it)
+                                },
+                                onAlwaysEnableHD = { settingsViewModel.updateAlwaysEnableHD(it) },
+                                onAlwaysMuteVideo = { settingsViewModel.updateAlwaysMuteVideo(it) },
                             )
                         }
                     }
@@ -558,6 +566,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         downloadedIds = galleryState.downloadedIds,
                                         downloadProgresses = downloadProgresses,
                                         viewMode = fullScreenViewMode,
+                                        hidePlayerControls = settingsState.hidePlayerControls,
+                                        alwaysEnableHD = settingsState.alwaysEnableHD,
+                                        alwaysMuteVideo = settingsState.alwaysMuteVideo,
                                         onGetFavoriteFlow = {
                                             favoritesViewModel.getFavoriteFlow(it)
                                         },

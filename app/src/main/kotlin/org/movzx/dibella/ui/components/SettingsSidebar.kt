@@ -22,6 +22,9 @@ fun SettingsSidebar(
     apiKey: String,
     downloadPath: String?,
     debugEnabled: Boolean,
+    hidePlayerControls: Boolean,
+    alwaysEnableHD: Boolean,
+    alwaysMuteVideo: Boolean,
     onDismiss: () -> Unit,
     onClearCache: () -> Unit,
     onSaveApiKey: (String) -> Unit,
@@ -30,6 +33,9 @@ fun SettingsSidebar(
     onExport: () -> Unit,
     onImport: () -> Unit,
     onToggleDebug: (Boolean) -> Unit,
+    onHidePlayerControls: (Boolean) -> Unit,
+    onAlwaysEnableHD: (Boolean) -> Unit,
+    onAlwaysMuteVideo: (Boolean) -> Unit,
 ) {
     var key by remember(apiKey) { mutableStateOf(apiKey) }
     var path by remember(downloadPath) { mutableStateOf(downloadPath ?: "") }
@@ -40,6 +46,45 @@ fun SettingsSidebar(
             modifier = Modifier.fillMaxSize().scrollbar(scrollState).verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            SidebarSection(title = stringResource(R.string.section_player)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.label_hide_player_controls),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Switch(checked = hidePlayerControls, onCheckedChange = onHidePlayerControls)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.label_always_enable_hd),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Switch(checked = alwaysEnableHD, onCheckedChange = onAlwaysEnableHD)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.label_always_mute_video),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Switch(checked = alwaysMuteVideo, onCheckedChange = onAlwaysMuteVideo)
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             SidebarSection(title = stringResource(R.string.section_api)) {
                 OutlinedTextField(
                     value = key,

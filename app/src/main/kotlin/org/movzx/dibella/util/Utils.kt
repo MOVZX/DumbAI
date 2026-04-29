@@ -241,6 +241,16 @@ fun getVideoPreviewUrl(url: String): String {
     return "$baseUrl/transcode=true,width=450,optimized=true"
 }
 
+fun getVideoOriginalUrl(url: String): String {
+    if (!url.contains("image.civitai.com")) return url
+
+    val baseUrl =
+        if (url.contains("/original=true/")) url.substringBefore("/original=true/")
+        else url.substringBeforeLast("/")
+
+    return "$baseUrl/original=true"
+}
+
 fun getOriginalUrl(url: String): String {
     if (!url.contains("image.civitai.com")) return url
 

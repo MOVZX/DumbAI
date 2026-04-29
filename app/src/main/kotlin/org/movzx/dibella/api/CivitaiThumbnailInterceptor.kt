@@ -12,13 +12,62 @@ class CivitaiThumbnailInterceptor : Interceptor {
     private val imageThumbnailTimeout = 10_000L
     private val maxRetries = 3
 
+    private fun cacheable(response: Response): Response {
+        if (!response.isSuccessful) return response
+
+        val requestUrl = response.request.url.toString()
+
+        val maxAge =
+            when {
+                requestUrl.contains("anim=false") ||
+                    (!requestUrl.contains("transcode=true") &&
+                        requestUrl.contains("/original=false/")) -> 7 * 86400
+
+                requestUrl.contains("/original=true/") ||
+                    (requestUrl.contains("original=true") &&
+                        !requestUrl.contains("transcode=true")) -> 1 * 86400
+
+                else -> 3 * 86400
+            }
+
+        return response
+            .newBuilder()
+            .header("Cache-Control", "public, max-age=$maxAge, s-maxage=$maxAge")
+            .build()
+    }
+
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val url = request.url.toString()
         var response = chain.proceed(request)
 
         if (!url.contains("image.civitai.com")) return response
-        if (response.isSuccessful && isRealImage(response)) return response
+
+        if (response.isSuccessful && isRealImage(response)) {
+            val isVideoUrl =
+                url.contains("transcode=true") ||
+                    url.contains("anim=false") ||
+                    url.contains("/original=true/")
+
+            if (isVideoUrl && !isRealVideo(response)) {
+                Logger.d("Dibella_Net", "Video URL returned image, retrying with preview URL: $url")
+
+                val previewUrl = url.replace("anim=false,", "").replace(",anim=false", "")
+
+                if (previewUrl != url) {
+                    response.close()
+
+                    val retryResponse = chain.proceed(request.newBuilder().url(previewUrl).build())
+
+                    if (retryResponse.isSuccessful && isRealImage(retryResponse))
+                        return cacheable(retryResponse)
+
+                    retryResponse.close()
+                }
+            }
+
+            return cacheable(response)
+        }
 
         val isVideoThumbnail = url.contains("/original=false/")
         val isVideo = url.contains("anim=false") || url.contains("transcode=true")
@@ -36,7 +85,7 @@ class CivitaiThumbnailInterceptor : Interceptor {
             val previousResponse = response
 
             try {
-                previousResponse?.close()
+                previousResponse.close()
 
                 val newRequest = request.newBuilder().url(testUrl).build()
                 val attemptType = if (isFallback) "fallback" else "retry"
@@ -51,14 +100,42 @@ class CivitaiThumbnailInterceptor : Interceptor {
 
                 timedResponse?.let {
                     if (it.isSuccessful && isRealImage(it)) {
-                        Logger.d(
-                            "Dibella_Net",
-                            "Success after ${retryCount + 1} attempts: $testUrl",
-                        )
+                        if (isVideo && !isRealVideo(it)) {
+                            Logger.d(
+                                "Dibella_Net",
+                                "Video retry returned image, trying preview: $testUrl",
+                            )
 
-                        response = it
+                            val prevResponse = response
+                            val previewUrl =
+                                testUrl.replace("anim=false,", "").replace(",anim=false", "")
 
-                        return response
+                            if (previewUrl != testUrl) {
+                                response.close()
+
+                                val previewResponse =
+                                    chain.proceed(request.newBuilder().url(previewUrl).build())
+
+                                if (previewResponse.isSuccessful && isRealImage(previewResponse)) {
+                                    response = previewResponse
+
+                                    return cacheable(response)
+                                }
+
+                                previewResponse.close()
+                            }
+
+                            response = prevResponse
+                        } else {
+                            Logger.d(
+                                "Dibella_Net",
+                                "Success after ${retryCount + 1} attempts: $testUrl",
+                            )
+
+                            response = it
+
+                            return cacheable(response)
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -74,20 +151,22 @@ class CivitaiThumbnailInterceptor : Interceptor {
             for (width in fallbackWidths) {
                 val newUrl = getThumbnailUrl(url, width)
 
-                if (tryUrlWithRetry(newUrl) != null) return response
+                if (tryUrlWithRetry(newUrl) != null) return cacheable(response)
             }
 
             if (retryCount >= maxRetries) {
                 val transcodeUrl = url.replace(",optimized=true", "")
 
-                if (tryUrlWithRetry(transcodeUrl, isFallback = true) != null) return response
+                if (tryUrlWithRetry(transcodeUrl, isFallback = true) != null)
+                    return cacheable(response)
             }
 
             if (!response.isSuccessful || !isRealImage(response)) {
                 val previewUrl = url.replace("anim=false,", "").replace(",anim=false", "")
 
                 if (previewUrl != url)
-                    if (tryUrlWithRetry(previewUrl, isFallback = true) != null) return response
+                    if (tryUrlWithRetry(previewUrl, isFallback = true) != null)
+                        return cacheable(response)
             }
         }
 
@@ -110,7 +189,7 @@ class CivitaiThumbnailInterceptor : Interceptor {
 
                 response = chain.proceed(request.newBuilder().url(baseUrl).build())
 
-                if (response.isSuccessful && isRealImage(response)) return response
+                if (response.isSuccessful && isRealImage(response)) return cacheable(response)
             }
         }
 
@@ -144,7 +223,7 @@ class CivitaiThumbnailInterceptor : Interceptor {
             }
         }
 
-        return response
+        return cacheable(response)
     }
 
     private fun withTimeout(
@@ -196,6 +275,38 @@ class CivitaiThumbnailInterceptor : Interceptor {
             org.movzx.dibella.util.FileUtils.getExtensionFromBytes(bytes) != null
         } catch (e: Exception) {
             Logger.e("Dibella_Net", "Error verifying image: ${e.message}")
+
+            false
+        }
+    }
+
+    private fun isRealVideo(response: Response): Boolean {
+        val body = response.body ?: return false
+
+        if (body.contentLength() == 0L) return false
+
+        val contentType = body.contentType()?.toString() ?: ""
+
+        // Fast path: Content-Type clearly says image — no I/O needed
+        if (contentType.contains("image/")) return false
+
+        // Fast path: Content-Type clearly says video
+        if (contentType.contains("video/")) return true
+
+        // Slow path: peek 32 bytes from in-memory buffer (microseconds, zero network I/O)
+        return try {
+            val source = body.source()
+
+            if (!source.request(32)) return false
+
+            val peek = source.peek()
+            val bytes = peek.readByteArray(32)
+
+            val ext = org.movzx.dibella.util.FileUtils.getExtensionFromBytes(bytes)
+
+            ext in listOf("mp4", "webm", "mkv", "mov", "avi", "mpg", "mpeg")
+        } catch (e: Exception) {
+            Logger.e("Dibella_Net", "Error verifying video: ${e.message}")
 
             false
         }

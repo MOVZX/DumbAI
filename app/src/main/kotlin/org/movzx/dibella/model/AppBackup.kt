@@ -12,6 +12,9 @@ data class AppSettingsBackup(
     val pageLimit: Int,
     val gridColumns: Int,
     val apiKey: String?,
+    val hidePlayerControls: Boolean = false,
+    val alwaysEnableHD: Boolean = false,
+    val alwaysMuteVideo: Boolean = false,
 )
 
 @JsonClass(generateAdapter = true)
