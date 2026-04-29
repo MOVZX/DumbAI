@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,9 +44,36 @@ fun ImageGrid(
     onToggleSelection: (Long) -> Unit = {},
     onLongClick: (Long) -> Unit = {},
     autoplayEnabled: Boolean = false,
+    isPreviewOpen: Boolean = false,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
+    val visibleItemIds by remember {
+        androidx.compose.runtime.derivedStateOf {
+            val layoutInfo = state.layoutInfo
+            val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+
+            if (viewportHeight <= 0) return@derivedStateOf emptySet<Long>()
+
+            layoutInfo.visibleItemsInfo
+                .filter { item ->
+                    val itemHeight = item.size.height
+
+                    if (itemHeight <= 0) return@filter false
+
+                    val top = item.offset.y
+                    val bottom = top + itemHeight
+                    val visibleTop = maxOf(0, top)
+                    val visibleBottom = minOf(viewportHeight, bottom)
+                    val visibleHeight = maxOf(0, visibleBottom - visibleTop)
+
+                    visibleHeight >= itemHeight * 0.3f
+                }
+                .mapNotNull { it.key as? Long }
+                .toSet()
+        }
+    }
+
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(columnCount),
         state = state,
@@ -72,7 +101,9 @@ fun ImageGrid(
                 onRetryThumbnail = onRetryThumbnail,
                 onToggleSelection = { onToggleSelection(image.id) },
                 onLongClick = { onLongClick(image.id) },
-                autoplayEnabled = autoplayEnabled,
+                autoplayEnabled = autoplayEnabled && !isPreviewOpen,
+                isVisibleInViewport = visibleItemIds.contains(image.id),
+                isScrolling = state.isScrollInProgress,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )

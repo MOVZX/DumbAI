@@ -18,7 +18,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
@@ -27,6 +26,7 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -54,6 +54,8 @@ fun ImageCard(
     onToggleSelection: () -> Unit = {},
     onLongClick: () -> Unit = {},
     autoplayEnabled: Boolean = false,
+    isVisibleInViewport: Boolean = false,
+    isScrolling: Boolean = false,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -72,7 +74,18 @@ fun ImageCard(
             org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
         }
 
-    var isVisibleInViewport by remember { mutableStateOf(false) }
+    var isAutoplayDebounced by remember { mutableStateOf(false) }
+    var videoError by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isVisibleInViewport) {
+        if (isVisibleInViewport) {
+            kotlinx.coroutines.delay(150)
+
+            isAutoplayDebounced = true
+        } else {
+            isAutoplayDebounced = false
+        }
+    }
 
     val videoData =
         remember(image.url, favoriteInfo, autoplayEnabled) {
@@ -187,45 +200,6 @@ fun ImageCard(
         modifier =
             Modifier.fillMaxWidth()
                 .aspectRatio(aspectRatio)
-                .onGloballyPositioned { coordinates: androidx.compose.ui.layout.LayoutCoordinates ->
-                    val windowBounds =
-                        android.graphics.Rect().apply {
-                            (context as? android.app.Activity)
-                                ?.window
-                                ?.decorView
-                                ?.getGlobalVisibleRect(this)
-                        }
-
-                    if (windowBounds.width() > 0 && windowBounds.height() > 0) {
-                        val cardBounds = android.graphics.Rect()
-                        val view = (context as? android.app.Activity)?.window?.decorView
-
-                        val isVisible = coordinates.isAttached
-
-                        if (isVisible) {
-                            val position =
-                                coordinates.localToWindow(androidx.compose.ui.geometry.Offset.Zero)
-
-                            val size = coordinates.size
-
-                            val cardRect =
-                                android.graphics.Rect(
-                                    position.x.toInt(),
-                                    position.y.toInt(),
-                                    (position.x + size.width).toInt(),
-                                    (position.y + size.height).toInt(),
-                                )
-
-                            val intersect = android.graphics.Rect()
-                            val isIntersecting = intersect.setIntersect(cardRect, windowBounds)
-
-                            isVisibleInViewport =
-                                isIntersecting && intersect.height() >= size.height * 0.5f
-                        } else {
-                            isVisibleInViewport = false
-                        }
-                    }
-                }
                 .combinedClickable(
                     onClick = { if (isSelectionMode) onToggleSelection() else onClick(image) },
                     onLongClick = onLongClick,
@@ -269,12 +243,15 @@ fun ImageCard(
                 )
             }
 
-            if (videoData != null && isVisibleInViewport) {
+            if (videoData != null && isVisibleInViewport && isAutoplayDebounced && !videoError) {
                 VideoPlayer(
                     url = videoData,
-                    isPlaying = true,
+                    isPlaying = isVisibleInViewport && !isScrolling,
                     isMuted = true,
                     scaleMode = ScaleMode.CROP,
+                    onPlaybackError = { videoError = true },
+                    onTap = { if (isSelectionMode) onToggleSelection() else onClick(image) },
+                    onLongPress = onLongClick,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -355,7 +332,7 @@ fun ImageCard(
                         if (isError) {
                             isRetrying = true
 
-                            onRetryThumbnail(imageData.toString()) {
+                            onRetryThumbnail(imageData) {
                                 retryCount++
 
                                 isError = false

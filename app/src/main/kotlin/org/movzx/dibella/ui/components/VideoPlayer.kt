@@ -26,8 +26,7 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flow
-import org.movzx.dibella.util.Logger
+import kotlinx.coroutines.isActive
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -44,8 +43,10 @@ fun VideoPlayer(
     onPlaybackError: (String?) -> Unit = {},
     onZoomChange: (Boolean) -> Unit = {},
     onTap: () -> Unit = {},
+    onLongPress: () -> Unit = {},
     seekPosition: Long? = null,
     onSeekConsumed: () -> Unit = {},
+    usePool: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var useMpv by remember(url) { mutableStateOf(false) }
@@ -61,6 +62,7 @@ fun VideoPlayer(
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = { onTap() },
+                        onLongPress = { onLongPress() },
                         onDoubleTap = {
                             if (scale > 1f) {
                                 scale = 1f
@@ -129,6 +131,7 @@ fun VideoPlayer(
                 onSwitchToMpv = { useMpv = true },
                 seekPosition = seekPosition,
                 onSeekConsumed = onSeekConsumed,
+                usePool = usePool,
             )
         }
     }
@@ -149,156 +152,222 @@ private fun ExoVideoPlayer(
     onSwitchToMpv: () -> Unit,
     seekPosition: Long?,
     onSeekConsumed: () -> Unit,
+    usePool: Boolean,
 ) {
     val context = LocalContext.current
+    val manager = LocalVideoPlayerManager.current
+    val currentIsPlaying by rememberUpdatedState(isPlaying)
 
-    val exoPlayer = remember {
-        val renderersFactory =
-            DefaultRenderersFactory(context).apply {
-                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-                setMediaCodecSelector { mimeType, requiresSecureDecoder, requiresTunnelingDecoder ->
-                    val decoders =
-                        MediaCodecSelector.DEFAULT.getDecoderInfos(
+    val dedicatedPlayer =
+        remember(usePool) {
+            if (!usePool) {
+                val renderersFactory =
+                    DefaultRenderersFactory(context).apply {
+                        setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+                        setMediaCodecSelector {
                             mimeType,
                             requiresSecureDecoder,
-                            requiresTunnelingDecoder,
-                        )
-                    if (mimeType.contains("video/avc")) {
-                        decoders.filter {
-                            it.name != "c2.qti.avc.decoder" &&
-                                it.name != "c2.qti.avc.decoder.low_latency"
+                            requiresTunnelingDecoder ->
+                            val decoders =
+                                MediaCodecSelector.DEFAULT.getDecoderInfos(
+                                    mimeType,
+                                    requiresSecureDecoder,
+                                    requiresTunnelingDecoder,
+                                )
+                            if (mimeType.contains("video/avc")) {
+                                decoders.filter {
+                                    it.name != "c2.qti.avc.decoder" &&
+                                        it.name != "c2.qti.avc.decoder.low_latency"
+                                }
+                            } else {
+                                decoders
+                            }
                         }
-                    } else {
-                        decoders
                     }
-                }
-            }
 
-        ExoPlayer.Builder(context, renderersFactory).build().apply {
-            repeatMode = Player.REPEAT_MODE_ONE
+                ExoPlayer.Builder(context, renderersFactory).build().apply {
+                    repeatMode = Player.REPEAT_MODE_ONE
+                }
+            } else null
+        }
+
+    DisposableEffect(dedicatedPlayer) { onDispose { dedicatedPlayer?.release() } }
+
+    var pooledPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
+    val exoPlayer = if (usePool) pooledPlayer else dedicatedPlayer
+    var isReady by remember(url, exoPlayer) { mutableStateOf(false) }
+    val activeCount = manager?.activeCount ?: 0
+
+    LaunchedEffect(usePool, url, activeCount) {
+        if (usePool && pooledPlayer == null) {
+            val player = manager?.acquirePlayer()
+
+            if (player != null) {
+                player.setMediaItem(MediaItem.fromUri(url))
+                player.prepare()
+
+                pooledPlayer = player
+            }
         }
     }
 
-    DisposableEffect(exoPlayer) {
-        val listener =
-            object : Player.Listener {
-                override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
-                    val hasAudio =
-                        tracks.groups.any {
-                            it.type == androidx.media3.common.C.TRACK_TYPE_AUDIO && it.isSupported
-                        }
-                    onAudioStateChange(hasAudio)
-                }
+    DisposableEffect(usePool, url) {
+        onDispose {
+            pooledPlayer?.let {
+                manager?.releasePlayer(it)
 
-                override fun onPlayerError(error: PlaybackException) {
-                    if (
-                        error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED ||
-                            error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
-                            error.errorCode ==
-                                PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED
-                    ) {
-                        Logger.d(
-                            "VideoPlayer",
-                            "ExoPlayer failed (code: ${error.errorCode}), switching to MPV",
-                        )
-                        onSwitchToMpv()
-                    } else {
-                        onPlaybackError(error.message)
-                    }
-                }
+                pooledPlayer = null
             }
-        exoPlayer.addListener(listener)
-        onDispose { exoPlayer.removeListener(listener) }
-    }
-
-    LaunchedEffect(url) {
-        exoPlayer.setMediaItem(MediaItem.fromUri(url))
-        exoPlayer.prepare()
-    }
-
-    LaunchedEffect(isPlaying) { exoPlayer.playWhenReady = isPlaying }
-    LaunchedEffect(isMuted) { exoPlayer.volume = if (isMuted) 0f else 1f }
-
-    LaunchedEffect(playbackSpeed) {
-        exoPlayer.playbackParameters = PlaybackParameters(playbackSpeed)
-    }
-
-    LaunchedEffect(seekPosition) {
-        seekPosition?.let {
-            exoPlayer.seekTo(it)
-            onSeekConsumed()
         }
     }
 
-    LaunchedEffect(isPlaying) {
-        if (isPlaying) {
-            var lastRenderedCount = 0L
-            var lastTime = System.currentTimeMillis()
+    if (exoPlayer != null) {
+        DisposableEffect(exoPlayer, url) {
+            val listener =
+                object : Player.Listener {
+                    override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                        val hasAudio =
+                            tracks.groups.any {
+                                it.type == androidx.media3.common.C.TRACK_TYPE_AUDIO &&
+                                    it.isSupported
+                            }
 
-            flow {
-                    while (true) {
-                        delay(33)
-                        emit(Unit)
+                        onAudioStateChange(hasAudio)
+                    }
+
+                    override fun onPlayerError(error: PlaybackException) {
+                        if (
+                            error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED ||
+                                error.errorCode ==
+                                    PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
+                                error.errorCode ==
+                                    PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED
+                        ) {
+                            onSwitchToMpv()
+                        } else {
+                            onPlaybackError(error.message)
+                        }
+                    }
+
+                    override fun onRenderedFirstFrame() {
+                        isReady = true
                     }
                 }
-                .collect {
+            exoPlayer.addListener(listener)
+            onDispose { exoPlayer.removeListener(listener) }
+        }
+
+        LaunchedEffect(url, dedicatedPlayer) {
+            if (!usePool && dedicatedPlayer != null) {
+                isReady = false
+                val currentPos = dedicatedPlayer.currentPosition
+
+                dedicatedPlayer.setMediaItem(MediaItem.fromUri(url))
+
+                if (currentPos > 0) dedicatedPlayer.seekTo(currentPos)
+
+                dedicatedPlayer.prepare()
+            }
+        }
+
+        LaunchedEffect(exoPlayer, isMuted) { exoPlayer.volume = if (isMuted) 0f else 1f }
+
+        LaunchedEffect(exoPlayer, playbackSpeed) {
+            exoPlayer.playbackParameters = PlaybackParameters(playbackSpeed)
+        }
+
+        LaunchedEffect(exoPlayer, seekPosition) {
+            seekPosition?.let {
+                exoPlayer.seekTo(it)
+                onSeekConsumed()
+            }
+        }
+
+        LaunchedEffect(exoPlayer, isPlaying) {
+            exoPlayer.playWhenReady = isPlaying
+
+            if (!usePool) {
+                var lastRenderedCount = 0L
+                var lastTime = System.currentTimeMillis()
+
+                while (isActive) {
                     if (exoPlayer.duration > 0)
                         onProgressUpdate(exoPlayer.currentPosition, exoPlayer.duration)
 
-                    val currentRenderedCount =
-                        exoPlayer.videoDecoderCounters?.renderedOutputBufferCount?.toLong() ?: 0L
+                    if (isPlaying) {
+                        val currentRenderedCount =
+                            exoPlayer.videoDecoderCounters?.renderedOutputBufferCount?.toLong()
+                                ?: 0L
 
-                    val currentTime = System.currentTimeMillis()
-                    val elapsed = currentTime - lastTime
+                        val currentTime = System.currentTimeMillis()
+                        val elapsed = currentTime - lastTime
 
-                    if (elapsed >= 1000) {
-                        val fps =
-                            ((currentRenderedCount - lastRenderedCount) * 1000f / elapsed).toInt()
+                        if (elapsed >= 1000) {
+                            val fps =
+                                ((currentRenderedCount - lastRenderedCount) * 1000f / elapsed)
+                                    .toInt()
 
-                        onFpsUpdate(fps)
+                            onFpsUpdate(fps)
 
-                        lastRenderedCount = currentRenderedCount
-                        lastTime = currentTime
+                            lastRenderedCount = currentRenderedCount
+                            lastTime = currentTime
+                        }
+                    } else {
+                        exoPlayer.stop()
+
+                        break
                     }
+
+                    delay(if (isPlaying) 33 else 500)
                 }
-        }
-    }
-
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE) exoPlayer.pause()
-            else if (event == Lifecycle.Event.ON_RESUME) if (isPlaying) exoPlayer.play()
-        }
-
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            exoPlayer.release()
-        }
-    }
-
-    AndroidView(
-        factory = {
-            PlayerView(it).apply {
-                player = exoPlayer
-                useController = false
-                layoutParams =
-                    android.view.ViewGroup.LayoutParams(
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                    )
             }
-        },
-        update = { playerView ->
-            playerView.resizeMode =
-                when (scaleMode) {
-                    ScaleMode.NORMAL -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    ScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    ScaleMode.FULL -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+        }
+
+        val lifecycleOwner = LocalLifecycleOwner.current
+
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_PAUSE) exoPlayer.pause()
+                else if (event == Lifecycle.Event.ON_RESUME) {
+                    if (currentIsPlaying) exoPlayer.play()
                 }
-        },
-        modifier = Modifier.fillMaxSize(),
-    )
+            }
+
+            lifecycleOwner.lifecycle.addObserver(observer)
+
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+
+        AndroidView(
+            factory = {
+                PlayerView(it).apply {
+                    this.player = exoPlayer
+                    useController = false
+
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+
+                    findViewById<android.view.View>(androidx.media3.ui.R.id.exo_shutter)
+                        ?.visibility = android.view.View.GONE
+
+                    layoutParams =
+                        android.view.ViewGroup.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        )
+                }
+            },
+            update = { playerView ->
+                playerView.player = exoPlayer
+                playerView.resizeMode =
+                    when (scaleMode) {
+                        ScaleMode.NORMAL -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        ScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        ScaleMode.FULL -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                    }
+            },
+            onRelease = { playerView -> playerView.player = null },
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
 }

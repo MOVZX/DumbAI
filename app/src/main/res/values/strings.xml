@@ -78,6 +78,8 @@
     <string name="dialog_batch_delete_msg">Delete %1$d items from your device?</string>
     <string name="dialog_scan_duplicates_title">Scan for Duplicates</string>
     <string name="dialog_scan_duplicates_msg">Are you sure you want to scan and remove duplicate local files? This will keep only the oldest version of each identical file.</string>
+    <string name="dialog_autoplay_title">Enable Video Autoplay?</string>
+    <string name="dialog_autoplay_msg">Autoplaying videos in the feed can consume a significant amount of battery and data. Are you sure you want to enable this feature?</string>
 
     <!-- Selectable Options (Filter Chips) -->
     <string name="found_duplicates">Found Duplicates</string>

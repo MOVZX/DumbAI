@@ -42,6 +42,19 @@ fun SettingsSidebar(
     var key by remember(apiKey) { mutableStateOf(apiKey) }
     var path by remember(downloadPath) { mutableStateOf(downloadPath ?: "") }
     val scrollState = rememberScrollState()
+    var showAutoplayDialog by remember { mutableStateOf(false) }
+
+    if (showAutoplayDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_autoplay_title),
+            message = stringResource(R.string.dialog_autoplay_msg),
+            onConfirm = {
+                onFeedVideoAutoplay(true)
+                showAutoplayDialog = false
+            },
+            onDismiss = { showAutoplayDialog = false },
+        )
+    }
 
     BaseSidebar(title = stringResource(R.string.settings), onDismiss = onDismiss) {
         Column(
@@ -95,7 +108,12 @@ fun SettingsSidebar(
                         style = MaterialTheme.typography.bodyLarge,
                     )
 
-                    Switch(checked = feedVideoAutoplay, onCheckedChange = onFeedVideoAutoplay)
+                    Switch(
+                        checked = feedVideoAutoplay,
+                        onCheckedChange = { checked ->
+                            if (checked) showAutoplayDialog = true else onFeedVideoAutoplay(false)
+                        },
+                    )
                 }
             }
 

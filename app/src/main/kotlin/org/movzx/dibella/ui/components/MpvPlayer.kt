@@ -41,6 +41,14 @@ fun MpvPlayer(
         MPVLib
     }
 
+    SideEffect {
+        if (isPlaying && MPVLib.lastOwnerId != instanceId) {
+            Logger.d("MpvPlayer", "[$instanceId] SideEffect: Taking ownership")
+
+            MPVLib.lastOwnerId = instanceId
+        }
+    }
+
     LaunchedEffect(isPlaying, isSurfaceReady) {
         if (isPlaying && isSurfaceReady) {
             while (true) {

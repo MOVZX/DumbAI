@@ -24,6 +24,8 @@ import coil3.request.crossfade
 fun ZoomableImage(
     model: Any,
     imageLoader: ImageLoader,
+    modifier: Modifier = Modifier,
+    thumbnailModel: Any? = null,
     onZoomChange: (Boolean) -> Unit,
     onTap: () -> Unit = {},
 ) {
@@ -33,7 +35,8 @@ fun ZoomableImage(
 
     Box(
         modifier =
-            Modifier.fillMaxSize()
+            modifier
+                .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = { onTap() },
@@ -73,10 +76,15 @@ fun ZoomableImage(
                     }
                 }
     ) {
+        val placeholderPainter = thumbnailModel?.let {
+            coil3.compose.rememberAsyncImagePainter(model = it, imageLoader = imageLoader)
+        }
+
         AsyncImage(
             model =
                 ImageRequest.Builder(LocalContext.current).data(model).crossfade(!isLocal).build(),
             imageLoader = imageLoader,
+            placeholder = placeholderPainter,
             contentDescription = null,
             modifier =
                 Modifier.fillMaxSize().graphicsLayer {

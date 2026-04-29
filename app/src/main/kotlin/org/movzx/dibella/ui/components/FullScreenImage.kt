@@ -21,12 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
+import coil3.compose.AsyncImage
 import kotlin.math.abs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -47,6 +49,7 @@ fun FullScreenImage(
     hidePlayerControls: Boolean,
     alwaysEnableHD: Boolean,
     alwaysMuteVideo: Boolean,
+    autoplayEnabled: Boolean,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
     onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onEnsureFavoriteResourcesThrottled: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
@@ -162,6 +165,12 @@ fun FullScreenImage(
                         .collectAsState(initial = null)
 
                 val context = androidx.compose.ui.platform.LocalContext.current
+
+                val thumbnailData =
+                    remember(image.url, favoriteInfo) {
+                        org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
+                    }
+
                 val previewData =
                     remember(image.url, favoriteInfo) {
                         org.movzx.dibella.util.resolveImageData(
@@ -191,14 +200,23 @@ fun FullScreenImage(
                     }
 
                     with(sharedTransitionScope) {
-                        Box(
-                            modifier =
-                                Modifier.fillMaxSize()
-                                    .sharedElement(
-                                        rememberSharedContentState(key = "image-${image.id}"),
-                                        animatedVisibilityScope = animatedVisibilityScope,
-                                    )
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = thumbnailData,
+                                imageLoader = imageLoader,
+                                contentDescription = null,
+                                modifier =
+                                    Modifier.fillMaxSize()
+                                        .sharedElement(
+                                            rememberSharedContentState(key = "image-${image.id}"),
+                                            animatedVisibilityScope = animatedVisibilityScope,
+                                        ),
+                                contentScale =
+                                    if (scaleMode == ScaleMode.CROP) ContentScale.Crop
+                                    else if (scaleMode == ScaleMode.FULL) ContentScale.FillBounds
+                                    else ContentScale.Fit,
+                            )
+
                             val videoUrl =
                                 if (image.type == "video" && isHD)
                                     org.movzx.dibella.util.getVideoOriginalUrl(image.url)
@@ -224,6 +242,7 @@ fun FullScreenImage(
                                 onTap = { showUI = !showUI },
                                 seekPosition = seekToPosition,
                                 onSeekConsumed = { seekToPosition = null },
+                                usePool = false,
                             )
 
                             if (videoPlaybackError != null) {
@@ -254,17 +273,16 @@ fun FullScreenImage(
                     }
                 } else {
                     with(sharedTransitionScope) {
-                        Box(
-                            modifier =
-                                Modifier.fillMaxSize()
-                                    .sharedElement(
-                                        rememberSharedContentState(key = "image-${image.id}"),
-                                        animatedVisibilityScope = animatedVisibilityScope,
-                                    )
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
                             ZoomableImage(
                                 model = previewData,
                                 imageLoader = imageLoader,
+                                thumbnailModel = thumbnailData,
+                                modifier =
+                                    Modifier.sharedElement(
+                                        rememberSharedContentState(key = "image-${image.id}"),
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                    ),
                                 onZoomChange = { isZoomed = it },
                                 onTap = { showUI = !showUI },
                             )
