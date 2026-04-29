@@ -16,6 +16,7 @@ All business logic is driven by a centralized `BaseViewModel`, which standardize
 - **Persistent Preference Management**: Direct interface for grid layout, page limits, and content settings.
 - **Scroll Management**: State-aware scroll position saving and restoration logic.
 - **Message Bus**: A resource-ID based messaging flow for decoupled UI notifications _(Toasts)_.
+- **Resource Synchronization**: Throttled background processing for media resources to maintain UI fluidity on flagship hardware.
 
 ### State Management
 
@@ -26,7 +27,7 @@ The application utilizes a **Unidirectional Data Flow** _(UDF)_ pattern. Each sc
 The data layer is highly modular and utilizes specialized repositories:
 
 - **GalleryRepository**: Manages local media scanning and public download operations.
-- **FavoritesRepository**: Handles local caching of media resources _(thumbnails and previews)_ to ensure offline availability for favorited content.
+- **FavoritesRepository**: Handles local caching of media resources _(thumbnails and previews)_ to ensure offline availability for favorited content. It features parallel resource synchronization for maximum throughput.
 - **UserPreferencesRepository**: Leverages **Jetpack DataStore** for persistent storage of application settings and navigation states.
 - **BackupRepository**: Provides robust JSON-based import and export capabilities for user data.
 
@@ -39,7 +40,6 @@ The application employs a unique navigation system based on nested **ModalNaviga
 - **Left Sidebar**: Dedicated to display configurations, including grid column adjustments, request limits, and per-screen media type filtering.
 - **Right Sidebar**: A multi-mode panel that switches between advanced content filters and core application settings.
 - **Gesture Reliability**: Dynamic edge-peeking logic ensures that left and right swipe gestures are correctly routed to the appropriate drawer without interception conflicts.
-- **Consistent UI**: All sidebars utilize a unified `BaseSidebar` foundation with square edges and dynamic scrollbars for a professional aesthetic.
 
 ### Modern UI/UX Experience
 
@@ -56,7 +56,7 @@ Dibella prioritizes accessibility by automatically downloading and managing loca
 
 ### Smart Image Resolution & Verification
 
-A dedicated utility layer dynamically resolves the most appropriate media source based on context. The application verifies the integrity of downloaded media through **magic byte sniffing**, ensuring that only valid images are displayed and automatically retrying failed thumbnails with alternative resolutions.
+A dedicated utility layer dynamically resolves the most appropriate media source based on context. The application verifies the integrity of downloaded media through **magic byte sniffing**, ensuring that only valid images are displayed and automatically retrying failed thumbnails with alternative resolutions and high-efficiency video fallbacks.
 
 ### Duplicate Detection
 
@@ -68,7 +68,7 @@ The networking layer uses custom **OkHttp Interceptors** to handle:
 
 - **Secure Auth**: Scoped API key injection for API requests only.
 - **Anti-Bot Protection**: Browser-like headers (User-Agent/Referer) to ensure reliable CDN access.
-- **Robust Fallbacks**: Content-aware retries for 404/403 errors and increased 60s timeouts for stability on slow connections.
+- **Robust Fallbacks**: Content-aware retries for 404/403 errors and aligned 10s timeouts for optimal responsiveness on high-end hardware.
 
 ## Screenshots
 
@@ -90,6 +90,7 @@ The networking layer uses custom **OkHttp Interceptors** to handle:
 - **Persistence**: Jetpack DataStore
 - **Image Loading**: Coil3 _(including Video Frame support)_
 - **Media Playback**: Media3 / ExoPlayer
+- **Concurrency**: Kotlin Coroutines & Flow
 
 ## Project Structure
 

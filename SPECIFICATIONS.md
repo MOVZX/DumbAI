@@ -11,7 +11,8 @@ The application utilizes the Model-View-ViewModel (MVVM) pattern. To mitigate bo
 - **Persistent Preferences**: Direct interface with `UserPreferencesRepository` for grid and request settings.
 - **Scroll Management**: Centralized `saveScrollPosition` and restoration logic mapped to specific content types.
 - **Message Bus**: A `SharedFlow`-based messaging system for decoupled UI notifications (Toasts) using resource IDs.
-- **Shared Actions**: Centralized logic for `toggleFavorite` and `performDownload` to ensure consistency across screens.
+- **Shared Actions**: Centralized logic for `toggleFavorite`, `ensureFavoriteResources`, and `performDownload`.
+- **Concurrency Control**: Utilizes `Dispatchers.IO.limitedParallelism` to manage concurrent heavy operations (like resource synchronization) to avoid UI lag on high-end hardware.
 
 ### Dependency Injection
 
@@ -37,10 +38,6 @@ A critical specialized implementation manages scroll positions during data refre
 3.  **Keyed Invalidation**: The restoration flag for the feed is reset to `false` whenever filter parameters (NSFW, Sort, Type, etc.) change.
 4.  **Forced Positioning**: A `LaunchedEffect` in the UI monitors `images.isNotEmpty()`. If `isRestored` is `false`, it executes `gridState.scrollToItem(index, offset)` and calls `markRestored()` on the ViewModel.
 
-### Pagination Cursor Logic
-
-- **Simplified Cursors**: Pagination cursors received from Civitai are truncated at the pipe (`|`) character before being saved or used in subsequent requests. This ensures compatibility and simplifies the request structure.
-
 ## 3. UI Implementation Details
 
 ### Dual-Sidebar Architecture and Gesture Control
@@ -53,14 +50,13 @@ The application implements a robust dual-sidebar system that handles complex con
 - **State-Based Priority**:
     - The Left Drawer's gestures are enabled only if it's already open OR if the touch started on the left edge while the Right Drawer is closed.
     - The Right Drawer's gestures are enabled only if it's already open OR if the touch started on the right edge while the Left Drawer is closed.
-- **Context-Aware Sidebars**:
-    - **DisplaySidebar** (Left): Configures grid columns and page limits. In Favorites/Gallery screens, it adds a "Content Type" (Images, Videos, All) filter and hides the "Contents Per Request" setting.
-    - **FilterSidebar** (Right): Manages API-level filters (NSFW, Sort, etc.). Automatically defaults to "Filter Options" on open, even if "Settings" was previously viewed.
 
 ### Shared UI Components
 
 - **AppScaffold**: A high-level wrapper that manages the TopBar, BottomBar, and `AppFab`.
-- **ImageCard**: A sophisticated component that handles dynamic image resolution, heart animations, and cache status indicators. It features an optimized loading state that replaces shimmers with static backgrounds and centered `BrokenImage` icons upon failure.
+- **ImageCard**: A sophisticated component that handles dynamic image resolution, heart animations, and reactive cache status indicators.
+    - **Reactive Cache Status**: Observes both database changes and download progress completion to instantly update the cloud icon (Yellow for pending/partial, Green for fully cached).
+    - **Optimized Assets**: Uses localized logic to resolve whether to show a remote URL or a local file from the `favorites/` directory.
 - **ImageGrid**: A regular grid implementation with shared transition support.
 - **SkeletonGrid**: A non-animated loading grid using static surface colors to minimize CPU/GPU overhead during data fetch.
 
@@ -68,16 +64,10 @@ The application implements a robust dual-sidebar system that handles complex con
 
 The application utilizes **Media3/ExoPlayer** for an immersive video experience:
 
-- **Interactive Seekbar**: A smooth, real-time seekbar (33ms polling) with live frame seeking and automatic playback pause during user interaction.
+- **Interactive Seekbar**: A smooth, real-time seekbar with live frame seeking and automatic playback pause during user interaction.
 - **Interactive Controls**: Play/Pause, Mute/Unmute, and dynamic Scaling Modes (**Normal**, **Crop**, **Full**).
 - **Smart Mute**: Automatically detects audio tracks and disables the mute toggle for silent videos.
-- **Automated Looping**: All video content is configured to loop infinitely using `Player.REPEAT_MODE_ONE`.
-
-### Modern UX & Theming
-
-- **Edge-to-Edge**: The application utilizes `enableEdgeToEdge()` to draw behind system bars.
-- **Shared Transitions**: Uses `SharedTransitionLayout` for fluid motion between the grid and full-screen preview.
-- **Gestures**: System back gestures and swipe-to-dismiss actions are supported in the preview.
+- **Automated Looping**: All video content is configured to loop infinitely.
 
 ## 4. Data Layer and Resource Management
 
@@ -86,29 +76,21 @@ The application utilizes **Media3/ExoPlayer** for an immersive video experience:
 The networking layer is highly optimized for reliability and performance:
 
 - **Verification Interceptor**: `CivitaiThumbnailInterceptor` verifies the actual content of successful responses by peeking at magic bytes (PNG, JPEG, etc.). If the server returns a successful status (200) but invalid data (e.g., a JSON error or empty file), the interceptor automatically retries with alternative widths.
-- **Fallback Logic**: Retries failed requests with widths 450, 720, and 1280px. A final fallback to `original=true` is attempted for images (but skipped for video thumbnails to prevent massive data loads).
+- **Fallback Logic**: Retries failed requests with widths 450, 800, 1000, and 1500px. A high-efficiency "Video Preview" fallback (transcode=true) is attempted for videos before resorting to original video source.
+- **Timeout Alignment**: Network timeouts are aligned (8s for retries, 10s for global read) to ensure fallback logic triggers before connection drops.
 - **Anti-Bot Headers**: All Civitai requests include standard `User-Agent` and `Referer` headers to avoid CDN blocking.
-- **Authorization Scoping**: API keys are only injected into `/api/` paths and explicitly excluded from image CDN requests to avoid auth-related rejections.
-- **Network Performance**: OkHttp timeouts are increased to 30s for connect, read, and write operations. Coil is explicitly configured to use the app's `OkHttpClient` as its `callFactory`.
 
 ### Persistence & Gallery Synchronization
 
 - **Room (v2)**: Manages `favorite_images` and `feed_cache` tables.
 - **DataStore**: Manages settings and persistent scroll positions.
-- **Media Filtering**: Both Favorites and Gallery screens support local media type filtering (Images, Videos, All) which is persisted independently per screen in DataStore.
 
-### Duplicate Detection and Management
+### Local Resource Caching & Performance
 
-The application includes sophisticated duplicate detection capabilities in both the Favorites and Gallery repositories:
+The `FavoritesRepository` and `BaseViewModel` manage a dedicated `favorites/` directory:
 
-- **Hash-Based Comparison**: Utilizes file hashing to identify identical media files across the collection.
-- **Group Management**: Organizes duplicates into groups for bulk removal operations.
-- **Selective Removal**: Allows users to keep one copy and remove others, preserving metadata and favorites status.
-
-### Local Resource Caching
-
-The `FavoritesRepository` manages a dedicated `favorites/` directory:
-
+- **Concurrency Optimization**: Performs thumbnail and full-content downloads concurrently using coroutines to maximize throughput on fast connections.
+- **Restricted Threading**: Employs a dedicated dispatcher with `limitedParallelism` (tuned for Snapdragon 8 Gen 3) to balance background throughput with UI responsiveness.
 - **Video Frame Extraction**: Uses `MediaMetadataRetriever` to extract thumbnails from downloaded videos.
 - **Proactive Fetching**: `ensureFavoriteResources()` pre-downloads thumbnails and previews for all favorited items.
 - **Orphan Cleanup**: `clearUnusedResources()` removes cached files for unfavorited items.
@@ -130,6 +112,6 @@ The project includes a `build.sh` script that automates:
 - **Persistence**: Jetpack DataStore
 - **Image Loading**: Coil3 (including Video Frame support)
 - **Media Playback**: Media3 / ExoPlayer
-- **Coroutines**: Structured concurrency with ViewModel scopes
+- **Coroutines**: Structured concurrency with ViewModel scopes and optimized dispatchers.
 - **Minimum SDK**: Android 8.0 (API 26)
 - **Target SDK**: Android 14 (API 34)
