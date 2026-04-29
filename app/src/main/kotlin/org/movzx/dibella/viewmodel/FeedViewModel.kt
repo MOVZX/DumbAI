@@ -68,11 +68,6 @@ constructor(
                     val typeChanged = type != _uiState.value.type
                     val tagsChanged = tagIds != _uiState.value.tagIds
 
-                    Logger.d(
-                        "Dibella_Cache",
-                        "Settings Update | NSFW: $nsfw, Sort: $sort, Period: $period, Type: $type, Tags: $tagIds",
-                    )
-
                     _uiState.update {
                         it.copy(
                             nsfw = nsfw,
@@ -105,8 +100,6 @@ constructor(
                                 tagsChanged ||
                                 typeChanged)
                     ) {
-                        Logger.d("Dibella_Cache", "Feed Refresh Triggered by Settings Change")
-
                         refresh()
                     }
 
@@ -131,12 +124,6 @@ constructor(
             videoCursor = repository.nextCursor("video").first()
             val cachedImages = feedCacheDao.getFeed("image").map { it.toCivitaiImage() }
             val cachedVideos = feedCacheDao.getFeed("video").map { it.toCivitaiImage() }
-
-            Logger.d(
-                "Dibella_DB",
-                "Restoring Feed Cache | Images: ${cachedImages.size}, Videos: ${cachedVideos.size}",
-            )
-
             imageFeed = cachedImages
             videoFeed = cachedVideos
             val currentType = repository.type.first()
@@ -149,11 +136,7 @@ constructor(
                 )
             }
 
-            if (_uiState.value.images.isEmpty()) {
-                Logger.d("Dibella_Cache", "Cache empty, initiating first load")
-
-                loadImages(isNew = true)
-            }
+            if (_uiState.value.images.isEmpty()) loadImages(isNew = true)
         }
     }
 
@@ -170,8 +153,6 @@ constructor(
         }
 
         val currentType = _uiState.value.type
-
-        Logger.d("Dibella_Cache", "Refreshing Feed | Type: $currentType")
 
         if (currentType == "video") {
             videoFeed = emptyList()
@@ -232,14 +213,7 @@ constructor(
                             cursor = targetCursor,
                         )
 
-                    if (_uiState.value.type != targetType) {
-                        Logger.w(
-                            "Dibella_Cache",
-                            "Feed type changed during load, discarding results",
-                        )
-
-                        break
-                    }
+                    if (_uiState.value.type != targetType) break
 
                     val items =
                         if (isNew) {
@@ -273,11 +247,6 @@ constructor(
                     val cacheItems = items.mapIndexed { index, image ->
                         FeedItemCache.fromCivitaiImage(image, targetType, index)
                     }
-
-                    Logger.d(
-                        "Dibella_DB",
-                        "Updating Feed Cache for $targetType | Items: ${items.size}",
-                    )
 
                     feedCacheDao.replaceFeed(targetType, cacheItems)
 
@@ -319,20 +288,11 @@ constructor(
     }
 
     fun updateFilters(nsfw: String, sort: String, period: String, type: String, tagIds: String?) {
-        viewModelScope.launch {
-            Logger.d(
-                "Dibella_Cache",
-                "Updating Filters | NSFW: $nsfw, Sort: $sort, Period: $period, Type: $type",
-            )
-
-            repository.updateFilters(nsfw, sort, period, type, tagIds)
-        }
+        viewModelScope.launch { repository.updateFilters(nsfw, sort, period, type, tagIds) }
     }
 
     fun resetFilters() {
         viewModelScope.launch {
-            Logger.d("Dibella_Cache", "Resetting Filters to Default")
-
             repository.updateFilters("None", "Most Reactions", "AllTime", "image", null)
         }
     }

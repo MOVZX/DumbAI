@@ -28,11 +28,6 @@ constructor(
             val initialIndex = repository.feedScrollIndex("gallery").first()
             val initialOffset = repository.feedScrollOffset("gallery").first()
 
-            Logger.d(
-                "Dibella_Cache",
-                "Gallery: Restoring scroll pos ($initialIndex, $initialOffset)",
-            )
-
             _uiState.update { it.copy(scrollIndex = initialIndex, scrollOffset = initialOffset) }
 
             combine(repository.downloadPath, repository.galleryType, repository.gridColumns) {
@@ -42,8 +37,6 @@ constructor(
                     Triple(path, type, columns)
                 }
                 .collect { (path, type, columns) ->
-                    Logger.d("Dibella_Cache", "Gallery settings changed | Type: $type, Path: $path")
-
                     _uiState.update {
                         it.copy(downloadPath = path, type = type, gridColumns = columns)
                     }
@@ -61,8 +54,6 @@ constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            Logger.d("Dibella_IO", "Refreshing gallery content...")
-
             _uiState.update { it.copy(isLoading = true) }
 
             val images = galleryRepository.scanDirectory(_uiState.value.downloadPath)
@@ -74,18 +65,12 @@ constructor(
                     else -> images
                 }
 
-            Logger.d("Dibella_Res", "Gallery refreshed: ${filtered.size} items displayed")
-
             _uiState.update { it.copy(images = filtered, isLoading = false) }
         }
     }
 
     fun updateType(type: String) {
-        viewModelScope.launch {
-            Logger.d("Dibella_Cache", "Updating Gallery Type: $type")
-
-            repository.updateGalleryType(type)
-        }
+        viewModelScope.launch { repository.updateGalleryType(type) }
     }
 
     fun toggleSelection(id: Long) {
@@ -94,15 +79,11 @@ constructor(
                 if (state.selectedIds.contains(id)) state.selectedIds - id
                 else state.selectedIds + id
 
-            Logger.v("Dibella_Cache", "Gallery selection toggled: $id | Total: ${newSelected.size}")
-
             state.copy(selectedIds = newSelected, isSelectionMode = newSelected.isNotEmpty())
         }
     }
 
     fun clearSelection() {
-        Logger.d("Dibella_Cache", "Gallery selection cleared")
-
         _uiState.update { it.copy(selectedIds = emptySet(), isSelectionMode = false) }
     }
 
@@ -111,8 +92,6 @@ constructor(
             val allIds = state.images.map { it.id }.toSet()
 
             val newSelected = if (state.selectedIds.size == allIds.size) emptySet() else allIds
-
-            Logger.d("Dibella_Cache", "Gallery Select All: ${newSelected.size} items")
 
             state.copy(selectedIds = newSelected, isSelectionMode = newSelected.isNotEmpty())
         }
@@ -191,15 +170,11 @@ constructor(
     }
 
     fun clearDuplicatesMode() {
-        Logger.d("Dibella_Cache", "Exiting gallery duplicate mode")
-
         _uiState.update { it.copy(isShowingDuplicates = false, duplicateGroups = emptyList()) }
     }
 
     fun removeDuplicates() {
         viewModelScope.launch {
-            Logger.d("Dibella_IO", "Removing gallery duplicates...")
-
             _uiState.update { it.copy(isLoading = true) }
 
             try {
