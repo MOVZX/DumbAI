@@ -428,6 +428,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 hidePlayerControls = settingsState.hidePlayerControls,
                                 alwaysEnableHD = settingsState.alwaysEnableHD,
                                 alwaysMuteVideo = settingsState.alwaysMuteVideo,
+                                feedVideoAutoplay = settingsState.feedVideoAutoplay,
                                 onDismiss = { scope.launch { rightDrawerState.close() } },
                                 onClearCache = { settingsViewModel.clearImageCache() },
                                 onSaveApiKey = { settingsViewModel.updateApiKey(it) },
@@ -449,6 +450,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 },
                                 onAlwaysEnableHD = { settingsViewModel.updateAlwaysEnableHD(it) },
                                 onAlwaysMuteVideo = { settingsViewModel.updateAlwaysMuteVideo(it) },
+                                onFeedVideoAutoplay = {
+                                    settingsViewModel.updateFeedVideoAutoplay(it)
+                                },
                             )
                         }
                     }
@@ -495,6 +499,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         navController = navController,
                                         startDestination = startDestination,
                                         imageLoader = imageLoader,
+                                        feedVideoAutoplay = settingsState.feedVideoAutoplay,
                                         feedGridState = feedGridState,
                                         favoritesGridState = favoritesGridState,
                                         galleryGridState = galleryGridState,
@@ -615,6 +620,7 @@ fun AppNavigation(
     navController: NavHostController,
     startDestination: String,
     imageLoader: ImageLoader,
+    feedVideoAutoplay: Boolean,
     feedGridState: LazyStaggeredGridState,
     favoritesGridState: LazyStaggeredGridState,
     galleryGridState: LazyStaggeredGridState,
@@ -657,6 +663,7 @@ fun AppNavigation(
             FeedScreen(
                 imageLoader = imageLoader,
                 gridState = feedGridState,
+                feedVideoAutoplay = feedVideoAutoplay,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,
@@ -678,6 +685,7 @@ fun AppNavigation(
             FavoritesScreen(
                 imageLoader = imageLoader,
                 gridState = favoritesGridState,
+                feedVideoAutoplay = feedVideoAutoplay,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,
@@ -701,6 +709,7 @@ fun AppNavigation(
             GalleryScreen(
                 imageLoader = imageLoader,
                 gridState = galleryGridState,
+                feedVideoAutoplay = feedVideoAutoplay,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,
@@ -727,6 +736,7 @@ fun AppNavigation(
 fun FeedScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
+    feedVideoAutoplay: Boolean,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
@@ -817,6 +827,7 @@ fun FeedScreen(
                     onRetryThumbnail = { url, onComplete ->
                         viewModel.retryThumbnail(url, onComplete)
                     },
+                    autoplayEnabled = feedVideoAutoplay,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                 )
@@ -835,6 +846,7 @@ fun FeedScreen(
 fun FavoritesScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
+    feedVideoAutoplay: Boolean,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
@@ -972,6 +984,7 @@ fun FavoritesScreen(
                 onRetryThumbnail = { url, onComplete -> viewModel.retryThumbnail(url, onComplete) },
                 onToggleSelection = { viewModel.toggleSelection(it) },
                 onLongClick = { viewModel.toggleSelection(it) },
+                autoplayEnabled = feedVideoAutoplay,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -987,6 +1000,7 @@ fun FavoritesScreen(
 fun GalleryScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
+    feedVideoAutoplay: Boolean,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
@@ -1160,6 +1174,7 @@ fun GalleryScreen(
                 onRetryThumbnail = { url, onComplete -> viewModel.retryThumbnail(url, onComplete) },
                 onToggleSelection = { viewModel.toggleSelection(it) },
                 onLongClick = { viewModel.toggleSelection(it) },
+                autoplayEnabled = feedVideoAutoplay,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )

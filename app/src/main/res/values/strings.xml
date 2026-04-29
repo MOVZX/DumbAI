@@ -33,6 +33,7 @@
     <string name="label_hide_player_controls">Hide Player Controls</string>
     <string name="label_always_enable_hd">Always Enable HD Mode</string>
     <string name="label_always_mute_video">Always Mute Video</string>
+    <string name="label_feed_video_autoplay">Feed Video Autoplay</string>
 
     <!-- Selection Mode -->
     <string name="label_selected_count">%1$d Selected</string>

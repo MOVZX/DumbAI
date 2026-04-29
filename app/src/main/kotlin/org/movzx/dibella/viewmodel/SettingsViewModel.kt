@@ -77,6 +77,12 @@ constructor(
                 _uiState.update { it.copy(alwaysMuteVideo = alwaysMuteVideo) }
             }
         }
+
+        viewModelScope.launch {
+            repository.feedVideoAutoplay.collect { feedVideoAutoplay ->
+                _uiState.update { it.copy(feedVideoAutoplay = feedVideoAutoplay) }
+            }
+        }
     }
 
     override fun downloadImage(image: org.movzx.dibella.model.CivitaiImage) {}
@@ -110,6 +116,10 @@ constructor(
 
     fun updateAlwaysMuteVideo(enabled: Boolean) {
         viewModelScope.launch { repository.updateAlwaysMuteVideo(enabled) }
+    }
+
+    fun updateFeedVideoAutoplay(enabled: Boolean) {
+        viewModelScope.launch { repository.updateFeedVideoAutoplay(enabled) }
     }
 
     fun clearImageCache() {

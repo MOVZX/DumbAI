@@ -25,6 +25,7 @@ fun SettingsSidebar(
     hidePlayerControls: Boolean,
     alwaysEnableHD: Boolean,
     alwaysMuteVideo: Boolean,
+    feedVideoAutoplay: Boolean,
     onDismiss: () -> Unit,
     onClearCache: () -> Unit,
     onSaveApiKey: (String) -> Unit,
@@ -36,6 +37,7 @@ fun SettingsSidebar(
     onHidePlayerControls: (Boolean) -> Unit,
     onAlwaysEnableHD: (Boolean) -> Unit,
     onAlwaysMuteVideo: (Boolean) -> Unit,
+    onFeedVideoAutoplay: (Boolean) -> Unit,
 ) {
     var key by remember(apiKey) { mutableStateOf(apiKey) }
     var path by remember(downloadPath) { mutableStateOf(downloadPath ?: "") }
@@ -81,6 +83,19 @@ fun SettingsSidebar(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Switch(checked = alwaysMuteVideo, onCheckedChange = onAlwaysMuteVideo)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.label_feed_video_autoplay),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+
+                    Switch(checked = feedVideoAutoplay, onCheckedChange = onFeedVideoAutoplay)
                 }
             }
 

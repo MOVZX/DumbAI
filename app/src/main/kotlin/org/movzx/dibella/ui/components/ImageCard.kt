@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
@@ -52,6 +53,7 @@ fun ImageCard(
     onRetryThumbnail: (String, () -> Unit) -> Unit = { _, _ -> },
     onToggleSelection: () -> Unit = {},
     onLongClick: () -> Unit = {},
+    autoplayEnabled: Boolean = false,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -68,6 +70,20 @@ fun ImageCard(
     val imageData =
         remember(image.url, favoriteInfo, retryCount) {
             org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
+        }
+
+    var isVisibleInViewport by remember { mutableStateOf(false) }
+
+    val videoData =
+        remember(image.url, favoriteInfo, autoplayEnabled) {
+            if (autoplayEnabled && image.type == "video") {
+                org.movzx.dibella.util.resolveImageData(
+                    context,
+                    image,
+                    favoriteInfo,
+                    useVideoPath = true,
+                )
+            } else null
         }
 
     var hasEnsuredResources by remember(image.id) { mutableStateOf(false) }
@@ -171,6 +187,45 @@ fun ImageCard(
         modifier =
             Modifier.fillMaxWidth()
                 .aspectRatio(aspectRatio)
+                .onGloballyPositioned { coordinates: androidx.compose.ui.layout.LayoutCoordinates ->
+                    val windowBounds =
+                        android.graphics.Rect().apply {
+                            (context as? android.app.Activity)
+                                ?.window
+                                ?.decorView
+                                ?.getGlobalVisibleRect(this)
+                        }
+
+                    if (windowBounds.width() > 0 && windowBounds.height() > 0) {
+                        val cardBounds = android.graphics.Rect()
+                        val view = (context as? android.app.Activity)?.window?.decorView
+
+                        val isVisible = coordinates.isAttached
+
+                        if (isVisible) {
+                            val position =
+                                coordinates.localToWindow(androidx.compose.ui.geometry.Offset.Zero)
+
+                            val size = coordinates.size
+
+                            val cardRect =
+                                android.graphics.Rect(
+                                    position.x.toInt(),
+                                    position.y.toInt(),
+                                    (position.x + size.width).toInt(),
+                                    (position.y + size.height).toInt(),
+                                )
+
+                            val intersect = android.graphics.Rect()
+                            val isIntersecting = intersect.setIntersect(cardRect, windowBounds)
+
+                            isVisibleInViewport =
+                                isIntersecting && intersect.height() >= size.height * 0.5f
+                        } else {
+                            isVisibleInViewport = false
+                        }
+                    }
+                }
                 .combinedClickable(
                     onClick = { if (isSelectionMode) onToggleSelection() else onClick(image) },
                     onLongClick = onLongClick,
@@ -211,6 +266,16 @@ fun ImageCard(
                         isLoading = state is coil3.compose.AsyncImagePainter.State.Loading
                         isError = state is coil3.compose.AsyncImagePainter.State.Error
                     },
+                )
+            }
+
+            if (videoData != null && isVisibleInViewport) {
+                VideoPlayer(
+                    url = videoData,
+                    isPlaying = true,
+                    isMuted = true,
+                    scaleMode = ScaleMode.CROP,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
 

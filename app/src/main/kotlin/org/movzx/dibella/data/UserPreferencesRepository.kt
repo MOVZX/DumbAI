@@ -40,6 +40,7 @@ class UserPreferencesRepository(private val context: Context) {
         val HIDE_PLAYER_CONTROLS = booleanPreferencesKey("hide_player_controls")
         val ALWAYS_ENABLE_HD = booleanPreferencesKey("always_enable_hd")
         val ALWAYS_MUTE_VIDEO = booleanPreferencesKey("always_mute_video")
+        val FEED_VIDEO_AUTOPLAY = booleanPreferencesKey("feed_video_autoplay")
     }
 
     val nsfw: Flow<String> =
@@ -154,6 +155,11 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.ALWAYS_MUTE_VIDEO] ?: false
         }
 
+    val feedVideoAutoplay: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.FEED_VIDEO_AUTOPLAY] ?: false
+        }
+
     suspend fun getCurrentSettings(): AppSettingsBackup {
         val prefs = context.dataStore.data.first()
 
@@ -169,6 +175,7 @@ class UserPreferencesRepository(private val context: Context) {
             hidePlayerControls = prefs[PreferencesKeys.HIDE_PLAYER_CONTROLS] ?: false,
             alwaysEnableHD = prefs[PreferencesKeys.ALWAYS_ENABLE_HD] ?: false,
             alwaysMuteVideo = prefs[PreferencesKeys.ALWAYS_MUTE_VIDEO] ?: false,
+            feedVideoAutoplay = prefs[PreferencesKeys.FEED_VIDEO_AUTOPLAY] ?: false,
         )
     }
 
@@ -190,6 +197,7 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.HIDE_PLAYER_CONTROLS] = settings.hidePlayerControls
             preferences[PreferencesKeys.ALWAYS_ENABLE_HD] = settings.alwaysEnableHD
             preferences[PreferencesKeys.ALWAYS_MUTE_VIDEO] = settings.alwaysMuteVideo
+            preferences[PreferencesKeys.FEED_VIDEO_AUTOPLAY] = settings.feedVideoAutoplay
         }
     }
 
@@ -327,6 +335,14 @@ class UserPreferencesRepository(private val context: Context) {
 
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.ALWAYS_MUTE_VIDEO] = enabled
+        }
+    }
+
+    suspend fun updateFeedVideoAutoplay(enabled: Boolean) {
+        Logger.d("Dibella_Prefs", "updateFeedVideoAutoplay: $enabled")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FEED_VIDEO_AUTOPLAY] = enabled
         }
     }
 

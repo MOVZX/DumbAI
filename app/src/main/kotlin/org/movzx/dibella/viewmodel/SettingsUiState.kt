@@ -9,4 +9,5 @@ data class SettingsUiState(
     val hidePlayerControls: Boolean = false,
     val alwaysEnableHD: Boolean = false,
     val alwaysMuteVideo: Boolean = false,
+    val feedVideoAutoplay: Boolean = false,
 )

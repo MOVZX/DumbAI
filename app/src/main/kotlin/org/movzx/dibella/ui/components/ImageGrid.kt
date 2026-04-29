@@ -41,6 +41,7 @@ fun ImageGrid(
     onRetryThumbnail: (String, () -> Unit) -> Unit = { _, _ -> },
     onToggleSelection: (Long) -> Unit = {},
     onLongClick: (Long) -> Unit = {},
+    autoplayEnabled: Boolean = false,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -71,6 +72,7 @@ fun ImageGrid(
                 onRetryThumbnail = onRetryThumbnail,
                 onToggleSelection = { onToggleSelection(image.id) },
                 onLongClick = { onLongClick(image.id) },
+                autoplayEnabled = autoplayEnabled,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )
