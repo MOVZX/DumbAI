@@ -63,20 +63,11 @@ constructor(
         withContext(videoMetadataDispatcher) {
             val rootDir = getDownloadDir(path)
 
-            if (!rootDir.exists()) {
-                Logger.w("Dibella_IO", "Scan Aborted: Directory does not exist | Path: $path")
-
-                return@withContext emptyList()
-            }
+            if (!rootDir.exists()) return@withContext emptyList()
 
             val files = rootDir.listFiles() ?: emptyArray()
             val list = mutableListOf<CivitaiImage>()
             val ids = mutableSetOf<Long>()
-
-            Logger.d(
-                "Dibella_IO",
-                "Scanning Directory: ${rootDir.absolutePath} (${files.size} files)",
-            )
 
             for (file in files) {
                 if (file.isFile) {
@@ -146,11 +137,6 @@ constructor(
                                     w = vidW
                                     h = vidH
                                 }
-
-                                Logger.v(
-                                    "Dibella_Codec",
-                                    "[$id] Video Meta: ${w}x${h} (Rot: $rotation) in ${System.currentTimeMillis() - metaStart}ms",
-                                )
                             } catch (e: Exception) {
                                 Logger.e("Dibella_Codec", "Error reading video meta: ${e.message}")
                             } finally {
@@ -174,8 +160,6 @@ constructor(
             }
 
             _downloadedIds.value = ids
-
-            Logger.d("Dibella_Res", "Scan Complete: ${list.size} items indexed")
 
             list.sortedByDescending { File(it.url).lastModified() }
         }
