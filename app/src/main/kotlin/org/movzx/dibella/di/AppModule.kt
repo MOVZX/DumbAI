@@ -18,7 +18,6 @@ import org.movzx.dibella.data.AppDatabase
 import org.movzx.dibella.data.FavoriteImageDao
 import org.movzx.dibella.data.FavoritesRepository
 import org.movzx.dibella.data.UserPreferencesRepository
-import org.movzx.dibella.util.Logger
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
@@ -34,8 +33,6 @@ object AppModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(interceptor: org.movzx.dibella.api.CivitaiInterceptor): OkHttpClient {
-        Logger.d("Dibella_Net", "Initializing OkHttpClient (Timeouts: 10s/10s/10s)")
-
         return OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
@@ -67,8 +64,6 @@ object AppModule {
         @ApplicationContext context: Context,
         okHttpClient: OkHttpClient,
     ): coil3.ImageLoader {
-        Logger.d("Dibella_Cache", "Initializing ImageLoader (Coil) with 10GB Disk Cache")
-
         return coil3.ImageLoader.Builder(context)
             .components {
                 add(coil3.network.okhttp.OkHttpNetworkFetcherFactory(okHttpClient))
@@ -93,8 +88,6 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-        Logger.d("Dibella_DB", "Initializing AppDatabase")
-
         return AppDatabase.getDatabase(context)
     }
 

@@ -32,12 +32,7 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
 
         val request = requestBuilder.build()
 
-        if (debugEnabled) {
-            Logger.d("Dibella_Net", "Request: ${request.method} ${request.url}")
-            request.headers.forEach { (name, value) ->
-                if (name != "Authorization") Logger.d("Dibella_Net", "Header: $name: $value")
-            }
-        }
+        if (debugEnabled) Logger.d("Dibella_Net", "Request: ${request.method} ${request.url}")
 
         val response = chain.proceed(request)
 

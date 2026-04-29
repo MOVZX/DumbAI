@@ -32,8 +32,6 @@ class FavoritesRepository(
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun updateOkHttpClient(newClient: OkHttpClient) {
-        Logger.d("Dibella_Net", "Updating OkHttpClient instance")
-
         okHttpClient = newClient
     }
 

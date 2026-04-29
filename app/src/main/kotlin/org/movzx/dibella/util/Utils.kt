@@ -261,25 +261,6 @@ fun getOriginalUrl(url: String): String {
     }
 }
 
-fun getRequiredStoragePermissions(): List<String> {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
-    } else {
-        listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-    }
-}
-
-fun hasStoragePermissions(context: Context): Boolean {
-    val granted =
-        getRequiredStoragePermissions().all {
-            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-        }
-
-    if (!granted) Logger.w("Dibella_IO", "Storage permissions NOT granted")
-
-    return granted
-}
-
 fun formatDuration(ms: Long): String {
     val totalSeconds = ms / 1000
     val seconds = totalSeconds % 60
