@@ -54,10 +54,14 @@ fun FullScreenImage(
     onDownloadImage: (CivitaiImage) -> Unit,
     onDeleteLocalFile: (CivitaiImage) -> Unit,
     onDismiss: () -> Unit,
+    onIndexChange: (Int) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val pagerState = rememberPagerState(initialPage = initialIndex) { images.size }
+
+    LaunchedEffect(pagerState.currentPage) { onIndexChange(pagerState.currentPage) }
+
     var isZoomed by remember { mutableStateOf(false) }
     var showUI by remember { mutableStateOf(!hidePlayerControls) }
     var offsetY by remember { mutableStateOf(0f) }

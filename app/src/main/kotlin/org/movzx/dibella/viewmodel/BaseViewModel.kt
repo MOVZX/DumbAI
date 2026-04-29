@@ -3,11 +3,11 @@ package org.movzx.dibella.viewmodel
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.movzx.dibella.R
 import org.movzx.dibella.data.FavoritesRepository
 import org.movzx.dibella.data.GalleryRepository
@@ -41,6 +41,16 @@ abstract class BaseViewModel(
 
     fun toggleFavorite(image: CivitaiImage) {
         viewModelScope.launch { favoritesRepository.toggleFavorite(image) }
+    }
+
+    fun retryThumbnail(url: String, onComplete: () -> Unit) {
+        viewModelScope.launch(restrictedDispatcher) {
+            val success = favoritesRepository.manualFetch(url)
+
+            if (!success) kotlinx.coroutines.delay(500)
+
+            withContext(Dispatchers.Main) { onComplete() }
+        }
     }
 
     suspend fun ensureFavoriteResources(

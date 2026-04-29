@@ -38,6 +38,7 @@ fun ImageGrid(
     onEnsureFavoriteResourcesThrottled: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onImageClick: (CivitaiImage) -> Unit,
     onToggleFavorite: (CivitaiImage) -> Unit,
+    onRetryThumbnail: (String, () -> Unit) -> Unit = { _, _ -> },
     onToggleSelection: (Long) -> Unit = {},
     onLongClick: (Long) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
@@ -51,11 +52,7 @@ fun ImageGrid(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalItemSpacing = 8.dp,
     ) {
-        items(
-            items = images,
-            key = { "${it.id}_${favoriteIds.contains(it.id)}" },
-            contentType = { "civitai_image" },
-        ) { image ->
+        items(items = images, key = { it.id }, contentType = { "civitai_image" }) { image ->
             ImageCard(
                 image = image,
                 imageLoader = imageLoader,
@@ -71,6 +68,7 @@ fun ImageGrid(
                 onEnsureFavoriteResourcesThrottled = onEnsureFavoriteResourcesThrottled,
                 onClick = onImageClick,
                 onToggleFavorite = onToggleFavorite,
+                onRetryThumbnail = onRetryThumbnail,
                 onToggleSelection = { onToggleSelection(image.id) },
                 onLongClick = { onLongClick(image.id) },
                 sharedTransitionScope = sharedTransitionScope,

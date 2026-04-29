@@ -595,6 +595,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                             galleryViewModel.deleteLocalFile(it)
                                         },
                                         onDismiss = { selectedImageIndex = null },
+                                        onIndexChange = { selectedImageIndex = it },
                                         sharedTransitionScope = this@SharedTransitionLayout,
                                         animatedVisibilityScope = this@AnimatedContent,
                                     )
@@ -813,6 +814,9 @@ fun FeedScreen(
                         if (index != -1) onImageClick(uiState.images, index, "feed")
                     },
                     onToggleFavorite = { viewModel.toggleFavorite(it) },
+                    onRetryThumbnail = { url, onComplete ->
+                        viewModel.retryThumbnail(url, onComplete)
+                    },
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                 )
@@ -965,6 +969,7 @@ fun FavoritesScreen(
                     if (index != -1) onImageClick(images, index, "favorites")
                 },
                 onToggleFavorite = { viewModel.toggleFavorite(it) },
+                onRetryThumbnail = { url, onComplete -> viewModel.retryThumbnail(url, onComplete) },
                 onToggleSelection = { viewModel.toggleSelection(it) },
                 onLongClick = { viewModel.toggleSelection(it) },
                 sharedTransitionScope = sharedTransitionScope,
@@ -1152,6 +1157,7 @@ fun GalleryScreen(
                     if (index != -1) onImageClick(images, index, "gallery")
                 },
                 onToggleFavorite = { favViewModel.toggleFavorite(it) },
+                onRetryThumbnail = { url, onComplete -> viewModel.retryThumbnail(url, onComplete) },
                 onToggleSelection = { viewModel.toggleSelection(it) },
                 onLongClick = { viewModel.toggleSelection(it) },
                 sharedTransitionScope = sharedTransitionScope,

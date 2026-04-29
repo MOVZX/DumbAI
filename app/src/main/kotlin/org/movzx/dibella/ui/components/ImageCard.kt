@@ -26,7 +26,6 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -50,6 +49,7 @@ fun ImageCard(
     onEnsureFavoriteResourcesThrottled: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onClick: (CivitaiImage) -> Unit,
     onToggleFavorite: (CivitaiImage) -> Unit,
+    onRetryThumbnail: (String, () -> Unit) -> Unit = { _, _ -> },
     onToggleSelection: () -> Unit = {},
     onLongClick: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
@@ -62,25 +62,38 @@ fun ImageCard(
             }
             .collectAsState(initial = null)
 
-    var imageData by remember { mutableStateOf<Any?>(null) }
+    var retryCount by remember { mutableIntStateOf(0) }
+    var isRetrying by remember { mutableStateOf(false) }
 
-    LaunchedEffect(image.url, favoriteInfo) {
-        imageData =
-            kotlinx.coroutines.withContext(Dispatchers.IO) {
-                org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
-            }
-    }
+    val imageData =
+        remember(image.url, favoriteInfo, retryCount) {
+            org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
+        }
 
     var hasEnsuredResources by remember(image.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     val isThumbnailCached =
-        remember(context, image.id, image.type, favoriteInfo, downloadProgresses[image.id]) {
+        remember(
+            context,
+            image.id,
+            image.type,
+            favoriteInfo,
+            downloadProgresses[image.id],
+            retryCount,
+        ) {
             org.movzx.dibella.util.hasLocalCache(context, image.id, image.type == "video")
         }
 
     val isPreviewCached =
-        remember(context, image.id, image.type, favoriteInfo, downloadProgresses[image.id]) {
+        remember(
+            context,
+            image.id,
+            image.type,
+            favoriteInfo,
+            downloadProgresses[image.id],
+            retryCount,
+        ) {
             org.movzx.dibella.util.hasFullCache(context, image.id, image.type == "video")
         }
 
@@ -169,34 +182,36 @@ fun ImageCard(
             ),
     ) {
         var isError by remember { mutableStateOf(false) }
+        var isLoading by remember { mutableStateOf(true) }
 
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            if (imageData != null) {
-                with(sharedTransitionScope) {
-                    AsyncImage(
-                        model =
-                            ImageRequest.Builder(LocalContext.current)
-                                .data(imageData)
-                                .crossfade(true)
-                                .build(),
-                        imageLoader = imageLoader,
-                        contentDescription = null,
-                        modifier =
-                            Modifier.fillMaxSize()
-                                .sharedElement(
-                                    rememberSharedContentState(key = "image-${image.id}"),
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                ),
-                        contentScale = ContentScale.Crop,
-                        onState = { state ->
-                            isError = state is coil3.compose.AsyncImagePainter.State.Error
-                        },
-                    )
-                }
-            } else {
-                Box(modifier = Modifier.fillMaxSize().shimmerBackground())
+            with(sharedTransitionScope) {
+                AsyncImage(
+                    model =
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(imageData)
+                            .apply {
+                                if (retryCount > 0)
+                                    memoryCachePolicy(coil3.request.CachePolicy.DISABLED)
+                            }
+                            .crossfade(true)
+                            .build(),
+                    imageLoader = imageLoader,
+                    contentDescription = null,
+                    modifier =
+                        Modifier.fillMaxSize()
+                            .sharedElement(
+                                rememberSharedContentState(key = "image-${image.id}"),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            ),
+                    contentScale = ContentScale.Crop,
+                    onState = { state ->
+                        isLoading = state is coil3.compose.AsyncImagePainter.State.Loading
+                        isError = state is coil3.compose.AsyncImagePainter.State.Error
+                    },
+                )
             }
 
             if (isSelected) {
@@ -267,10 +282,22 @@ fun ImageCard(
                 }
             }
 
-            if (showFavorite) {
+            if (showFavorite && !isLoading) {
                 IconButton(
                     onClick = {
-                        if (viewMode == "favorites") {
+                        if (isRetrying) return@IconButton
+
+                        if (isError) {
+                            isRetrying = true
+
+                            onRetryThumbnail(imageData.toString()) {
+                                retryCount++
+
+                                isError = false
+                                isLoading = true
+                                isRetrying = false
+                            }
+                        } else if (viewMode == "favorites") {
                             showRedownloadDialog = true
                         } else {
                             if (isFavorite) showUnfavoriteDialog = true else onToggleFavorite(image)
@@ -283,12 +310,28 @@ fun ImageCard(
                             .background(
                                 androidx.compose.ui.res
                                     .colorResource(org.movzx.dibella.R.color.pure_white)
-                                    .copy(alpha = 0.2f),
+                                    .copy(alpha = 0.4f),
                                 androidx.compose.foundation.shape.CircleShape,
                             )
                             .clip(androidx.compose.foundation.shape.CircleShape),
                 ) {
-                    if (viewMode == "favorites") {
+                    if (isRetrying) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    } else if (isError) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Retry",
+                            tint =
+                                androidx.compose.ui.res.colorResource(
+                                    org.movzx.dibella.R.color.pure_white
+                                ),
+                            modifier = Modifier.size(16.dp),
+                        )
+                    } else if (viewMode == "favorites") {
                         val cloudColor =
                             if (isThumbnailCached && isPreviewCached) Color.Green else Color.Yellow
 

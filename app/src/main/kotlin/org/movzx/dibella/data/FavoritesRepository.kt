@@ -42,6 +42,25 @@ class FavoritesRepository(
 
     val favoriteIds: Flow<Set<Long>> = favoriteImageDao.getAllFavoriteIds().map { it.toSet() }
 
+    suspend fun manualFetch(url: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val request = okhttp3.Request.Builder().url(url).build()
+
+            try {
+                okHttpClient.newCall(request).execute().use { response ->
+                    Logger.d("Dibella_Net", "Manual fetch result for $url: ${response.code}")
+
+                    response.isSuccessful
+                }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+
+                Logger.e("Dibella_Net", "Manual fetch failed for $url: ${e.message}")
+
+                false
+            }
+        }
+
     suspend fun toggleFavorite(image: CivitaiImage) {
         val isFav = favoriteImageDao.isFavoriteDirect(image.id)
 
