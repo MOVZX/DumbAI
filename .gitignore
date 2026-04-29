@@ -31,3 +31,7 @@ capture/
 *.swo
 *.DS_Store
 .DS_Store
+
+# LLM
+
+.claude/
