@@ -243,7 +243,7 @@ private fun ExoVideoPlayer(
                                 error.errorCode ==
                                     PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED
                         ) {
-                            onSwitchToMpv()
+                            if (!usePool) onSwitchToMpv() else onPlaybackError(error.message)
                         } else {
                             onPlaybackError(error.message)
                         }
