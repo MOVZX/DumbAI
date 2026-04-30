@@ -12,6 +12,7 @@ data class AppSettingsBackup(
     val pageLimit: Int,
     val gridColumns: Int,
     val apiKey: String?,
+    val favoritesPath: String? = null,
     val hidePlayerControls: Boolean = false,
     val alwaysEnableHD: Boolean = false,
     val alwaysMuteVideo: Boolean = false,

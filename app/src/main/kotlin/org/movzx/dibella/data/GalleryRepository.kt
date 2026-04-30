@@ -11,6 +11,7 @@ import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -26,7 +27,7 @@ import org.movzx.dibella.util.Logger
 class GalleryRepository
 @Inject
 constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
     private val preferencesRepository: UserPreferencesRepository,
 ) {
@@ -191,6 +192,7 @@ constructor(
     suspend fun downloadImage(image: CivitaiImage, onProgress: (Float) -> Unit): Result<String> =
         withContext(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
+            val maxAttempts = 3
 
             try {
                 val downloadDir = getDownloadDir(preferencesRepository.downloadPath.first())
@@ -201,67 +203,105 @@ constructor(
                     Logger.d("Dibella_IO", "Creating download directory: $created")
                 }
 
-                val request = Request.Builder().url(image.url).build()
+                var result: Result<String>? = null
 
-                Logger.d("Dibella_Net", "[${image.id}] Download Start | URL: ${image.url}")
-
-                okHttpClient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        Logger.e(
-                            "Dibella_Net",
-                            "[${image.id}] Download Failed | HTTP ${response.code}",
-                        )
-
-                        return@withContext Result.failure(Exception("HTTP ${response.code}"))
-                    }
-
-                    val body =
-                        response.body ?: return@withContext Result.failure(Exception("Empty body"))
-
-                    val contentLength = body.contentLength()
-                    val source = body.source()
-
-                    val ext =
-                        FileUtils.detectExtension(
-                            contentType = response.header("Content-Type"),
-                            source = source,
-                            url = image.url,
-                        )
-
-                    val file = File(downloadDir, "Dibella_${image.id}.$ext")
+                retryLoop@ for (attempt in 1..maxAttempts) {
+                    val request = Request.Builder().url(image.url).build()
 
                     Logger.d(
                         "Dibella_Net",
-                        "[${image.id}] Detected extension: $ext | Size: ${contentLength / 1024}KB",
+                        "[${image.id}] Download attempt $attempt/$maxAttempts | URL: ${image.url}",
                     )
 
-                    FileOutputStream(file).use { output ->
-                        val buffer = ByteArray(8192)
-                        var totalBytesRead = 0L
-                        var bytesRead: Int
+                    okHttpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            Logger.e(
+                                "Dibella_Net",
+                                "[${image.id}] Download Failed | HTTP ${response.code}",
+                            )
 
-                        while (source.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
+                            if (attempt < maxAttempts) {
+                                delay(1000L * attempt)
 
-                            totalBytesRead += bytesRead
+                                continue@retryLoop
+                            }
 
-                            if (contentLength > 0)
-                                onProgress(totalBytesRead.toFloat() / contentLength)
+                            result = Result.failure(Exception("HTTP ${response.code}"))
+
+                            break
                         }
+
+                        val body = response.body
+
+                        if (body == null) {
+                            if (attempt < maxAttempts) {
+                                delay(1000L * attempt)
+
+                                continue@retryLoop
+                            }
+
+                            result = Result.failure(Exception("Empty body"))
+
+                            break
+                        }
+
+                        val contentLength = body.contentLength()
+                        val source = body.source()
+
+                        val ext =
+                            FileUtils.detectExtension(
+                                contentType = response.header("Content-Type"),
+                                source = source,
+                                url = image.url,
+                            )
+
+                        val file = File(downloadDir, "Dibella_${image.id}.$ext")
+
+                        Logger.d(
+                            "Dibella_Net",
+                            "[${image.id}] Detected extension: $ext | Size: ${contentLength / 1024}KB",
+                        )
+
+                        FileOutputStream(file).use { output ->
+                            val buffer = ByteArray(8192)
+                            var totalBytesRead = 0L
+                            var bytesRead: Int
+
+                            while (source.read(buffer).also { bytesRead = it } != -1) {
+                                output.write(buffer, 0, bytesRead)
+
+                                totalBytesRead += bytesRead
+
+                                if (contentLength > 0)
+                                    onProgress(totalBytesRead.toFloat() / contentLength)
+                            }
+                        }
+
+                        MediaScannerConnection.scanFile(
+                            context,
+                            arrayOf(file.absolutePath),
+                            null,
+                            null,
+                        )
+
+                        refreshDownloadedIds()
+
+                        Logger.d(
+                            "Dibella_IO",
+                            "[${image.id}] Download complete in ${System.currentTimeMillis() - startTime}ms | Path: ${file.name}",
+                        )
+
+                        result = Result.success(file.absolutePath)
                     }
 
-                    MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null, null)
-                    refreshDownloadedIds()
-
-                    Logger.d(
-                        "Dibella_IO",
-                        "[${image.id}] Download complete in ${System.currentTimeMillis() - startTime}ms | Path: ${file.name}",
-                    )
-
-                    Result.success(file.absolutePath)
+                    break
                 }
+
+                result ?: Result.failure(Exception("Download failed after $maxAttempts attempts"))
             } catch (e: Exception) {
                 Logger.e("Dibella_Net", "[${image.id}] Download Exception: ${e.message}")
+
+                if (e is kotlinx.coroutines.CancellationException) throw e
 
                 Result.failure(e)
             }
@@ -282,7 +322,7 @@ constructor(
 
             Logger.d("Dibella_IO", "Checking duplicates in ${rootDir.name} (${files.size} files)")
 
-            val duplicateFiles = internalCalculateDuplicates(files)
+            val duplicateFiles = FileUtils.findDuplicateGroups(files)
 
             duplicateFiles.map { group ->
                 group.map { file ->
@@ -338,32 +378,6 @@ constructor(
 
             removedCount
         }
-
-    private fun internalCalculateDuplicates(files: List<File>): List<List<File>> {
-        val sizeGroups = files.groupBy { it.length() }.filter { it.value.size > 1 }
-        val duplicates = mutableListOf<List<File>>()
-
-        sizeGroups.forEach { (_, group) ->
-            val validHashes = group.mapNotNull { file ->
-                val hash = FileUtils.calculateHash(file)
-
-                if (hash != null) file to hash else null
-            }
-
-            val hashGroups = validHashes.groupBy { it.second }.filter { it.value.size > 1 }
-
-            hashGroups.forEach { entry ->
-                Logger.d(
-                    "Dibella_IO",
-                    "Found hash match: ${entry.value.size} files | Hash: ${entry.key.take(8)}...",
-                )
-
-                duplicates.add(entry.value.map { it.first })
-            }
-        }
-
-        return duplicates
-    }
 
     private fun getDownloadDir(path: String?): File {
         return path?.let { File(it) }

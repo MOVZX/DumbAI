@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -22,7 +21,8 @@ fun SkeletonGrid(columnCount: Int) {
         userScrollEnabled = false,
     ) {
         items(20) { index ->
-            val aspectRatio = remember(index) { (8..14).random() / 10f }
+            val aspectRatios = listOf(0.8f, 1.0f, 1.2f, 1.4f, 0.75f, 1.33f, 0.67f, 1.5f)
+            val aspectRatio = aspectRatios[index % aspectRatios.size]
 
             Box(
                 modifier =

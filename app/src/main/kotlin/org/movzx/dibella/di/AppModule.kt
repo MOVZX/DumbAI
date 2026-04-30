@@ -114,8 +114,16 @@ object AppModule {
     fun provideFavoritesRepository(
         @ApplicationContext context: Context,
         favoriteImageDao: FavoriteImageDao,
+        preferencesRepository: UserPreferencesRepository,
         okHttpClient: OkHttpClient,
+        imageLoader: coil3.ImageLoader,
     ): FavoritesRepository {
-        return FavoritesRepository(context, favoriteImageDao, okHttpClient)
+        return FavoritesRepository(
+            context,
+            favoriteImageDao,
+            preferencesRepository,
+            okHttpClient,
+            imageLoader,
+        )
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 
 data class SpeedDialItem(
@@ -28,6 +29,7 @@ fun SpeedDialFab(
     items: List<SpeedDialItem>,
     modifier: Modifier = Modifier,
 ) {
+    val view = LocalView.current
     var expanded by remember { mutableStateOf(false) }
 
     val rotation by
@@ -80,6 +82,7 @@ fun SpeedDialFab(
 
                     SmallFloatingActionButton(
                         onClick = {
+                            view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
                             expanded = false
                             item.onClick()
                         },
@@ -100,7 +103,10 @@ fun SpeedDialFab(
         }
 
         SmallFloatingActionButton(
-            onClick = { expanded = !expanded },
+            onClick = {
+                view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+                expanded = !expanded
+            },
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.rotate(rotation).size(44.dp),

@@ -7,7 +7,7 @@ import org.movzx.dibella.util.getOriginalUrl
 import org.movzx.dibella.util.getThumbnailUrl
 
 class CivitaiThumbnailInterceptor : Interceptor {
-    private val fallbackWidths = listOf(800, 1000, 1500)
+    private val fallbackWidths = listOf(600, 800, 1200)
     private val videoThumbnailTimeout = 8_000L
     private val imageThumbnailTimeout = 10_000L
     private val maxRetries = 3
@@ -43,31 +43,51 @@ class CivitaiThumbnailInterceptor : Interceptor {
 
         if (!url.contains("image.civitai.com")) return response
 
-        if (response.isSuccessful && isRealImage(response)) {
-            val isVideoUrl =
-                url.contains("transcode=true") ||
-                    url.contains("anim=false") ||
-                    url.contains("/original=true/")
+        val isThumbnailUrl = url.contains("anim=false")
+        val isPreviewUrl = url.contains("transcode=true") && !url.contains("anim=false")
+        val isOriginalUrl = url.contains("/original=true/")
 
-            if (isVideoUrl && !isRealVideo(response)) {
-                Logger.d("Dibella_Net", "Video URL returned image, retrying with preview URL: $url")
+        if (isThumbnailUrl && response.isSuccessful) {
+            if (!isRealImage(response)) {
+                Logger.d(
+                    "Dibella_Net",
+                    "Thumbnail URL returned non-image, closing and falling back",
+                )
 
-                val previewUrl = url.replace("anim=false,", "").replace(",anim=false", "")
-
-                if (previewUrl != url) {
-                    response.close()
-
-                    val retryResponse = chain.proceed(request.newBuilder().url(previewUrl).build())
-
-                    if (retryResponse.isSuccessful && isRealImage(retryResponse))
-                        return cacheable(retryResponse)
-
-                    retryResponse.close()
-                }
+                response.close()
             }
 
             return cacheable(response)
         }
+
+        if ((isPreviewUrl || isOriginalUrl) && response.isSuccessful) {
+            if (isRealVideo(response)) return cacheable(response)
+
+            if (isRealImage(response)) {
+                Logger.d(
+                    "Dibella_Net",
+                    "Preview URL returned image, retrying with video preview: $url",
+                )
+
+                val videoPreviewUrl = url.replace("anim=false,", "").replace(",anim=false", "")
+
+                if (videoPreviewUrl != url) {
+                    response.close()
+
+                    val retryResponse =
+                        chain.proceed(request.newBuilder().url(videoPreviewUrl).build())
+
+                    if (retryResponse.isSuccessful && isRealVideo(retryResponse))
+                        return cacheable(retryResponse)
+
+                    retryResponse.close()
+                }
+            } else {
+                response.close()
+            }
+        }
+
+        if (response.isSuccessful && isRealImage(response)) return cacheable(response)
 
         val isVideoThumbnail = url.contains("/original=false/")
         val isVideo = url.contains("anim=false") || url.contains("transcode=true")
@@ -262,17 +282,30 @@ class CivitaiThumbnailInterceptor : Interceptor {
 
         if (body.contentLength() == 0L) return false
 
+        val contentType = body.contentType()?.toString() ?: ""
+
+        if (contentType.contains("image/")) return true
+
+        if (
+            contentType.contains("video/") ||
+                contentType.contains("webm") ||
+                contentType.contains("mp4")
+        )
+            return true
+
         return try {
             val source = body.source()
 
-            if (!source.request(32)) return false
+            if (!source.request(16)) return false
 
             val peek = source.peek()
-            val bytes = peek.readByteArray(32)
+            val bytes = peek.readByteArray(16)
 
             if (bytes.isNotEmpty() && bytes[0] == '{'.code.toByte()) return false
 
-            org.movzx.dibella.util.FileUtils.getExtensionFromBytes(bytes) != null
+            val ext = org.movzx.dibella.util.FileUtils.getExtensionFromBytes(bytes)
+
+            ext != null
         } catch (e: Exception) {
             Logger.e("Dibella_Net", "Error verifying image: ${e.message}")
 
@@ -287,13 +320,15 @@ class CivitaiThumbnailInterceptor : Interceptor {
 
         val contentType = body.contentType()?.toString() ?: ""
 
-        // Fast path: Content-Type clearly says image — no I/O needed
         if (contentType.contains("image/")) return false
 
-        // Fast path: Content-Type clearly says video
-        if (contentType.contains("video/")) return true
+        if (
+            contentType.contains("video/") ||
+                contentType.contains("webm") ||
+                contentType.contains("mp4")
+        )
+            return true
 
-        // Slow path: peek 32 bytes from in-memory buffer (microseconds, zero network I/O)
         return try {
             val source = body.source()
 

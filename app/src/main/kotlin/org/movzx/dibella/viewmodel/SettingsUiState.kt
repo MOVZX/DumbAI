@@ -5,6 +5,8 @@ data class SettingsUiState(
     val cacheSize: String = "0 MB",
     val apiKey: String = "",
     val downloadPath: String? = null,
+    val favoritesPath: String? = null,
+    val effectiveFavoritesPath: String = "",
     val debugEnabled: Boolean = false,
     val hidePlayerControls: Boolean = false,
     val alwaysEnableHD: Boolean = false,

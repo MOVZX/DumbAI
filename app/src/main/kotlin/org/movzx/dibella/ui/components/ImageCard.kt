@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,6 +44,7 @@ fun ImageCard(
     downloadProgresses: Map<Long, Float>,
     showFavorite: Boolean,
     viewMode: String,
+    favoritesPath: String? = null,
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
@@ -60,6 +62,7 @@ fun ImageCard(
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
     val favoriteInfo by
         remember(image.id, isFavorite) {
                 if (isFavorite) onGetFavoriteFlow(image.id) else flowOf(null)
@@ -68,10 +71,31 @@ fun ImageCard(
 
     var retryCount by remember { mutableIntStateOf(0) }
     var isRetrying by remember { mutableStateOf(false) }
+    val favDir = remember(favoritesPath) { favoritesPath?.let { java.io.File(it) } }
 
     val imageData =
-        remember(image.url, favoriteInfo, retryCount) {
-            org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
+        remember(image.url, favoriteInfo, retryCount, favDir) {
+            org.movzx.dibella.util.resolveImageData(
+                context,
+                image,
+                favoriteInfo,
+                favoritesDir = favDir,
+            )
+        }
+
+    val imageRequest =
+        remember(imageData) {
+            val isLocal = imageData.startsWith("/") || imageData.startsWith("file://")
+
+            ImageRequest.Builder(context)
+                .data(imageData)
+                .crossfade(true)
+                .apply {
+                    if (isLocal) {
+                        diskCachePolicy(coil3.request.CachePolicy.DISABLED)
+                    }
+                }
+                .build()
         }
 
     var isAutoplayDebounced by remember { mutableStateOf(false) }
@@ -88,13 +112,14 @@ fun ImageCard(
     }
 
     val videoData =
-        remember(image.url, favoriteInfo, autoplayEnabled) {
+        remember(image.url, favoriteInfo, autoplayEnabled, favDir) {
             if (autoplayEnabled && image.type == "video") {
                 org.movzx.dibella.util.resolveImageData(
                     context,
                     image,
                     favoriteInfo,
                     useVideoPath = true,
+                    favoritesDir = favDir,
                 )
             } else null
         }
@@ -107,11 +132,17 @@ fun ImageCard(
             context,
             image.id,
             image.type,
-            favoriteInfo,
+            favoriteInfo?.isSynced, // Observe the sync flag
             downloadProgresses[image.id],
             retryCount,
+            favDir,
         ) {
-            org.movzx.dibella.util.hasLocalCache(context, image.id, image.type == "video")
+            org.movzx.dibella.util.hasLocalCache(
+                context,
+                image.id,
+                image.type == "video",
+                favoritesDir = favDir,
+            )
         }
 
     val isPreviewCached =
@@ -119,11 +150,17 @@ fun ImageCard(
             context,
             image.id,
             image.type,
-            favoriteInfo,
+            favoriteInfo?.isSynced, // Observe the sync flag
             downloadProgresses[image.id],
             retryCount,
+            favDir,
         ) {
-            org.movzx.dibella.util.hasFullCache(context, image.id, image.type == "video")
+            org.movzx.dibella.util.hasFullCache(
+                context,
+                image.id,
+                image.type == "video",
+                favoritesDir = favDir,
+            )
         }
 
     LaunchedEffect(image.id, isFavorite) {
@@ -201,8 +238,15 @@ fun ImageCard(
             Modifier.fillMaxWidth()
                 .aspectRatio(aspectRatio)
                 .combinedClickable(
-                    onClick = { if (isSelectionMode) onToggleSelection() else onClick(image) },
-                    onLongClick = onLongClick,
+                    onClick = {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+
+                        if (isSelectionMode) onToggleSelection() else onClick(image)
+                    },
+                    onLongClick = {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                        onLongClick()
+                    },
                 ),
         shape = MaterialTheme.shapes.large,
         colors =
@@ -218,15 +262,7 @@ fun ImageCard(
         ) {
             with(sharedTransitionScope) {
                 AsyncImage(
-                    model =
-                        ImageRequest.Builder(LocalContext.current)
-                            .data(imageData)
-                            .apply {
-                                if (retryCount > 0)
-                                    memoryCachePolicy(coil3.request.CachePolicy.DISABLED)
-                            }
-                            .crossfade(true)
-                            .build(),
+                    model = imageRequest,
                     imageLoader = imageLoader,
                     contentDescription = null,
                     modifier =
@@ -342,7 +378,19 @@ fun ImageCard(
                         } else if (viewMode == "favorites") {
                             showRedownloadDialog = true
                         } else {
-                            if (isFavorite) showUnfavoriteDialog = true else onToggleFavorite(image)
+                            if (isFavorite) {
+                                view.performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.LONG_PRESS
+                                )
+
+                                showUnfavoriteDialog = true
+                            } else {
+                                view.performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.VIRTUAL_KEY
+                                )
+
+                                onToggleFavorite(image)
+                            }
                         }
                     },
                     modifier =

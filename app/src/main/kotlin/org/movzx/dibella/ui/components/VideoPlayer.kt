@@ -203,7 +203,11 @@ private fun ExoVideoPlayer(
             val player = manager?.acquirePlayer()
 
             if (player != null) {
-                player.setMediaItem(MediaItem.fromUri(url))
+                val uri =
+                    if (url.startsWith("/")) android.net.Uri.fromFile(java.io.File(url))
+                    else android.net.Uri.parse(url)
+
+                player.setMediaItem(MediaItem.fromUri(uri))
                 player.prepare()
 
                 pooledPlayer = player
@@ -262,7 +266,11 @@ private fun ExoVideoPlayer(
                 isReady = false
                 val currentPos = dedicatedPlayer.currentPosition
 
-                dedicatedPlayer.setMediaItem(MediaItem.fromUri(url))
+                val uri =
+                    if (url.startsWith("/")) android.net.Uri.fromFile(java.io.File(url))
+                    else android.net.Uri.parse(url)
+
+                dedicatedPlayer.setMediaItem(MediaItem.fromUri(uri))
 
                 if (currentPos > 0) dedicatedPlayer.seekTo(currentPos)
 
@@ -290,35 +298,27 @@ private fun ExoVideoPlayer(
                 var lastRenderedCount = 0L
                 var lastTime = System.currentTimeMillis()
 
-                while (isActive) {
+                while (isActive && isPlaying) {
                     if (exoPlayer.duration > 0)
                         onProgressUpdate(exoPlayer.currentPosition, exoPlayer.duration)
 
-                    if (isPlaying) {
-                        val currentRenderedCount =
-                            exoPlayer.videoDecoderCounters?.renderedOutputBufferCount?.toLong()
-                                ?: 0L
+                    val currentRenderedCount =
+                        exoPlayer.videoDecoderCounters?.renderedOutputBufferCount?.toLong() ?: 0L
 
-                        val currentTime = System.currentTimeMillis()
-                        val elapsed = currentTime - lastTime
+                    val currentTime = System.currentTimeMillis()
+                    val elapsed = currentTime - lastTime
 
-                        if (elapsed >= 1000) {
-                            val fps =
-                                ((currentRenderedCount - lastRenderedCount) * 1000f / elapsed)
-                                    .toInt()
+                    if (elapsed >= 1000) {
+                        val fps =
+                            ((currentRenderedCount - lastRenderedCount) * 1000f / elapsed).toInt()
 
-                            onFpsUpdate(fps)
+                        onFpsUpdate(fps)
 
-                            lastRenderedCount = currentRenderedCount
-                            lastTime = currentTime
-                        }
-                    } else {
-                        exoPlayer.stop()
-
-                        break
+                        lastRenderedCount = currentRenderedCount
+                        lastTime = currentTime
                     }
 
-                    delay(if (isPlaying) 33 else 500)
+                    delay(33)
                 }
             }
         }

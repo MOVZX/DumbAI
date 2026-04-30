@@ -49,6 +49,7 @@ constructor(
                     repository.pageLimit,
                     repository.gridColumns,
                     favoritesRepository.favoriteIds,
+                    repository.effectiveFavoritesPath,
                 ) { values ->
                     values
                 }
@@ -61,7 +62,7 @@ constructor(
                     val pageLimit = values[5] as Int
                     val gridColumns = values[6] as Int
                     val favoriteIds = values[7] as Set<Long>
-
+                    @Suppress("UNCHECKED_CAST") val favoritesPath = values[8] as String
                     val nsfwChanged = nsfw != _uiState.value.nsfw
                     val sortChanged = sort != _uiState.value.sort
                     val periodChanged = period != _uiState.value.period
@@ -78,6 +79,7 @@ constructor(
                             pageLimit = pageLimit,
                             gridColumns = gridColumns,
                             favoriteIds = favoriteIds,
+                            favoritesPath = favoritesPath,
                             isRestored =
                                 if (
                                     !isFirstSettingsLoad &&

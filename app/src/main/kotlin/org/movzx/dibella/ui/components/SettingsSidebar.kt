@@ -21,6 +21,7 @@ fun SettingsSidebar(
     cacheSize: String,
     apiKey: String,
     downloadPath: String?,
+    favoritesPath: String?,
     debugEnabled: Boolean,
     hidePlayerControls: Boolean,
     alwaysEnableHD: Boolean,
@@ -30,7 +31,9 @@ fun SettingsSidebar(
     onClearCache: () -> Unit,
     onSaveApiKey: (String) -> Unit,
     onUpdateDownloadPath: (String?) -> Unit,
+    onUpdateFavoritesPath: (String?) -> Unit,
     onPickDirectory: () -> Unit,
+    onPickFavoritesDirectory: () -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
     onToggleDebug: (Boolean) -> Unit,
@@ -41,6 +44,7 @@ fun SettingsSidebar(
 ) {
     var key by remember(apiKey) { mutableStateOf(apiKey) }
     var path by remember(downloadPath) { mutableStateOf(downloadPath ?: "") }
+    var favPath by remember(favoritesPath) { mutableStateOf(favoritesPath ?: "") }
     val scrollState = rememberScrollState()
     var showAutoplayDialog by remember { mutableStateOf(false) }
 
@@ -175,6 +179,52 @@ fun SettingsSidebar(
                         onClick = {
                             path = ""
                             onUpdateDownloadPath(null)
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Text(stringResource(R.string.btn_reset))
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = favPath,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(stringResource(R.string.label_favorite_location)) },
+                    placeholder = { Text(stringResource(R.string.placeholder_default_favorite)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    trailingIcon = {
+                        IconButton(onClick = onPickFavoritesDirectory) {
+                            Icon(
+                                Icons.Default.FolderOpen,
+                                contentDescription = stringResource(R.string.btn_choose),
+                            )
+                        }
+                    },
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(
+                        onClick = onPickFavoritesDirectory,
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Icon(Icons.Default.Folder, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.btn_choose))
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            favPath = ""
+                            onUpdateFavoritesPath(null)
                         },
                         modifier = Modifier.weight(1f),
                         shape = MaterialTheme.shapes.medium,

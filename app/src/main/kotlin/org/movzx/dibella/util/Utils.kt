@@ -1,6 +1,7 @@
 package org.movzx.dibella.util
 
 import android.content.Context
+import android.os.Environment
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
@@ -14,19 +15,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
 import java.io.File
-import org.movzx.dibella.data.UserPreferencesRepository
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FavoriteImage
-
-@EntryPoint
-@InstallIn(SingletonComponent::class)
-interface UtilsEntryPoint {
-    fun userPreferencesRepository(): UserPreferencesRepository
-}
 
 fun Modifier.scrollbar(state: ScrollState, width: Dp = 4.dp, color: Color? = null): Modifier =
     composed {
@@ -57,45 +48,64 @@ fun Modifier.scrollbar(state: ScrollState, width: Dp = 4.dp, color: Color? = nul
         }
     }
 
-fun hasLocalCache(context: Context, imageId: Long, isVideo: Boolean): Boolean {
-    val favoritesDir = File(context.filesDir, "favorites")
+private fun getEffectiveFavoritesDir(favoritesDir: File?): File {
+    return favoritesDir
+        ?: File(
+            File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                "Dibella",
+            ),
+            ".favorite",
+        )
+}
 
-    if (!favoritesDir.exists()) return false
+fun hasLocalCache(
+    context: Context,
+    imageId: Long,
+    isVideo: Boolean,
+    favoritesDir: File? = null,
+): Boolean {
+    val dir = getEffectiveFavoritesDir(favoritesDir)
 
-    val extensions = listOf("jpg", "png", "webp", "gif", "avif")
+    if (!dir.exists()) return false
 
-    val found = extensions.any { ext ->
-        val file = File(favoritesDir, "$imageId.$ext")
+    val mediaSub = if (isVideo) "video" else "image"
+    val baseName = if (isVideo) "${imageId}_thumb" else "$imageId"
 
-        file.exists() && file.length() > 100
-    }
+    val found =
+        FileUtils.IMAGE_EXTENSIONS.any { ext ->
+            val thumbFile = File(File(File(dir, mediaSub), "thumbnails"), "$baseName.$ext")
+
+            thumbFile.exists() && thumbFile.length() > 100
+        }
 
     if (found) Logger.v("Dibella_IO", "[$imageId] Local thumbnail cache found")
 
     return found
 }
 
-fun hasFullCache(context: Context, imageId: Long, isVideo: Boolean): Boolean {
-    val favoritesDir = File(context.filesDir, "favorites")
+fun hasFullCache(
+    context: Context,
+    imageId: Long,
+    isVideo: Boolean,
+    favoritesDir: File? = null,
+): Boolean {
+    val dir = getEffectiveFavoritesDir(favoritesDir)
 
-    if (!favoritesDir.exists()) return false
+    if (!dir.exists()) return false
 
     val found =
         if (isVideo) {
-            val extensions = listOf("mp4", "webm", "mkv")
+            FileUtils.VIDEO_EXTENSIONS.any { ext ->
+                val previewFile = File(File(File(dir, "video"), "previews"), "$imageId.$ext")
 
-            extensions.any { ext ->
-                val file = File(favoritesDir, "$imageId.$ext")
-
-                file.exists() && file.length() > 100
+                previewFile.exists() && previewFile.length() > 100
             }
         } else {
-            val extensions = listOf("jpg", "png", "webp", "gif", "avif")
+            FileUtils.IMAGE_EXTENSIONS.any { ext ->
+                val fullFile = File(File(File(dir, "image"), "previews"), "${imageId}_full.$ext")
 
-            extensions.any { ext ->
-                val file = File(favoritesDir, "${imageId}_full.$ext")
-
-                file.exists() && file.length() > 100
+                fullFile.exists() && fullFile.length() > 100
             }
         }
 
@@ -110,85 +120,43 @@ fun resolveImageData(
     favoriteInfo: FavoriteImage?,
     thumbnailWidth: Int = 320,
     useVideoPath: Boolean = false,
+    favoritesDir: File? = null,
 ): String {
-    val favoritesDir = File(context.filesDir, "favorites")
-
-    val primaryLocalPath =
-        if (useVideoPath && image.type == "video") {
-            favoriteInfo?.localVideoPath ?: File(favoritesDir, "${image.id}.mp4").absolutePath
-        } else if (thumbnailWidth > 400) {
-            favoriteInfo?.localFullImagePath
-                ?: File(favoritesDir, "${image.id}_full.jpg").absolutePath
-        } else {
-            favoriteInfo?.localPath ?: File(favoritesDir, "${image.id}.jpg").absolutePath
-        }
-
-    val primaryFile = File(primaryLocalPath)
-
-    if (primaryFile.exists() && primaryFile.length() > 100) {
-        Logger.d("Dibella_Res", "ID: ${image.id} | Local (Primary) | Path: ${primaryFile.name}")
-
-        return primaryFile.absolutePath
-    }
-
-    val extensions =
-        if (image.type == "video") listOf("mp4", "webm", "mkv")
-        else listOf("jpg", "png", "webp", "gif", "avif")
+    val dir = getEffectiveFavoritesDir(favoritesDir)
+    val isVideo = image.type == "video"
+    val mediaSub = if (isVideo) "video" else "image"
+    val isFull = useVideoPath || thumbnailWidth > 400
+    val contentSub = if (isFull) "previews" else "thumbnails"
 
     val baseName =
-        if (thumbnailWidth > 400 && image.type != "video") "${image.id}_full" else "${image.id}"
-
-    for (ext in extensions) {
-        val file = File(favoritesDir, "$baseName.$ext")
-
-        if (file.exists() && file.length() > 100) {
-            Logger.d("Dibella_Res", "ID: ${image.id} | Local (Ext Search) | Path: ${file.name}")
-
-            return file.absolutePath
-        }
-    }
-
-    if (thumbnailWidth > 400) {
-        val fallbackPath =
-            favoriteInfo?.localPath ?: File(favoritesDir, "${image.id}.jpg").absolutePath
-
-        val fallbackFile = File(fallbackPath)
-
-        if (fallbackFile.exists() && fallbackFile.length() > 100) {
-            Logger.d(
-                "Dibella_Res",
-                "ID: ${image.id} | Local (Fallback) | Path: ${fallbackFile.name}",
-            )
-
-            return fallbackFile.absolutePath
+        when {
+            isVideo && useVideoPath -> "${image.id}"
+            isVideo && !useVideoPath -> "${image.id}_thumb"
+            !isVideo && isFull -> "${image.id}_full"
+            else -> "${image.id}"
         }
 
-        for (ext in listOf("jpg", "png", "webp", "gif", "avif")) {
-            val file = File(favoritesDir, "${image.id}.$ext")
+    val extensions =
+        if (isVideo && useVideoPath) FileUtils.VIDEO_EXTENSIONS else FileUtils.IMAGE_EXTENSIONS
 
-            if (file.exists() && file.length() > 100) {
-                Logger.d(
-                    "Dibella_Res",
-                    "ID: ${image.id} | Local (Fallback Ext) | Path: ${file.name}",
-                )
+    if (dir.exists()) {
+        for (ext in extensions) {
+            val file = File(File(File(dir, mediaSub), contentSub), "$baseName.$ext")
 
-                return file.absolutePath
-            }
+            if (file.exists() && file.length() > 100) return file.absolutePath
         }
     }
 
     if (image.url.startsWith("http")) {
         val remoteUrl =
-            if (image.type == "video") {
+            if (isVideo)
                 if (useVideoPath) getVideoPreviewUrl(image.url) else getVideoThumbnailUrl(image.url)
-            } else getThumbnailUrl(image.url, thumbnailWidth)
+            else getThumbnailUrl(image.url, thumbnailWidth)
 
         Logger.d("Dibella_Res", "ID: ${image.id} | Remote | URL: $remoteUrl")
 
         return remoteUrl
     }
-
-    Logger.e("Dibella_Res", "[${image.id}] Failed to resolve any valid path/URL, returning raw URL")
 
     return image.url
 }
@@ -269,5 +237,14 @@ fun formatDuration(ms: Long): String {
         hours > 0 -> String.format("%d:%02d:%02d:%02d", hours, minutes, seconds, centiseconds)
         minutes > 0 -> String.format("%02d:%02d:%02d", minutes, seconds, centiseconds)
         else -> String.format("%02d:%02d", seconds, centiseconds)
+    }
+}
+
+fun playerPoolSizeForColumns(columns: Int): Int {
+    return when (columns) {
+        1 -> 4
+        2 -> 10
+        3 -> 18
+        else -> 12
     }
 }

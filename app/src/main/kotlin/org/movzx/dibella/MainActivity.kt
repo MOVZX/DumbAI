@@ -19,9 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.changedToDown
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -240,7 +237,6 @@ fun MainScreen(imageLoader: ImageLoader) {
     val leftDrawerState = rememberDrawerState(DrawerValue.Closed)
     val rightDrawerState = rememberDrawerState(DrawerValue.Closed)
     var rightSidebarType by remember { mutableStateOf(RightSidebarType.FILTERS) }
-    var gestureSide by remember { mutableStateOf(LayoutDirection.Rtl) }
 
     LaunchedEffect(rightDrawerState.isClosed, currentRoute) {
         if (rightDrawerState.isClosed) {
@@ -249,15 +245,8 @@ fun MainScreen(imageLoader: ImageLoader) {
         }
     }
 
-    val leftGesturesEnabled =
-        selectedImageIndex == null &&
-            (leftDrawerState.isOpen ||
-                (gestureSide == LayoutDirection.Ltr && rightDrawerState.isClosed))
-
-    val rightGesturesEnabled =
-        selectedImageIndex == null &&
-            (rightDrawerState.isOpen ||
-                (gestureSide == LayoutDirection.Rtl && leftDrawerState.isClosed))
+    val leftGesturesEnabled = selectedImageIndex == null && leftDrawerState.isOpen
+    val rightGesturesEnabled = selectedImageIndex == null && rightDrawerState.isOpen
 
     val feedViewModel: FeedViewModel = hiltViewModel(activity)
     val favoritesViewModel: FavoritesViewModel = hiltViewModel(activity)
@@ -274,7 +263,6 @@ fun MainScreen(imageLoader: ImageLoader) {
             intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             context.startActivity(intent)
             (context as? Activity)?.finishAffinity()
-            Runtime.getRuntime().exit(0)
         }
     }
 
@@ -312,6 +300,20 @@ fun MainScreen(imageLoader: ImageLoader) {
                 val path = resolveUriToPath(context, it)
 
                 settingsViewModel.updateDownloadPath(path)
+            }
+        }
+
+    val favDirPickerLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            uri?.let {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+
+                val path = resolveUriToPath(context, it)
+
+                settingsViewModel.updateFavoritesPath(path)
             }
         }
 
@@ -430,6 +432,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     cacheSize = settingsState.cacheSize,
                                     apiKey = settingsState.apiKey,
                                     downloadPath = settingsState.downloadPath,
+                                    favoritesPath = settingsState.favoritesPath,
                                     debugEnabled = settingsState.debugEnabled,
                                     hidePlayerControls = settingsState.hidePlayerControls,
                                     alwaysEnableHD = settingsState.alwaysEnableHD,
@@ -441,7 +444,13 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     onUpdateDownloadPath = {
                                         settingsViewModel.updateDownloadPath(it)
                                     },
+                                    onUpdateFavoritesPath = {
+                                        settingsViewModel.updateFavoritesPath(it)
+                                    },
                                     onPickDirectory = { dirPickerLauncher.launch(null) },
+                                    onPickFavoritesDirectory = {
+                                        favDirPickerLauncher.launch(null)
+                                    },
                                     onExport = {
                                         exportLauncher.launch(
                                             context.getString(R.string.backup_filename)
@@ -471,30 +480,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                     },
                 ) {
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                        Box(
-                            modifier =
-                                Modifier.fillMaxSize().pointerInput(Unit) {
-                                    awaitPointerEventScope {
-                                        while (true) {
-                                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                                            val down = event.changes.find { it.changedToDown() }
-
-                                            if (
-                                                down != null &&
-                                                    leftDrawerState.isClosed &&
-                                                    rightDrawerState.isClosed
-                                            ) {
-                                                val x = down.position.x
-                                                val threshold = 80.dp.toPx()
-
-                                                if (x < threshold) gestureSide = LayoutDirection.Ltr
-                                                else if (x > size.width - threshold)
-                                                    gestureSide = LayoutDirection.Rtl
-                                            }
-                                        }
-                                    }
-                                }
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
                             SharedTransitionLayout {
                                 AnimatedVisibility(visible = true) {
                                     val startDestination =
@@ -505,6 +491,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         startDestination = startDestination,
                                         imageLoader = imageLoader,
                                         feedVideoAutoplay = settingsState.feedVideoAutoplay,
+                                        favoritesPath = settingsState.effectiveFavoritesPath,
                                         feedGridState = feedGridState,
                                         favoritesGridState = favoritesGridState,
                                         galleryGridState = galleryGridState,
@@ -583,6 +570,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                             downloadedIds = galleryState.downloadedIds,
                                             downloadProgresses = downloadProgresses,
                                             viewMode = fullScreenViewMode,
+                                            favoritesPath = settingsState.effectiveFavoritesPath,
                                             hidePlayerControls = settingsState.hidePlayerControls,
                                             alwaysEnableHD = settingsState.alwaysEnableHD,
                                             alwaysMuteVideo = settingsState.alwaysMuteVideo,
@@ -637,6 +625,7 @@ fun AppNavigation(
     startDestination: String,
     imageLoader: ImageLoader,
     feedVideoAutoplay: Boolean,
+    favoritesPath: String?,
     feedGridState: LazyStaggeredGridState,
     favoritesGridState: LazyStaggeredGridState,
     galleryGridState: LazyStaggeredGridState,
@@ -680,6 +669,7 @@ fun AppNavigation(
                 imageLoader = imageLoader,
                 gridState = feedGridState,
                 feedVideoAutoplay = feedVideoAutoplay,
+                favoritesPath = favoritesPath,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,
@@ -702,6 +692,7 @@ fun AppNavigation(
                 imageLoader = imageLoader,
                 gridState = favoritesGridState,
                 feedVideoAutoplay = feedVideoAutoplay,
+                favoritesPath = favoritesPath,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,
@@ -753,6 +744,7 @@ fun FeedScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
     feedVideoAutoplay: Boolean,
+    favoritesPath: String?,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
@@ -777,12 +769,7 @@ fun FeedScreen(
 
     LaunchedEffect(uiState.gridColumns) {
         videoPlayerManager?.updateLimit(
-            when (uiState.gridColumns) {
-                1 -> 4
-                2 -> 10
-                3 -> 18
-                else -> 12
-            }
+            org.movzx.dibella.util.playerPoolSizeForColumns(uiState.gridColumns)
         )
     }
 
@@ -839,6 +826,7 @@ fun FeedScreen(
                     columnCount = uiState.gridColumns,
                     showFavorite = true,
                     viewMode = "feed",
+                    favoritesPath = favoritesPath,
                     onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
                     onEnsureFavoriteResources = { img, force, onProgress ->
                         favViewModel.ensureFavoriteResources(img, force, onProgress)
@@ -876,6 +864,7 @@ fun FavoritesScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
     feedVideoAutoplay: Boolean,
+    favoritesPath: String?,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
@@ -901,12 +890,7 @@ fun FavoritesScreen(
 
     LaunchedEffect(uiState.gridColumns) {
         videoPlayerManager?.updateLimit(
-            when (uiState.gridColumns) {
-                1 -> 4
-                2 -> 10
-                3 -> 18
-                else -> 12
-            }
+            org.movzx.dibella.util.playerPoolSizeForColumns(uiState.gridColumns)
         )
     }
 
@@ -1003,6 +987,7 @@ fun FavoritesScreen(
                 columnCount = uiState.gridColumns,
                 showFavorite = true,
                 viewMode = "favorites",
+                favoritesPath = favoritesPath,
                 isSelectionMode = uiState.isSelectionMode,
                 selectedIds = uiState.selectedIds,
                 onGetFavoriteFlow = { viewModel.getFavoriteFlow(it) },
@@ -1069,12 +1054,7 @@ fun GalleryScreen(
 
     LaunchedEffect(uiState.gridColumns) {
         videoPlayerManager?.updateLimit(
-            when (uiState.gridColumns) {
-                1 -> 4
-                2 -> 10
-                3 -> 18
-                else -> 12
-            }
+            org.movzx.dibella.util.playerPoolSizeForColumns(uiState.gridColumns)
         )
     }
 

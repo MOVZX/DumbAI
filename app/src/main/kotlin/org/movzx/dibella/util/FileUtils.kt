@@ -6,6 +6,8 @@ import okio.BufferedSource
 import okio.ByteString.Companion.decodeHex
 
 object FileUtils {
+    val IMAGE_EXTENSIONS = listOf("jpg", "png", "webp", "gif", "avif")
+    val VIDEO_EXTENSIONS = listOf("mp4", "webm", "mkv")
     private val PNG_HEADER = "89504E47".decodeHex()
     private val JPEG_HEADER = "FFD8FF".decodeHex()
     private val WEBP_HEADER = "52494646".decodeHex()
@@ -88,15 +90,15 @@ object FileUtils {
 
         val detected =
             when {
-                hex.startsWith("89504E47") -> "png"
                 hex.startsWith("FFD8FF") -> "jpg"
                 hex.startsWith("52494646") &&
                     hex.length >= 24 &&
                     hex.substring(16, 24) == "57454250" -> "webp"
-                hex.startsWith("47494638") -> "gif"
-                hex.contains("61766966") -> "avif"
                 hex.contains("66747970") -> "mp4"
                 hex.startsWith("1A45DFA3") -> "webm"
+                hex.startsWith("89504E47") -> "png"
+                hex.startsWith("47494638") -> "gif"
+                hex.contains("61766966") -> "avif"
                 else -> null
             }
 
@@ -175,5 +177,21 @@ object FileUtils {
 
             null
         }
+    }
+
+    fun findDuplicateGroups(files: List<File>): List<List<File>> {
+        val sizeGroups = files.groupBy { it.length() }.filter { it.value.size > 1 }
+        val duplicates = mutableListOf<List<File>>()
+
+        sizeGroups.forEach { (_, group) ->
+            val validHashes = group.mapNotNull { file -> calculateHash(file)?.let { file to it } }
+
+            validHashes
+                .groupBy { it.second }
+                .filter { it.value.size > 1 }
+                .forEach { entry -> duplicates.add(entry.value.map { it.first }) }
+        }
+
+        return duplicates
     }
 }

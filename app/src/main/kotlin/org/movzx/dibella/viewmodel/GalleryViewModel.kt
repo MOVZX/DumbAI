@@ -30,19 +30,19 @@ constructor(
 
             _uiState.update { it.copy(scrollIndex = initialIndex, scrollOffset = initialOffset) }
 
-            combine(repository.downloadPath, repository.galleryType, repository.gridColumns) {
-                    path,
-                    type,
-                    columns ->
-                    Triple(path, type, columns)
+            combine(repository.downloadPath, repository.galleryType) { path, type ->
+                    Pair(path, type)
                 }
-                .collect { (path, type, columns) ->
-                    _uiState.update {
-                        it.copy(downloadPath = path, type = type, gridColumns = columns)
-                    }
+                .collectLatest { (path, type) ->
+                    _uiState.update { it.copy(downloadPath = path, type = type) }
+                    performRefresh()
+                }
+        }
 
-                    refresh()
-                }
+        viewModelScope.launch {
+            repository.gridColumns.collect { columns ->
+                _uiState.update { it.copy(gridColumns = columns) }
+            }
         }
 
         viewModelScope.launch {
@@ -53,20 +53,22 @@ constructor(
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+        viewModelScope.launch { performRefresh() }
+    }
 
-            val images = galleryRepository.scanDirectory(_uiState.value.downloadPath)
+    private suspend fun performRefresh() {
+        _uiState.update { it.copy(isLoading = true) }
 
-            val filtered =
-                when (_uiState.value.type) {
-                    "image" -> images.filter { it.type == "image" }
-                    "video" -> images.filter { it.type == "video" }
-                    else -> images
-                }
+        val images = galleryRepository.scanDirectory(_uiState.value.downloadPath)
 
-            _uiState.update { it.copy(images = filtered, isLoading = false) }
-        }
+        val filtered =
+            when (_uiState.value.type) {
+                "image" -> images.filter { it.type == "image" }
+                "video" -> images.filter { it.type == "video" }
+                else -> images
+            }
+
+        _uiState.update { it.copy(images = filtered, isLoading = false) }
     }
 
     fun updateType(type: String) {
@@ -103,11 +105,17 @@ constructor(
 
             Logger.d("Dibella_IO", "Batch Delete: Initializing for ${idsToDelete.size} items")
 
+            var successCount = 0
+            var failCount = 0
+
             for (id in idsToDelete) {
                 val image = _uiState.value.images.find { it.id == id }
 
-                if (image != null) galleryRepository.deleteLocalFile(image)
+                if (image != null)
+                    if (galleryRepository.deleteLocalFile(image)) successCount++ else failCount++
             }
+
+            Logger.d("Dibella_IO", "Batch Delete: $successCount succeeded, $failCount failed")
 
             clearSelection()
             refresh()

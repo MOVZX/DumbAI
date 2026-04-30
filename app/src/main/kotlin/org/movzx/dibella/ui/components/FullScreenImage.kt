@@ -23,12 +23,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import kotlin.math.abs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -46,6 +49,7 @@ fun FullScreenImage(
     downloadedIds: Set<Long> = emptySet(),
     downloadProgresses: Map<Long, Float>,
     viewMode: String,
+    favoritesPath: String? = null,
     hidePlayerControls: Boolean,
     alwaysEnableHD: Boolean,
     alwaysMuteVideo: Boolean,
@@ -62,6 +66,7 @@ fun FullScreenImage(
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val pagerState = rememberPagerState(initialPage = initialIndex) { images.size }
+    val view = LocalView.current
 
     LaunchedEffect(pagerState.currentPage) { onIndexChange(pagerState.currentPage) }
 
@@ -85,6 +90,13 @@ fun FullScreenImage(
     var currentPlayerType by remember { mutableStateOf("ExoPlayer") }
 
     val density = LocalDensity.current
+    val dismissThresholdDp = 150.dp
+    val dismissThreshold = with(density) { dismissThresholdDp.toPx() }
+
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage != initialIndex)
+            view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+    }
 
     if (showUnfavoriteDialog) {
         ConfirmationDialog(
@@ -118,8 +130,6 @@ fun FullScreenImage(
             onDismiss = { showDeleteDialog = false },
         )
     }
-
-    val dismissThreshold = with(density) { 150.dp.toPx() }
 
     BackHandler(onBack = onDismiss)
 
@@ -165,21 +175,50 @@ fun FullScreenImage(
                         .collectAsState(initial = null)
 
                 val context = androidx.compose.ui.platform.LocalContext.current
+                val favDir = remember(favoritesPath) { favoritesPath?.let { java.io.File(it) } }
 
                 val thumbnailData =
-                    remember(image.url, favoriteInfo) {
-                        org.movzx.dibella.util.resolveImageData(context, image, favoriteInfo)
+                    remember(image.url, favoriteInfo, favDir) {
+                        org.movzx.dibella.util.resolveImageData(
+                            context,
+                            image,
+                            favoriteInfo,
+                            favoritesDir = favDir,
+                        )
                     }
 
                 val previewData =
-                    remember(image.url, favoriteInfo) {
+                    remember(image.url, favoriteInfo, favDir) {
                         org.movzx.dibella.util.resolveImageData(
                             context = context,
                             image = image,
                             favoriteInfo = favoriteInfo,
                             thumbnailWidth = 450,
                             useVideoPath = true,
+                            favoritesDir = favDir,
                         )
+                    }
+
+                val thumbnailRequest =
+                    remember(thumbnailData) {
+                        val isLocal =
+                            thumbnailData.startsWith("/") || thumbnailData.startsWith("file://")
+
+                        ImageRequest.Builder(context)
+                            .data(thumbnailData)
+                            .apply { if (isLocal) diskCachePolicy(CachePolicy.DISABLED) }
+                            .build()
+                    }
+
+                val previewRequest =
+                    remember(previewData) {
+                        val isLocal =
+                            previewData.startsWith("/") || previewData.startsWith("file://")
+
+                        ImageRequest.Builder(context)
+                            .data(previewData)
+                            .apply { if (isLocal) diskCachePolicy(CachePolicy.DISABLED) }
+                            .build()
                     }
 
                 LaunchedEffect(isFavorite, image.url) {
@@ -202,7 +241,7 @@ fun FullScreenImage(
                     with(sharedTransitionScope) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = thumbnailData,
+                                model = thumbnailRequest,
                                 imageLoader = imageLoader,
                                 contentDescription = null,
                                 modifier =
@@ -275,9 +314,9 @@ fun FullScreenImage(
                     with(sharedTransitionScope) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             ZoomableImage(
-                                model = previewData,
+                                model = previewRequest,
                                 imageLoader = imageLoader,
-                                thumbnailModel = thumbnailData,
+                                thumbnailModel = thumbnailRequest,
                                 modifier =
                                     Modifier.sharedElement(
                                         rememberSharedContentState(key = "image-${image.id}"),
@@ -325,6 +364,8 @@ fun FullScreenImage(
 
                     FilledTonalIconButton(
                         onClick = {
+                            view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+
                             val url = "https://civitai.com/images/${currentImage.id}"
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
 
@@ -433,7 +474,13 @@ fun FullScreenImage(
                 ) {
                     if (currentImage?.type == "video") {
                         IconButton(
-                            onClick = { userIsPlaying = !userIsPlaying },
+                            onClick = {
+                                view.performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.CONFIRM
+                                )
+
+                                userIsPlaying = !userIsPlaying
+                            },
                             modifier = Modifier.size(48.dp),
                         ) {
                             Icon(
@@ -445,7 +492,13 @@ fun FullScreenImage(
                         }
 
                         IconButton(
-                            onClick = { userIsMuted = !userIsMuted },
+                            onClick = {
+                                view.performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.CONFIRM
+                                )
+
+                                userIsMuted = !userIsMuted
+                            },
                             enabled = hasAudio,
                             modifier = Modifier.size(48.dp),
                         ) {
@@ -463,6 +516,10 @@ fun FullScreenImage(
 
                         TextButton(
                             onClick = {
+                                view.performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.CONFIRM
+                                )
+
                                 playbackSpeed =
                                     when (playbackSpeed) {
                                         0.5f -> 0.75f
@@ -483,7 +540,16 @@ fun FullScreenImage(
                             )
                         }
 
-                        IconButton(onClick = { isHD = !isHD }, modifier = Modifier.size(48.dp)) {
+                        IconButton(
+                            onClick = {
+                                view.performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.CONFIRM
+                                )
+
+                                isHD = !isHD
+                            },
+                            modifier = Modifier.size(48.dp),
+                        ) {
                             Icon(
                                 Icons.Default.Hd,
                                 contentDescription = "HD",
@@ -500,6 +566,10 @@ fun FullScreenImage(
 
                         IconButton(
                             onClick = {
+                                view.performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.CONFIRM
+                                )
+
                                 scaleMode =
                                     when (scaleMode) {
                                         ScaleMode.NORMAL -> ScaleMode.CROP
@@ -537,8 +607,19 @@ fun FullScreenImage(
 
                         IconButton(
                             onClick = {
-                                if (isFavorite) showUnfavoriteDialog = true
-                                else onToggleFavorite(currentImage)
+                                if (isFavorite) {
+                                    view.performHapticFeedback(
+                                        android.view.HapticFeedbackConstants.LONG_PRESS
+                                    )
+
+                                    showUnfavoriteDialog = true
+                                } else {
+                                    view.performHapticFeedback(
+                                        android.view.HapticFeedbackConstants.VIRTUAL_KEY
+                                    )
+
+                                    onToggleFavorite(currentImage)
+                                }
                             },
                             modifier = Modifier.size(48.dp),
                         ) {
@@ -560,7 +641,13 @@ fun FullScreenImage(
                         val isDownloaded = downloadedIds.contains(currentImage.id)
 
                         IconButton(
-                            onClick = { onDownloadImage(currentImage) },
+                            onClick = {
+                                view.performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.CONFIRM
+                                )
+
+                                onDownloadImage(currentImage)
+                            },
                             enabled = progress == null && !isDownloaded,
                             modifier = Modifier.size(48.dp),
                         ) {
@@ -591,6 +678,10 @@ fun FullScreenImage(
                     if (viewMode == "gallery") {
                         IconButton(
                             onClick = {
+                                view.performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.CONFIRM
+                                )
+
                                 if (pagerState.currentPage < images.size) showDeleteDialog = true
                             },
                             modifier = Modifier.size(48.dp),

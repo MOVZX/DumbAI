@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import `is`.xyz.mpv.MPVLib
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import org.movzx.dibella.util.Logger
 
 @Composable
@@ -50,24 +51,22 @@ fun MpvPlayer(
     }
 
     LaunchedEffect(isPlaying, isSurfaceReady) {
-        if (isPlaying && isSurfaceReady) {
-            while (true) {
-                if (MPVLib.lastOwnerId == instanceId) {
-                    val pos = MPVLib.safeGetPropertyDouble("time-pos") ?: lastPos
-                    val dur = MPVLib.safeGetPropertyDouble("duration") ?: 0.0
-                    val fps = MPVLib.safeGetPropertyDouble("estimated-vf-fps") ?: 0.0
-                    lastPos = pos
+        while (isActive && isPlaying && isSurfaceReady) {
+            if (MPVLib.lastOwnerId == instanceId) {
+                val pos = MPVLib.safeGetPropertyDouble("time-pos") ?: lastPos
+                val dur = MPVLib.safeGetPropertyDouble("duration") ?: 0.0
+                val fps = MPVLib.safeGetPropertyDouble("estimated-vf-fps") ?: 0.0
+                lastPos = pos
 
-                    onProgressUpdate((pos * 1000).toLong(), (dur * 1000).toLong())
-                    onFpsUpdate(fps.toInt())
+                onProgressUpdate((pos * 1000).toLong(), (dur * 1000).toLong())
+                onFpsUpdate(fps.toInt())
 
-                    val aid = MPVLib.safeGetPropertyInt("aid") ?: 0
+                val aid = MPVLib.safeGetPropertyInt("aid") ?: 0
 
-                    onAudioStateChange(aid > 0)
-                }
-
-                delay(50)
+                onAudioStateChange(aid > 0)
             }
+
+            delay(50)
         }
     }
 

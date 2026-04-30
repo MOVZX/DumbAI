@@ -14,9 +14,7 @@ data class FavoriteImage(
     val nsfw: Boolean?,
     val type: String? = "image",
     val timestamp: Long = System.currentTimeMillis(),
-    val localPath: String? = null,
-    val localFullImagePath: String? = null,
-    val localVideoPath: String? = null,
+    val isSynced: Boolean = false,
 ) {
     fun toCivitaiImage(): CivitaiImage {
         return CivitaiImage(
@@ -31,12 +29,7 @@ data class FavoriteImage(
     }
 
     companion object {
-        fun fromCivitaiImage(
-            image: CivitaiImage,
-            localPath: String? = null,
-            localFullImagePath: String? = null,
-            localVideoPath: String? = null,
-        ): FavoriteImage {
+        fun fromCivitaiImage(image: CivitaiImage, isSynced: Boolean = false): FavoriteImage {
             return FavoriteImage(
                 id = image.id,
                 url = image.url,
@@ -44,9 +37,7 @@ data class FavoriteImage(
                 height = image.height,
                 nsfw = image.nsfw,
                 type = image.type,
-                localPath = localPath,
-                localFullImagePath = localFullImagePath,
-                localVideoPath = localVideoPath,
+                isSynced = isSynced,
             )
         }
     }

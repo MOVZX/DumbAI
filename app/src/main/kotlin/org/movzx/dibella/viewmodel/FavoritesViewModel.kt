@@ -42,7 +42,8 @@ constructor(
                     favoritesRepository.favoriteIds,
                     repository.gridColumns,
                     repository.favoritesType,
-                ) { favorites, ids, columns, type ->
+                    repository.effectiveFavoritesPath,
+                ) { favorites, ids, columns, type, path ->
                     val filtered =
                         when (type) {
                             "image" -> favorites.filter { it.type == "image" }
@@ -61,6 +62,7 @@ constructor(
                             favoriteIds = ids,
                             gridColumns = columns,
                             type = type,
+                            favoritesPath = path,
                         )
                     }
                 }
@@ -114,11 +116,25 @@ constructor(
 
             Logger.d("Dibella_DB", "Batch Unfavorite Start: ${idsToUnfavorite.size} items")
 
+            var successCount = 0
+            var failCount = 0
+
             for (id in idsToUnfavorite) {
                 val image = _uiState.value.images.find { it.id == id }
 
-                if (image != null) favoritesRepository.toggleFavorite(image)
+                if (image != null) {
+                    try {
+                        favoritesRepository.toggleFavorite(image)
+                        successCount++
+                    } catch (e: Exception) {
+                        failCount++
+
+                        Logger.e("Dibella_DB", "Batch Unfavorite failed for $id: ${e.message}")
+                    }
+                }
             }
+
+            Logger.d("Dibella_DB", "Batch Unfavorite: $successCount succeeded, $failCount failed")
 
             clearSelection()
         }

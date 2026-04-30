@@ -3,7 +3,6 @@ package org.movzx.dibella.ui.components
 import android.content.Context
 import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.media3.common.Player
@@ -17,10 +16,10 @@ class VideoPlayerManager(private val context: Context) {
     private val pool = mutableListOf<ExoPlayer>()
     private val activePlayers = mutableSetOf<ExoPlayer>()
 
-    var maxPoolSize by androidx.compose.runtime.mutableIntStateOf(12)
+    var maxPoolSize: Int = 12
         private set
 
-    var activeCount by androidx.compose.runtime.mutableIntStateOf(0)
+    var activeCount: Int = 0
         private set
 
     fun updateLimit(newLimit: Int) {

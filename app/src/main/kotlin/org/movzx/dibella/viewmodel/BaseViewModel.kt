@@ -21,7 +21,7 @@ abstract class BaseViewModel(
 ) : ViewModel() {
     private val _uiMessage = MutableSharedFlow<Int>()
     val uiMessage = _uiMessage.asSharedFlow()
-    val restrictedDispatcher = Dispatchers.IO.limitedParallelism(8)
+    val restrictedDispatcher = Dispatchers.IO
 
     fun updateGridColumns(columns: Int) {
         viewModelScope.launch { repository.updateGridColumns(columns) }
@@ -79,12 +79,16 @@ abstract class BaseViewModel(
         onUpdateProgress: (Map<Long, Float>) -> Unit,
         onSuccess: () -> Unit = {},
     ) {
+        val progresses = HashMap(currentProgresses)
+
         viewModelScope.launch {
-            onUpdateProgress(currentProgresses + (image.id to 0f))
+            onUpdateProgress(progresses + (image.id to 0f))
 
             val result =
                 galleryRepository.downloadImage(image) { progress ->
-                    onUpdateProgress(currentProgresses + (image.id to progress))
+                    progresses[image.id] = progress
+
+                    onUpdateProgress(progresses.toMap())
                 }
 
             if (result.isSuccess) {
@@ -94,7 +98,8 @@ abstract class BaseViewModel(
                 sendMessage(R.string.msg_download_failed)
             }
 
-            onUpdateProgress(currentProgresses - image.id)
+            progresses.remove(image.id)
+            onUpdateProgress(progresses.toMap())
         }
     }
 }

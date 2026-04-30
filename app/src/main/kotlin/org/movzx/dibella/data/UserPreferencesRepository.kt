@@ -1,9 +1,11 @@
 package org.movzx.dibella.data
 
 import android.content.Context
+import android.os.Environment
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -33,6 +35,7 @@ class UserPreferencesRepository(private val context: Context) {
         val PAGE_LIMIT = intPreferencesKey("page_limit")
         val GRID_COLUMNS = intPreferencesKey("grid_columns")
         val DOWNLOAD_PATH = stringPreferencesKey("download_path")
+        val FAVORITES_PATH = stringPreferencesKey("favorites_path")
         val DEBUG_ENABLED = booleanPreferencesKey("debug_enabled")
         val FAVORITES_TYPE = stringPreferencesKey("favorites_type")
         val GALLERY_TYPE = stringPreferencesKey("gallery_type")
@@ -90,26 +93,6 @@ class UserPreferencesRepository(private val context: Context) {
             }
         }
 
-    val favoritesScrollIndex: Flow<Int> =
-        context.dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.FAVORITES_SCROLL_INDEX] ?: 0
-        }
-
-    val favoritesScrollOffset: Flow<Int> =
-        context.dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.FAVORITES_SCROLL_OFFSET] ?: 0
-        }
-
-    val galleryScrollIndex: Flow<Int> =
-        context.dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.GALLERY_SCROLL_INDEX] ?: 0
-        }
-
-    val galleryScrollOffset: Flow<Int> =
-        context.dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.GALLERY_SCROLL_OFFSET] ?: 0
-        }
-
     fun nextCursor(type: String): Flow<String?> =
         context.dataStore.data.map { preferences ->
             if (type == "video") preferences[PreferencesKeys.NEXT_CURSOR_VIDEO]
@@ -124,6 +107,32 @@ class UserPreferencesRepository(private val context: Context) {
 
     val downloadPath: Flow<String?> =
         context.dataStore.data.map { preferences -> preferences[PreferencesKeys.DOWNLOAD_PATH] }
+
+    val favoritesPath: Flow<String?> =
+        context.dataStore.data.map { preferences -> preferences[PreferencesKeys.FAVORITES_PATH] }
+
+    val effectiveFavoritesPath: Flow<String> =
+        context.dataStore.data.map { preferences ->
+            val favPath = preferences[PreferencesKeys.FAVORITES_PATH]
+
+            if (!favPath.isNullOrBlank()) {
+                favPath
+            } else {
+                val downPath = preferences[PreferencesKeys.DOWNLOAD_PATH]
+
+                val galleryDir =
+                    if (!downPath.isNullOrBlank()) File(downPath)
+                    else
+                        File(
+                            Environment.getExternalStoragePublicDirectory(
+                                Environment.DIRECTORY_PICTURES
+                            ),
+                            "Dibella",
+                        )
+
+                File(galleryDir, ".favorite").absolutePath
+            }
+        }
 
     val debugEnabled: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
@@ -172,6 +181,7 @@ class UserPreferencesRepository(private val context: Context) {
             pageLimit = prefs[PreferencesKeys.PAGE_LIMIT] ?: 100,
             gridColumns = prefs[PreferencesKeys.GRID_COLUMNS] ?: 3,
             apiKey = prefs[PreferencesKeys.API_KEY]?.takeIf { it.isNotBlank() },
+            favoritesPath = prefs[PreferencesKeys.FAVORITES_PATH],
             hidePlayerControls = prefs[PreferencesKeys.HIDE_PLAYER_CONTROLS] ?: false,
             alwaysEnableHD = prefs[PreferencesKeys.ALWAYS_ENABLE_HD] ?: false,
             alwaysMuteVideo = prefs[PreferencesKeys.ALWAYS_MUTE_VIDEO] ?: false,
@@ -194,6 +204,7 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.PAGE_LIMIT] = settings.pageLimit
             preferences[PreferencesKeys.GRID_COLUMNS] = settings.gridColumns
             settings.apiKey?.let { preferences[PreferencesKeys.API_KEY] = it }
+            settings.favoritesPath?.let { preferences[PreferencesKeys.FAVORITES_PATH] = it }
             preferences[PreferencesKeys.HIDE_PLAYER_CONTROLS] = settings.hidePlayerControls
             preferences[PreferencesKeys.ALWAYS_ENABLE_HD] = settings.alwaysEnableHD
             preferences[PreferencesKeys.ALWAYS_MUTE_VIDEO] = settings.alwaysMuteVideo
@@ -279,6 +290,15 @@ class UserPreferencesRepository(private val context: Context) {
         context.dataStore.edit { preferences ->
             if (path == null) preferences.remove(PreferencesKeys.DOWNLOAD_PATH)
             else preferences[PreferencesKeys.DOWNLOAD_PATH] = path
+        }
+    }
+
+    suspend fun updateFavoritesPath(path: String?) {
+        Logger.d("Dibella_Prefs", "updateFavoritesPath: $path")
+
+        context.dataStore.edit { preferences ->
+            if (path == null) preferences.remove(PreferencesKeys.FAVORITES_PATH)
+            else preferences[PreferencesKeys.FAVORITES_PATH] = path
         }
     }
 

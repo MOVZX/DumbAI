@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -16,6 +17,7 @@ fun ConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val view = LocalView.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
@@ -26,7 +28,10 @@ fun ConfirmationDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Button(
-                    onClick = onDismiss,
+                    onClick = {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+                        onDismiss()
+                    },
                     modifier = Modifier.weight(1f),
                     colors =
                         ButtonDefaults.buttonColors(
@@ -38,7 +43,10 @@ fun ConfirmationDialog(
                     Text(text = stringResource(R.string.btn_cancel))
                 }
                 Button(
-                    onClick = onConfirm,
+                    onClick = {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+                        onConfirm()
+                    },
                     modifier = Modifier.weight(1f),
                     colors =
                         ButtonDefaults.buttonColors(

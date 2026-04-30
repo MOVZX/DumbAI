@@ -1,10 +1,5 @@
 package org.movzx.dibella.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.material.icons.Icons
@@ -32,43 +27,41 @@ fun AppFab(
     val showScrollToBottom by remember { derivedStateOf { gridState.canScrollForward } }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.End,
         modifier = Modifier.padding(bottom = 8.dp),
     ) {
-        AnimatedVisibility(
-            visible = showRefresh && !isLoading && !showScrollToTop,
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut(),
-        ) {
-            FloatingActionButton(
-                onClick = onRefresh,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ) {
-                Icon(Icons.Default.Refresh, stringResource(R.string.desc_refresh))
-            }
-        }
-
-        AnimatedVisibility(
-            visible = showScrollToTop,
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut(),
-        ) {
+        if (showScrollToTop) {
             FloatingActionButton(
                 onClick = { scope.launch { gridState.animateScrollToItem(0) } },
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(48.dp),
             ) {
-                Icon(Icons.Default.ArrowUpward, stringResource(R.string.desc_scroll_to_top))
+                Icon(
+                    Icons.Default.ArrowUpward,
+                    stringResource(R.string.desc_scroll_to_top),
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
 
-        AnimatedVisibility(
-            visible = showScrollToBottom,
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut(),
-        ) {
+        if (showRefresh && !isLoading && !showScrollToTop) {
+            FloatingActionButton(
+                onClick = onRefresh,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    Icons.Default.Refresh,
+                    stringResource(R.string.desc_refresh),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+
+        if (showScrollToBottom) {
             FloatingActionButton(
                 onClick = {
                     scope.launch {
@@ -77,22 +70,28 @@ fun AppFab(
                 },
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(48.dp),
             ) {
-                Icon(Icons.Default.ArrowDownward, stringResource(R.string.desc_scroll_to_bottom))
+                Icon(
+                    Icons.Default.ArrowDownward,
+                    stringResource(R.string.desc_scroll_to_bottom),
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
 
-        AnimatedVisibility(
-            visible = hasMore && !isLoading && !showScrollToBottom,
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut(),
-        ) {
+        if (hasMore && !isLoading && !showScrollToBottom) {
             FloatingActionButton(
                 onClick = onLoadMore,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(48.dp),
             ) {
-                Icon(Icons.Default.KeyboardDoubleArrowDown, stringResource(R.string.desc_load_more))
+                Icon(
+                    Icons.Default.KeyboardDoubleArrowDown,
+                    stringResource(R.string.desc_load_more),
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
     }

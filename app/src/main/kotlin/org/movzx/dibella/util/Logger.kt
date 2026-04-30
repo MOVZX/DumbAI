@@ -10,7 +10,7 @@ object Logger {
     }
 
     fun e(tag: String, message: String, throwable: Throwable? = null) {
-        if (debugEnabled) Log.e(tag, message, throwable)
+        Log.e(tag, message, throwable)
     }
 
     fun w(tag: String, message: String) {

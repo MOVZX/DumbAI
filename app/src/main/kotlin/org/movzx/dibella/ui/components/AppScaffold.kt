@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -27,19 +28,24 @@ fun AppScaffold(
     onLoadMore: () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    val fabContent =
+        remember(onRefresh, onLoadMore, isLoading, hasMore, showRefresh, gridState) {
+            @Composable {
+                AppFab(
+                    gridState = gridState,
+                    isLoading = isLoading,
+                    hasMore = hasMore,
+                    showRefresh = showRefresh,
+                    onRefresh = onRefresh,
+                    onLoadMore = onLoadMore,
+                )
+            }
+        }
+
     Scaffold(
         topBar = topBar,
         bottomBar = bottomBar,
-        floatingActionButton = {
-            AppFab(
-                gridState = gridState,
-                isLoading = isLoading,
-                hasMore = hasMore,
-                showRefresh = showRefresh,
-                onRefresh = onRefresh,
-                onLoadMore = onLoadMore,
-            )
-        },
+        floatingActionButton = fabContent,
         content = content,
     )
 }

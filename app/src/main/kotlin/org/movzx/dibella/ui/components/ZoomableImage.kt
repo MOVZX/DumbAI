@@ -82,7 +82,13 @@ fun ZoomableImage(
 
         AsyncImage(
             model =
-                ImageRequest.Builder(LocalContext.current).data(model).crossfade(!isLocal).build(),
+                if (model is ImageRequest) model
+                else
+                    ImageRequest.Builder(LocalContext.current)
+                        .data(model)
+                        .crossfade(!isLocal)
+                        .apply { if (isLocal) diskCachePolicy(coil3.request.CachePolicy.DISABLED) }
+                        .build(),
             imageLoader = imageLoader,
             placeholder = placeholderPainter,
             contentDescription = null,

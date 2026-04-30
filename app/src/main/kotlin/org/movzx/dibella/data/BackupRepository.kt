@@ -16,7 +16,7 @@ import org.movzx.dibella.model.AppBackup
 class BackupRepository
 @Inject
 constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val repository: UserPreferencesRepository,
     private val favoritesRepository: FavoritesRepository,
     private val moshi: Moshi,
@@ -26,21 +26,7 @@ constructor(
             try {
                 val favorites = favoritesRepository.getAllFavoritesSync()
                 val settings = repository.getCurrentSettings()
-
-                val backup =
-                    AppBackup(
-                        version = 1,
-                        settings = settings,
-                        favorites =
-                            favorites.map {
-                                it.copy(
-                                    localPath = null,
-                                    localFullImagePath = null,
-                                    localVideoPath = null,
-                                )
-                            },
-                    )
-
+                val backup = AppBackup(version = 1, settings = settings, favorites = favorites)
                 val adapter = moshi.adapter(AppBackup::class.java)
                 val json = adapter.toJson(backup)
 

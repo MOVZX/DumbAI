@@ -33,6 +33,7 @@ fun ImageGrid(
     columnCount: Int,
     showFavorite: Boolean,
     viewMode: String,
+    favoritesPath: String? = null,
     isSelectionMode: Boolean = false,
     selectedIds: Set<Long> = emptySet(),
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
@@ -91,6 +92,7 @@ fun ImageGrid(
                 downloadProgresses = downloadProgresses,
                 showFavorite = showFavorite && !isSelectionMode,
                 viewMode = viewMode,
+                favoritesPath = favoritesPath,
                 isSelected = selectedIds.contains(image.id),
                 isSelectionMode = isSelectionMode,
                 onGetFavoriteFlow = onGetFavoriteFlow,
@@ -111,7 +113,8 @@ fun ImageGrid(
 
         if (isLoading && images.isNotEmpty()) {
             items(count = columnCount * 2, contentType = { "skeleton" }) { index ->
-                val aspectRatio = remember(index) { (8..14).random() / 10f }
+                val aspectRatios = listOf(0.8f, 1.0f, 1.2f, 1.4f, 0.75f, 1.33f, 0.67f, 1.5f)
+                val aspectRatio = aspectRatios[index % aspectRatios.size]
 
                 Box(
                     modifier =

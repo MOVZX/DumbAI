@@ -8,6 +8,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.movzx.dibella.R
+import org.movzx.dibella.api.CivitaiInterceptor
 import org.movzx.dibella.data.BackupRepository
 import org.movzx.dibella.data.FavoritesRepository
 import org.movzx.dibella.data.GalleryRepository
@@ -23,6 +24,7 @@ constructor(
     galleryRepository: GalleryRepository,
     private val backupRepository: BackupRepository,
     private val imageLoader: ImageLoader,
+    private val civitaiInterceptor: CivitaiInterceptor,
 ) : BaseViewModel(repository, favoritesRepository, galleryRepository) {
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState = _uiState.asStateFlow()
@@ -31,29 +33,45 @@ constructor(
 
     init {
         viewModelScope.launch {
-            combine(
-                    repository.apiKey,
-                    repository.downloadPath,
-                    repository.debugEnabled,
-                    repository.lastRoute,
-                ) { apiKey, downloadPath, debugEnabled, lastRoute ->
-                    mutableListOf<Any?>(apiKey, downloadPath, debugEnabled, lastRoute)
-                }
-                .onEach { values ->
+            combine<Any?, SettingsUiState>(
+                    listOf(
+                        repository.apiKey,
+                        repository.downloadPath,
+                        repository.favoritesPath,
+                        repository.effectiveFavoritesPath,
+                        repository.debugEnabled,
+                        repository.lastRoute,
+                    )
+                ) { values ->
                     val apiKey = values[0] as String
-                    val downloadPath = values[1] as String?
-                    val debugEnabled = values[2] as Boolean
-                    val lastRoute = values[3] as String
+                    val downloadPath = values[1] as? String
+                    val favoritesPath = values[2] as? String
+                    val effectiveFavoritesPath = values[3] as String
+                    val debugEnabled = values[4] as Boolean
+                    val lastRoute = values[5] as? String
 
+                    SettingsUiState(
+                        apiKey = apiKey,
+                        downloadPath = downloadPath ?: "",
+                        favoritesPath = favoritesPath,
+                        effectiveFavoritesPath = effectiveFavoritesPath,
+                        debugEnabled = debugEnabled,
+                        lastRoute = lastRoute,
+                    )
+                }
+                .onEach { newState ->
                     _uiState.update { state ->
                         state.copy(
-                            apiKey = apiKey,
-                            downloadPath = downloadPath ?: "",
-                            debugEnabled = debugEnabled,
-                            lastRoute = lastRoute,
+                            apiKey = newState.apiKey,
+                            downloadPath = newState.downloadPath,
+                            favoritesPath = newState.favoritesPath,
+                            effectiveFavoritesPath = newState.effectiveFavoritesPath,
+                            debugEnabled = newState.debugEnabled,
+                            lastRoute = newState.lastRoute,
                         )
                     }
-                    Logger.debugEnabled = debugEnabled
+
+                    Logger.debugEnabled = newState.debugEnabled
 
                     updateCacheSize()
                 }
@@ -94,6 +112,7 @@ constructor(
     fun updateApiKey(key: String) {
         viewModelScope.launch {
             repository.updateApiKey(key)
+            civitaiInterceptor.updateSettings(key, _uiState.value.debugEnabled)
             sendMessage(R.string.msg_api_key_saved)
         }
     }
@@ -102,8 +121,15 @@ constructor(
         viewModelScope.launch { repository.updateDownloadPath(path) }
     }
 
+    fun updateFavoritesPath(path: String?) {
+        viewModelScope.launch { repository.updateFavoritesPath(path) }
+    }
+
     fun updateDebugEnabled(enabled: Boolean) {
-        viewModelScope.launch { repository.updateDebugEnabled(enabled) }
+        viewModelScope.launch {
+            repository.updateDebugEnabled(enabled)
+            civitaiInterceptor.updateSettings(_uiState.value.apiKey, enabled)
+        }
     }
 
     fun updateHidePlayerControls(enabled: Boolean) {

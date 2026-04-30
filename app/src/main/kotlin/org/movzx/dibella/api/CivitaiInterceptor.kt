@@ -2,7 +2,8 @@ package org.movzx.dibella.api
 
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.movzx.dibella.data.UserPreferencesRepository
@@ -11,6 +12,30 @@ import org.movzx.dibella.util.Logger
 @Singleton
 class CivitaiInterceptor @Inject constructor(private val repository: UserPreferencesRepository) :
     Interceptor {
+    private var apiKey: String = ""
+    private var debugEnabled: Boolean = false
+    private val scope =
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main
+        )
+
+    init {
+        scope.launch {
+            try {
+                val settings = repository.getInterceptorSettings()
+                apiKey = settings.first
+                debugEnabled = settings.second
+            } catch (e: Exception) {
+                Logger.e("Dibella_Net", "Failed to load interceptor settings: ${e.message}")
+            }
+        }
+    }
+
+    fun updateSettings(key: String, enabled: Boolean) {
+        this.apiKey = key
+        this.debugEnabled = enabled
+    }
+
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
         val requestBuilder = original.newBuilder()
@@ -18,8 +43,6 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
         val path = original.url.encodedPath
         val isCivitai = host.contains("civitai.com")
         val isApi = isCivitai && path.contains("/api/")
-        val isImage = host == "image.civitai.com"
-        val (key, debugEnabled) = runBlocking { repository.getInterceptorSettings() }
 
         if (isCivitai) {
             requestBuilder.header(
@@ -27,7 +50,8 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
             )
 
-            if (isApi && key.isNotBlank()) requestBuilder.header("Authorization", "Bearer $key")
+            if (isApi && apiKey.isNotBlank())
+                requestBuilder.header("Authorization", "Bearer $apiKey")
         }
 
         val request = requestBuilder.build()
