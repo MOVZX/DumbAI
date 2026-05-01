@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FavoriteImage
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ImageCard(
     image: CivitaiImage,
@@ -58,8 +58,6 @@ fun ImageCard(
     autoplayEnabled: Boolean = false,
     isVisibleInViewport: Boolean = false,
     isScrolling: Boolean = false,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -260,24 +258,17 @@ fun ImageCard(
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            with(sharedTransitionScope) {
-                AsyncImage(
-                    model = imageRequest,
-                    imageLoader = imageLoader,
-                    contentDescription = null,
-                    modifier =
-                        Modifier.fillMaxSize()
-                            .sharedElement(
-                                rememberSharedContentState(key = "image-${image.id}"),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                            ),
-                    contentScale = ContentScale.Crop,
-                    onState = { state ->
-                        isLoading = state is coil3.compose.AsyncImagePainter.State.Loading
-                        isError = state is coil3.compose.AsyncImagePainter.State.Error
-                    },
-                )
-            }
+            AsyncImage(
+                model = imageRequest,
+                imageLoader = imageLoader,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                onState = { state ->
+                    isLoading = state is coil3.compose.AsyncImagePainter.State.Loading
+                    isError = state is coil3.compose.AsyncImagePainter.State.Error
+                },
+            )
 
             if (videoData != null && isVisibleInViewport && isAutoplayDebounced && !videoError) {
                 VideoPlayer(

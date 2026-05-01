@@ -196,32 +196,29 @@ private fun ExoVideoPlayer(
     var pooledPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     val exoPlayer = if (usePool) pooledPlayer else dedicatedPlayer
     var isReady by remember(url, exoPlayer) { mutableStateOf(false) }
-    val activeCount = manager?.activeCount ?: 0
 
-    LaunchedEffect(usePool, url, activeCount) {
-        if (usePool && pooledPlayer == null) {
-            val player = manager?.acquirePlayer()
+    DisposableEffect(usePool, url) {
+        var acquiredPlayer: ExoPlayer? = null
 
-            if (player != null) {
+        if (usePool && manager != null) {
+            acquiredPlayer = manager.acquirePlayer()
+
+            if (acquiredPlayer != null) {
                 val uri =
                     if (url.startsWith("/")) android.net.Uri.fromFile(java.io.File(url))
                     else android.net.Uri.parse(url)
 
-                player.setMediaItem(MediaItem.fromUri(uri))
-                player.prepare()
+                acquiredPlayer.setMediaItem(MediaItem.fromUri(uri))
+                acquiredPlayer.prepare()
 
-                pooledPlayer = player
+                pooledPlayer = acquiredPlayer
             }
         }
-    }
 
-    DisposableEffect(usePool, url) {
         onDispose {
-            pooledPlayer?.let {
-                manager?.releasePlayer(it)
+            acquiredPlayer?.let { manager?.releasePlayer(it) }
 
-                pooledPlayer = null
-            }
+            pooledPlayer = null
         }
     }
 

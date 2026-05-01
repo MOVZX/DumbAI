@@ -481,134 +481,106 @@ fun MainScreen(imageLoader: ImageLoader) {
                 ) {
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            SharedTransitionLayout {
-                                AnimatedVisibility(visible = true) {
-                                    val startDestination =
-                                        settingsState.lastRoute ?: return@AnimatedVisibility
+                            val startDestination = settingsState.lastRoute ?: return@Box
 
-                                    AppNavigation(
-                                        navController = navController,
-                                        startDestination = startDestination,
-                                        imageLoader = imageLoader,
-                                        feedVideoAutoplay = settingsState.feedVideoAutoplay,
-                                        favoritesPath = settingsState.effectiveFavoritesPath,
-                                        feedGridState = feedGridState,
-                                        favoritesGridState = favoritesGridState,
-                                        galleryGridState = galleryGridState,
-                                        favoritesRestored = favoritesRestored,
-                                        onFavoritesRestored = { favoritesRestored = it },
-                                        galleryRestored = galleryRestored,
-                                        onGalleryRestored = { galleryRestored = it },
-                                        onOpenLeftSidebar = {
-                                            scope.launch { leftDrawerState.open() }
-                                        },
-                                        onOpenRightSidebar = { type ->
-                                            rightSidebarType = type
-                                            scope.launch { rightDrawerState.open() }
-                                        },
-                                        onImageClick = { images, index, viewMode ->
-                                            fullScreenImages = images
-                                            selectedImageIndex = index
-                                            fullScreenViewMode = viewMode
-                                        },
-                                        onUpdateLastRoute = {
-                                            settingsViewModel.updateLastRoute(it)
-                                        },
-                                        leftDrawerState = leftDrawerState,
-                                        rightDrawerState = rightDrawerState,
-                                        scope = scope,
-                                        selectedImageIndex = selectedImageIndex,
-                                        backPressedTime = backPressedTime,
-                                        onUpdateBackPressedTime = { backPressedTime = it },
-                                        exitConfirmMsg = exitConfirmMsg,
-                                        sharedTransitionScope = this@SharedTransitionLayout,
-                                        animatedVisibilityScope = this@AnimatedVisibility,
-                                    )
+                            AppNavigation(
+                                navController = navController,
+                                startDestination = startDestination,
+                                imageLoader = imageLoader,
+                                feedVideoAutoplay = settingsState.feedVideoAutoplay,
+                                favoritesPath = settingsState.effectiveFavoritesPath,
+                                feedGridState = feedGridState,
+                                favoritesGridState = favoritesGridState,
+                                galleryGridState = galleryGridState,
+                                favoritesRestored = favoritesRestored,
+                                onFavoritesRestored = { favoritesRestored = it },
+                                galleryRestored = galleryRestored,
+                                onGalleryRestored = { galleryRestored = it },
+                                onOpenLeftSidebar = { scope.launch { leftDrawerState.open() } },
+                                onOpenRightSidebar = { type ->
+                                    rightSidebarType = type
+                                    scope.launch { rightDrawerState.open() }
+                                },
+                                onImageClick = { images, index, viewMode ->
+                                    fullScreenImages = images
+                                    selectedImageIndex = index
+                                    fullScreenViewMode = viewMode
+                                },
+                                onUpdateLastRoute = { settingsViewModel.updateLastRoute(it) },
+                                leftDrawerState = leftDrawerState,
+                                rightDrawerState = rightDrawerState,
+                                scope = scope,
+                                selectedImageIndex = selectedImageIndex,
+                                backPressedTime = backPressedTime,
+                                onUpdateBackPressedTime = { backPressedTime = it },
+                                exitConfirmMsg = exitConfirmMsg,
+                            )
 
-                                    if (selectedImageIndex != null) {
-                                        val targetIndex = selectedImageIndex ?: 0
-
-                                        val favoriteIds by
-                                            favoritesViewModel.uiState.collectAsState()
-
-                                        val galleryState by
-                                            galleryViewModel.uiState.collectAsState()
-
-                                        val activeViewModel:
-                                            org.movzx.dibella.viewmodel.BaseViewModel =
-                                            when (fullScreenViewMode) {
-                                                "feed" -> feedViewModel
-                                                "favorites" -> favoritesViewModel
-                                                else -> galleryViewModel
-                                            }
-
-                                        val downloadProgresses =
-                                            when (fullScreenViewMode) {
-                                                "feed" ->
-                                                    feedViewModel.uiState
-                                                        .collectAsState()
-                                                        .value
-                                                        .downloadProgresses
-                                                "favorites" ->
-                                                    favoritesViewModel.uiState
-                                                        .collectAsState()
-                                                        .value
-                                                        .downloadProgresses
-                                                "gallery" ->
-                                                    galleryViewModel.uiState
-                                                        .collectAsState()
-                                                        .value
-                                                        .downloadProgresses
-                                                else -> emptyMap()
-                                            }
-
-                                        FullScreenImage(
-                                            images = fullScreenImages,
-                                            initialIndex = targetIndex,
-                                            imageLoader = imageLoader,
-                                            favoriteIds = favoriteIds.favoriteIds,
-                                            downloadedIds = galleryState.downloadedIds,
-                                            downloadProgresses = downloadProgresses,
-                                            viewMode = fullScreenViewMode,
-                                            favoritesPath = settingsState.effectiveFavoritesPath,
-                                            hidePlayerControls = settingsState.hidePlayerControls,
-                                            alwaysEnableHD = settingsState.alwaysEnableHD,
-                                            alwaysMuteVideo = settingsState.alwaysMuteVideo,
-                                            autoplayEnabled = settingsState.feedVideoAutoplay,
-                                            onGetFavoriteFlow = {
-                                                favoritesViewModel.getFavoriteFlow(it)
-                                            },
-                                            onEnsureFavoriteResources = { img, force, onProgress ->
-                                                activeViewModel.ensureFavoriteResourcesThrottled(
-                                                    img,
-                                                    force,
-                                                    onProgress,
-                                                )
-                                            },
-                                            onToggleFavorite = {
-                                                activeViewModel.toggleFavorite(it)
-                                            },
-                                            onEnsureFavoriteResourcesThrottled = {
-                                                img,
-                                                force,
-                                                onProgress ->
-                                                activeViewModel.ensureFavoriteResourcesThrottled(
-                                                    img,
-                                                    force,
-                                                    onProgress,
-                                                )
-                                            },
-                                            onDownloadImage = { activeViewModel.downloadImage(it) },
-                                            onDeleteLocalFile = {
-                                                galleryViewModel.deleteLocalFile(it)
-                                            },
-                                            onDismiss = { selectedImageIndex = null },
-                                            onIndexChange = { selectedImageIndex = it },
-                                            sharedTransitionScope = this@SharedTransitionLayout,
-                                            animatedVisibilityScope = this@AnimatedVisibility,
-                                        )
+                            if (selectedImageIndex != null) {
+                                val targetIndex = selectedImageIndex ?: 0
+                                val favoriteIds by favoritesViewModel.uiState.collectAsState()
+                                val galleryState by galleryViewModel.uiState.collectAsState()
+                                val activeViewModel: org.movzx.dibella.viewmodel.BaseViewModel =
+                                    when (fullScreenViewMode) {
+                                        "feed" -> feedViewModel
+                                        "favorites" -> favoritesViewModel
+                                        else -> galleryViewModel
                                     }
-                                }
+
+                                val downloadProgresses =
+                                    when (fullScreenViewMode) {
+                                        "feed" ->
+                                            feedViewModel.uiState
+                                                .collectAsState()
+                                                .value
+                                                .downloadProgresses
+                                        "favorites" ->
+                                            favoritesViewModel.uiState
+                                                .collectAsState()
+                                                .value
+                                                .downloadProgresses
+                                        "gallery" ->
+                                            galleryViewModel.uiState
+                                                .collectAsState()
+                                                .value
+                                                .downloadProgresses
+                                        else -> emptyMap()
+                                    }
+
+                                FullScreenImage(
+                                    images = fullScreenImages,
+                                    initialIndex = targetIndex,
+                                    imageLoader = imageLoader,
+                                    favoriteIds = favoriteIds.favoriteIds,
+                                    downloadedIds = galleryState.downloadedIds,
+                                    downloadProgresses = downloadProgresses,
+                                    viewMode = fullScreenViewMode,
+                                    favoritesPath = settingsState.effectiveFavoritesPath,
+                                    hidePlayerControls = settingsState.hidePlayerControls,
+                                    alwaysEnableHD = settingsState.alwaysEnableHD,
+                                    alwaysMuteVideo = settingsState.alwaysMuteVideo,
+                                    autoplayEnabled = settingsState.feedVideoAutoplay,
+                                    onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
+                                    onEnsureFavoriteResources = { img, force, onProgress ->
+                                        activeViewModel.ensureFavoriteResourcesThrottled(
+                                            img,
+                                            force,
+                                            onProgress,
+                                        )
+                                    },
+                                    onToggleFavorite = { activeViewModel.toggleFavorite(it) },
+                                    onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
+                                        activeViewModel.ensureFavoriteResourcesThrottled(
+                                            img,
+                                            force,
+                                            onProgress,
+                                        )
+                                    },
+                                    onDownloadImage = { activeViewModel.downloadImage(it) },
+                                    onDeleteLocalFile = { galleryViewModel.deleteLocalFile(it) },
+                                    onDismiss = { selectedImageIndex = null },
+                                    onIndexChange = { selectedImageIndex = it },
+                                )
                             }
                         }
                     }
@@ -618,7 +590,6 @@ fun MainScreen(imageLoader: ImageLoader) {
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppNavigation(
     navController: NavHostController,
@@ -644,8 +615,6 @@ fun AppNavigation(
     backPressedTime: Long,
     onUpdateBackPressedTime: (Long) -> Unit,
     exitConfirmMsg: String,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -682,8 +651,6 @@ fun AppNavigation(
                 backPressedTime = backPressedTime,
                 onUpdateBackPressedTime = onUpdateBackPressedTime,
                 exitConfirmMsg = exitConfirmMsg,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
             )
         }
 
@@ -707,8 +674,6 @@ fun AppNavigation(
                 backPressedTime = backPressedTime,
                 onUpdateBackPressedTime = onUpdateBackPressedTime,
                 exitConfirmMsg = exitConfirmMsg,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
             )
         }
 
@@ -731,14 +696,12 @@ fun AppNavigation(
                 backPressedTime = backPressedTime,
                 onUpdateBackPressedTime = onUpdateBackPressedTime,
                 exitConfirmMsg = exitConfirmMsg,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(
     imageLoader: ImageLoader,
@@ -757,8 +720,6 @@ fun FeedScreen(
     backPressedTime: Long,
     onUpdateBackPressedTime: (Long) -> Unit,
     exitConfirmMsg: String,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val context = LocalContext.current
     val activity = context as ComponentActivity
@@ -845,8 +806,6 @@ fun FeedScreen(
                     },
                     autoplayEnabled = feedVideoAutoplay,
                     isPreviewOpen = selectedImageIndex != null,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
                 )
             }
 
@@ -858,7 +817,6 @@ fun FeedScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun FavoritesScreen(
     imageLoader: ImageLoader,
@@ -879,8 +837,6 @@ fun FavoritesScreen(
     backPressedTime: Long,
     onUpdateBackPressedTime: (Long) -> Unit,
     exitConfirmMsg: String,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val context = LocalContext.current
     val activity = context as ComponentActivity
@@ -1012,16 +968,15 @@ fun FavoritesScreen(
                 onLongClick = { viewModel.toggleSelection(it) },
                 autoplayEnabled = feedVideoAutoplay,
                 isPreviewOpen = selectedImageIndex != null,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
             )
+
             if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)
                 EmptyState("favorites")
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GalleryScreen(
     imageLoader: ImageLoader,
@@ -1041,8 +996,6 @@ fun GalleryScreen(
     backPressedTime: Long,
     onUpdateBackPressedTime: (Long) -> Unit,
     exitConfirmMsg: String,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val context = LocalContext.current
     val activity = context as ComponentActivity
@@ -1209,8 +1162,6 @@ fun GalleryScreen(
                 onLongClick = { viewModel.toggleSelection(it) },
                 autoplayEnabled = feedVideoAutoplay,
                 isPreviewOpen = selectedImageIndex != null,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
             )
 
             if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)

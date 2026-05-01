@@ -135,9 +135,14 @@ constructor(
 
         performDownload(
             image = image,
-            currentProgresses = _uiState.value.downloadProgresses,
-            onUpdateProgress = { progresses ->
-                _uiState.update { it.copy(downloadProgresses = progresses) }
+            onUpdateProgress = { id, progress ->
+                _uiState.update { state ->
+                    val newProgresses = state.downloadProgresses.toMutableMap()
+
+                    if (progress != null) newProgresses[id] = progress else newProgresses.remove(id)
+
+                    state.copy(downloadProgresses = newProgresses)
+                }
             },
             onSuccess = { refresh() },
         )

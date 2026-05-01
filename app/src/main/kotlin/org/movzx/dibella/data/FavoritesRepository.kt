@@ -9,10 +9,15 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -33,9 +38,14 @@ class FavoritesRepository(
     private val imageLoader: coil3.ImageLoader,
 ) {
     private val resourceChecksInProgress = ConcurrentHashMap.newKeySet<Long>()
+    private val toggleMutexes = ConcurrentHashMap<Long, Mutex>()
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @Volatile
     private var _okHttpClient: OkHttpClient = okHttpClient
         private set
+
+    private fun getToggleMutex(id: Long) = toggleMutexes.getOrPut(id) { Mutex() }
 
     init {
         repositoryScope.launch { cleanupTempFiles() }
@@ -69,9 +79,23 @@ class FavoritesRepository(
 
             Logger.d("Dibella_Cache", "Repair Sync: Found ${unsynced.size} items to check")
 
-            unsynced.forEachIndexed { index, favorite ->
-                ensureFavoriteResources(favorite.toCivitaiImage())
-                onProgress(index + 1, unsynced.size)
+            val total = unsynced.size
+            var completed = 0
+            val mutex = Mutex()
+            val semaphore = Semaphore(15)
+
+            coroutineScope {
+                unsynced.forEach { favorite ->
+                    launch {
+                        semaphore.withPermit {
+                            ensureFavoriteResources(favorite.toCivitaiImage())
+                            mutex.withLock {
+                                completed++
+                                onProgress(completed, total)
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -133,13 +157,18 @@ class FavoritesRepository(
             }
         }
 
-    suspend fun toggleFavorite(image: CivitaiImage) {
-        val isFav = favoriteImageDao.isFavoriteDirect(image.id)
+    suspend fun toggleFavorite(image: CivitaiImage) =
+        withContext(Dispatchers.IO) {
+            getToggleMutex(image.id).withLock {
+                val isFav = favoriteImageDao.isFavoriteDirect(image.id)
 
-        Logger.d("Dibella_Cache", "[${image.id}] toggleFavorite: currently isFav=$isFav")
+                Logger.d("Dibella_Cache", "[${image.id}] toggleFavorite: currently isFav=$isFav")
 
-        if (isFav) removeFavorite(image) else addFavorite(image)
-    }
+                if (isFav) removeFavorite(image) else addFavorite(image)
+            }
+
+            toggleMutexes.remove(image.id)
+        }
 
     private suspend fun evictFromCoilCache(url: String) {
         try {
@@ -300,7 +329,7 @@ class FavoritesRepository(
                         }
 
                         if (success) {
-                            val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                            val bytes = tempFile.inputStream().use { it.readNBytes(64) }
                             val ext = FileUtils.getExtensionFromBytes(bytes) ?: "mp4"
                             val finalFile = File(previewDir, "${image.id}.$ext")
 
@@ -342,7 +371,7 @@ class FavoritesRepository(
                                 updateTotalProgress()
                             }
                         ) {
-                            val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                            val bytes = tempFile.inputStream().use { it.readNBytes(64) }
                             val ext = FileUtils.getExtensionFromBytes(bytes) ?: "jpg"
                             val finalFile = File(previewDir, "${image.id}_full.$ext")
 
@@ -440,7 +469,7 @@ class FavoritesRepository(
                         }
 
                         if (downloadSuccess) {
-                            val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                            val bytes = tempFile.inputStream().use { it.readNBytes(64) }
                             val ext = FileUtils.getExtensionFromBytes(bytes) ?: "jpg"
                             val actualFinalFile = File(thumbDir, "$thumbBaseName.$ext")
 
@@ -558,7 +587,7 @@ class FavoritesRepository(
 
                         val finalSourceFile =
                             if (extractFrame) {
-                                val bytes = tempFile.inputStream().use { it.readNBytes(12) }
+                                val bytes = tempFile.inputStream().use { it.readNBytes(64) }
                                 val ext = FileUtils.getExtensionFromBytes(bytes)
 
                                 if (ext == "mp4" || ext == "webm" || ext == "mkv") {

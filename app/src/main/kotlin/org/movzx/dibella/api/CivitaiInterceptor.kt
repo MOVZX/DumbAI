@@ -12,8 +12,8 @@ import org.movzx.dibella.util.Logger
 @Singleton
 class CivitaiInterceptor @Inject constructor(private val repository: UserPreferencesRepository) :
     Interceptor {
-    private var apiKey: String = ""
-    private var debugEnabled: Boolean = false
+    @Volatile private var apiKey: String = ""
+    @Volatile private var debugEnabled: Boolean = false
     private val scope =
         kotlinx.coroutines.CoroutineScope(
             kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main

@@ -22,6 +22,7 @@ class VideoPlayerManager(private val context: Context) {
     var activeCount: Int = 0
         private set
 
+    @Synchronized
     fun updateLimit(newLimit: Int) {
         if (newLimit == maxPoolSize) return
 
@@ -37,6 +38,7 @@ class VideoPlayerManager(private val context: Context) {
         }
     }
 
+    @Synchronized
     fun acquirePlayer(): ExoPlayer? {
         if (activePlayers.size >= maxPoolSize) {
             org.movzx.dibella.util.Logger.d(
@@ -61,6 +63,7 @@ class VideoPlayerManager(private val context: Context) {
         return player
     }
 
+    @Synchronized
     fun releasePlayer(player: ExoPlayer) {
         if (activePlayers.remove(player)) {
             player.pause()
@@ -106,11 +109,13 @@ class VideoPlayerManager(private val context: Context) {
         }
     }
 
+    @Synchronized
     fun releaseAll() {
         activePlayers.forEach { it.release() }
         activePlayers.clear()
         pool.forEach { it.release() }
         pool.clear()
+        activeCount = 0
     }
 }
 

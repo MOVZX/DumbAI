@@ -16,6 +16,23 @@ object FileUtils {
     private val AVIF_HEADER = "61766966".decodeHex()
 
     fun detectExtension(contentType: String?, source: BufferedSource, url: String): String {
+        try {
+            val peek = source.peek()
+
+            if (peek.request(64)) {
+                val bytes = peek.readByteArray(64)
+                val sniffed = getExtensionFromBytes(bytes)
+
+                if (sniffed != null) {
+                    Logger.v("Dibella_Codec", "Extension sniffed via magic bytes: $sniffed")
+
+                    return sniffed
+                }
+            }
+        } catch (e: Exception) {
+            Logger.e("Dibella_Codec", "Error sniffing headers: ${e.message}")
+        }
+
         val mappedExt =
             when (contentType?.lowercase()) {
                 "image/png" -> "png"
@@ -34,37 +51,6 @@ object FileUtils {
             Logger.v("Dibella_Codec", "Extension detected via Content-Type: $mappedExt")
 
             return mappedExt
-        }
-
-        try {
-            val peek = source.peek()
-
-            if (peek.rangeEquals(0, PNG_HEADER)) return "png"
-            if (peek.rangeEquals(0, JPEG_HEADER)) return "jpg"
-            if (peek.rangeEquals(0, WEBP_HEADER)) return "webp"
-            if (peek.rangeEquals(0, GIF_HEADER)) return "gif"
-
-            if (peek.rangeEquals(0, EBML_HEADER)) {
-                if (peek.request(64)) {
-                    val data = peek.readByteString(64).hex()
-                    val ext = if (data.contains("7765626D")) "webm" else "mkv"
-
-                    Logger.v("Dibella_Codec", "Extension detected via EBML Headers: $ext")
-
-                    return ext
-                }
-
-                return "webm"
-            }
-
-            if (peek.request(12)) {
-                val head = peek.readByteString(12).hex()
-
-                if (head.contains("61766966")) return "avif"
-                if (head.contains("66747970")) return "mp4"
-            }
-        } catch (e: Exception) {
-            Logger.e("Dibella_Codec", "Error peeking headers: ${e.message}")
         }
 
         val urlExt = url.substringAfterLast('.', "").lowercase()
@@ -86,23 +72,20 @@ object FileUtils {
     fun getExtensionFromBytes(bytes: ByteArray): String? {
         if (bytes.size < 4) return null
 
-        val hex = bytes.joinToString("") { "%02X".format(it) }
+        val hex = bytes.joinToString("") { "%02X".format(it) }.uppercase()
 
-        val detected =
-            when {
-                hex.startsWith("FFD8FF") -> "jpg"
-                hex.startsWith("52494646") &&
-                    hex.length >= 24 &&
-                    hex.substring(16, 24) == "57454250" -> "webp"
-                hex.contains("66747970") -> "mp4"
-                hex.startsWith("1A45DFA3") -> "webm"
-                hex.startsWith("89504E47") -> "png"
-                hex.startsWith("47494638") -> "gif"
-                hex.contains("61766966") -> "avif"
-                else -> null
+        return when {
+            hex.startsWith("FFD8FF") -> "jpg"
+            hex.startsWith("89504E47") -> "png"
+            hex.startsWith("47494638") -> "gif"
+            hex.startsWith("52494646") && hex.contains("57454250") -> "webp"
+            hex.startsWith("1A45DFA3") -> {
+                if (hex.contains("7765626D")) "webm" else "mkv"
             }
-
-        return detected
+            hex.contains("66747970") && hex.contains("61766966") -> "avif"
+            hex.contains("66747970") -> "mp4"
+            else -> null
+        }
     }
 
     fun isRealMedia(file: File): Boolean {
@@ -115,13 +98,13 @@ object FileUtils {
         return try {
             val bytes =
                 FileInputStream(file).use { input ->
-                    val buffer = ByteArray(12)
+                    val buffer = ByteArray(64)
 
                     input.read(buffer)
                     buffer
                 }
 
-            if (bytes[0] == '{'.code.toByte()) {
+            if (bytes.isNotEmpty() && bytes[0] == '{'.code.toByte()) {
                 Logger.e(
                     "Dibella_Codec",
                     "Media Validation Error: File is actually JSON/API error | ${file.name}",

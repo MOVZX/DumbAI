@@ -1,8 +1,5 @@
 package org.movzx.dibella.ui.components
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -21,7 +18,6 @@ import kotlinx.coroutines.flow.Flow
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FavoriteImage
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ImageGrid(
     images: List<CivitaiImage>,
@@ -46,8 +42,6 @@ fun ImageGrid(
     onLongClick: (Long) -> Unit = {},
     autoplayEnabled: Boolean = false,
     isPreviewOpen: Boolean = false,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val visibleItemIds by remember {
         androidx.compose.runtime.derivedStateOf {
@@ -106,8 +100,6 @@ fun ImageGrid(
                 autoplayEnabled = autoplayEnabled && !isPreviewOpen,
                 isVisibleInViewport = visibleItemIds.contains(image.id),
                 isScrolling = state.isScrollInProgress,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
             )
         }
 

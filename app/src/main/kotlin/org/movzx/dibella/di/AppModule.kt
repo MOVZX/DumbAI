@@ -33,10 +33,17 @@ object AppModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(interceptor: org.movzx.dibella.api.CivitaiInterceptor): OkHttpClient {
+        val dispatcher =
+            okhttp3.Dispatcher().apply {
+                maxRequests = 64
+                maxRequestsPerHost = 15
+            }
+
         return OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
+            .dispatcher(dispatcher)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
             .addInterceptor(interceptor)
             .addInterceptor(org.movzx.dibella.api.CivitaiThumbnailInterceptor())
             .build()

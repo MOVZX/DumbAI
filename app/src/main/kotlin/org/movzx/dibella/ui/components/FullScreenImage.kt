@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
@@ -29,7 +28,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
-import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import kotlin.math.abs
@@ -39,7 +37,7 @@ import org.movzx.dibella.R
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FavoriteImage
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FullScreenImage(
     images: List<CivitaiImage>,
@@ -62,8 +60,6 @@ fun FullScreenImage(
     onDeleteLocalFile: (CivitaiImage) -> Unit,
     onDismiss: () -> Unit,
     onIndexChange: (Int) -> Unit = {},
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val pagerState = rememberPagerState(initialPage = initialIndex) { images.size }
     val view = LocalView.current
@@ -261,94 +257,67 @@ fun FullScreenImage(
                         isHD = false
                     }
 
-                    with(sharedTransitionScope) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AsyncImage(
-                                model = thumbnailRequest,
-                                imageLoader = imageLoader,
-                                contentDescription = null,
-                                modifier =
-                                    Modifier.fillMaxSize()
-                                        .sharedElement(
-                                            rememberSharedContentState(key = "image-${image.id}"),
-                                            animatedVisibilityScope = animatedVisibilityScope,
-                                        ),
-                                contentScale =
-                                    if (scaleMode == ScaleMode.CROP) ContentScale.Crop
-                                    else if (scaleMode == ScaleMode.FULL) ContentScale.FillBounds
-                                    else ContentScale.Fit,
-                            )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        val videoUrl =
+                            if (image.type == "video" && isHD)
+                                org.movzx.dibella.util.getVideoOriginalUrl(image.url)
+                            else previewData
 
-                            val videoUrl =
-                                if (image.type == "video" && isHD)
-                                    org.movzx.dibella.util.getVideoOriginalUrl(image.url)
-                                else previewData
-
-                            VideoPlayer(
-                                url = videoUrl,
-                                isPlaying = page == pagerState.currentPage && userIsPlaying,
-                                isMuted = userIsMuted,
-                                playbackSpeed = playbackSpeed,
-                                scaleMode = scaleMode,
-                                onProgressUpdate = { pos, dur ->
-                                    if (!isDraggingSeekBar) {
-                                        videoProgress = pos
-                                        videoDuration = if (dur > 0) dur else 0L
-                                    }
-                                },
-                                onFpsUpdate = { currentFps = it },
-                                onPlayerTypeUpdate = { currentPlayerType = it },
-                                onAudioStateChange = { hasAudio = it },
-                                onPlaybackError = { videoPlaybackError = it },
-                                onZoomChange = { isZoomed = it },
-                                onTap = { showUI = !showUI },
-                                seekPosition = seekToPosition,
-                                onSeekConsumed = { seekToPosition = null },
-                                usePool = false,
-                            )
-
-                            if (videoPlaybackError != null) {
-                                Column(
-                                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Icon(
-                                        Icons.Default.ErrorOutline,
-                                        contentDescription = null,
-                                        tint = androidx.compose.ui.res.colorResource(R.color.error),
-                                        modifier = Modifier.size(48.dp),
-                                    )
-
-                                    Text(
-                                        text = stringResource(R.string.msg_playback_error),
-                                        color =
-                                            androidx.compose.ui.res.colorResource(
-                                                R.color.pure_white
-                                            ),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    )
+                        VideoPlayer(
+                            url = videoUrl,
+                            isPlaying = page == pagerState.currentPage && userIsPlaying,
+                            isMuted = userIsMuted,
+                            playbackSpeed = playbackSpeed,
+                            scaleMode = scaleMode,
+                            onProgressUpdate = { pos, dur ->
+                                if (!isDraggingSeekBar) {
+                                    videoProgress = pos
+                                    videoDuration = if (dur > 0) dur else 0L
                                 }
+                            },
+                            onFpsUpdate = { currentFps = it },
+                            onPlayerTypeUpdate = { currentPlayerType = it },
+                            onAudioStateChange = { hasAudio = it },
+                            onPlaybackError = { videoPlaybackError = it },
+                            onZoomChange = { isZoomed = it },
+                            onTap = { showUI = !showUI },
+                            seekPosition = seekToPosition,
+                            onSeekConsumed = { seekToPosition = null },
+                            usePool = false,
+                        )
+
+                        if (videoPlaybackError != null) {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = androidx.compose.ui.res.colorResource(R.color.error),
+                                    modifier = Modifier.size(48.dp),
+                                )
+
+                                Text(
+                                    text = stringResource(R.string.msg_playback_error),
+                                    color =
+                                        androidx.compose.ui.res.colorResource(R.color.pure_white),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                )
                             }
                         }
                     }
                 } else {
-                    with(sharedTransitionScope) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            ZoomableImage(
-                                model = previewRequest,
-                                imageLoader = imageLoader,
-                                thumbnailModel = thumbnailRequest,
-                                modifier =
-                                    Modifier.sharedElement(
-                                        rememberSharedContentState(key = "image-${image.id}"),
-                                        animatedVisibilityScope = animatedVisibilityScope,
-                                    ),
-                                onZoomChange = { isZoomed = it },
-                                onTap = { showUI = !showUI },
-                            )
-                        }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        ZoomableImage(
+                            model = previewRequest,
+                            imageLoader = imageLoader,
+                            thumbnailModel = thumbnailRequest,
+                            onZoomChange = { isZoomed = it },
+                            onTap = { showUI = !showUI },
+                        )
                     }
                 }
             }

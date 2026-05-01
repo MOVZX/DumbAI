@@ -75,20 +75,15 @@ abstract class BaseViewModel(
 
     protected fun performDownload(
         image: CivitaiImage,
-        currentProgresses: Map<Long, Float>,
-        onUpdateProgress: (Map<Long, Float>) -> Unit,
+        onUpdateProgress: (Long, Float?) -> Unit,
         onSuccess: () -> Unit = {},
     ) {
-        val progresses = HashMap(currentProgresses)
-
         viewModelScope.launch {
-            onUpdateProgress(progresses + (image.id to 0f))
+            onUpdateProgress(image.id, 0f)
 
             val result =
                 galleryRepository.downloadImage(image) { progress ->
-                    progresses[image.id] = progress
-
-                    onUpdateProgress(progresses.toMap())
+                    onUpdateProgress(image.id, progress)
                 }
 
             if (result.isSuccess) {
@@ -98,8 +93,7 @@ abstract class BaseViewModel(
                 sendMessage(R.string.msg_download_failed)
             }
 
-            progresses.remove(image.id)
-            onUpdateProgress(progresses.toMap())
+            onUpdateProgress(image.id, null)
         }
     }
 }
