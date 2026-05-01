@@ -75,6 +75,7 @@ fun FullScreenImage(
     var offsetY by remember { mutableStateOf(0f) }
     var showUnfavoriteDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var shouldNavigateToNextPage by remember { mutableStateOf(false) }
     var userIsPlaying by remember { mutableStateOf(true) }
     var userIsMuted by remember { mutableStateOf(alwaysMuteVideo) }
     var playbackSpeed by remember { mutableFloatStateOf(1.0f) }
@@ -98,6 +99,18 @@ fun FullScreenImage(
             view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
     }
 
+    LaunchedEffect(shouldNavigateToNextPage) {
+        if (shouldNavigateToNextPage) {
+            val newIndex =
+                if (pagerState.currentPage + 1 < images.size) pagerState.currentPage + 1
+                else if (pagerState.currentPage - 1 >= 0) pagerState.currentPage - 1 else null
+
+            if (newIndex != null) pagerState.scrollToPage(newIndex)
+
+            shouldNavigateToNextPage = false
+        }
+    }
+
     if (showUnfavoriteDialog) {
         ConfirmationDialog(
             title = stringResource(R.string.dialog_unfavorite_title),
@@ -106,7 +119,13 @@ fun FullScreenImage(
                 if (pagerState.currentPage < images.size) {
                     onToggleFavorite(images[pagerState.currentPage])
 
-                    if (viewMode == "favorites") onDismiss()
+                    if (viewMode == "favorites") {
+                        val canNavigate =
+                            pagerState.currentPage + 1 < images.size ||
+                                pagerState.currentPage - 1 >= 0
+
+                        if (canNavigate) shouldNavigateToNextPage = true
+                    }
                 }
 
                 showUnfavoriteDialog = false
@@ -122,7 +141,11 @@ fun FullScreenImage(
             onConfirm = {
                 if (pagerState.currentPage < images.size) {
                     onDeleteLocalFile(images[pagerState.currentPage])
-                    onDismiss()
+
+                    val canNavigate =
+                        pagerState.currentPage + 1 < images.size || pagerState.currentPage - 1 >= 0
+
+                    if (canNavigate) shouldNavigateToNextPage = true
                 }
 
                 showDeleteDialog = false
