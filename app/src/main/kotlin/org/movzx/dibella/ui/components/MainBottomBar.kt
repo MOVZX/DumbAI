@@ -19,12 +19,17 @@ import androidx.compose.ui.unit.dp
 import org.movzx.dibella.R
 
 @Composable
-fun MainBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
+fun MainBottomBar(
+    currentRoute: String?,
+    onNavigate: (String) -> Unit,
+    feedCount: Int = 0,
+    favoritesCount: Int = 0,
+    galleryCount: Int = 0,
+) {
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         tonalElevation = 0.dp,
-        modifier =
-            Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)),
+        windowInsets = WindowInsets(0, 0, 0, 0),
     ) {
         val feedSelected = currentRoute == "feed"
 
@@ -39,11 +44,23 @@ fun MainBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
             selected = feedSelected,
             onClick = { if (feedSelected.not()) onNavigate("feed") },
             icon = {
-                Icon(
-                    if (feedSelected) Icons.Filled.Home else Icons.Default.Home,
-                    contentDescription = stringResource(R.string.nav_feed),
-                    modifier = Modifier.scale(feedScale),
-                )
+                BadgedBox(
+                    badge = {
+                        if (feedCount > 0)
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ) {
+                                Text(feedCount.toString())
+                            }
+                    }
+                ) {
+                    Icon(
+                        if (feedSelected) Icons.Filled.Home else Icons.Default.Home,
+                        contentDescription = stringResource(R.string.nav_feed),
+                        modifier = Modifier.scale(feedScale),
+                    )
+                }
             },
             label = null,
             colors =
@@ -66,11 +83,23 @@ fun MainBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
             selected = favSelected,
             onClick = { if (favSelected.not()) onNavigate("favorites") },
             icon = {
-                Icon(
-                    if (favSelected) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = stringResource(R.string.nav_favorites),
-                    modifier = Modifier.scale(favScale),
-                )
+                BadgedBox(
+                    badge = {
+                        if (favoritesCount > 0)
+                            Badge(
+                                containerColor = colorResource(R.color.error),
+                                contentColor = androidx.compose.ui.graphics.Color.White,
+                            ) {
+                                Text(favoritesCount.toString())
+                            }
+                    }
+                ) {
+                    Icon(
+                        if (favSelected) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = stringResource(R.string.nav_favorites),
+                        modifier = Modifier.scale(favScale),
+                    )
+                }
             },
             label = null,
             colors =
@@ -93,11 +122,24 @@ fun MainBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
             selected = gallerySelected,
             onClick = { if (gallerySelected.not()) onNavigate("gallery") },
             icon = {
-                Icon(
-                    if (gallerySelected) Icons.Filled.Collections else Icons.Outlined.Collections,
-                    contentDescription = stringResource(R.string.nav_gallery),
-                    modifier = Modifier.scale(galleryScale),
-                )
+                BadgedBox(
+                    badge = {
+                        if (galleryCount > 0)
+                            Badge(
+                                containerColor = colorResource(R.color.success),
+                                contentColor = androidx.compose.ui.graphics.Color.White,
+                            ) {
+                                Text(galleryCount.toString())
+                            }
+                    }
+                ) {
+                    Icon(
+                        if (gallerySelected) Icons.Filled.Collections
+                        else Icons.Outlined.Collections,
+                        contentDescription = stringResource(R.string.nav_gallery),
+                        modifier = Modifier.scale(galleryScale),
+                    )
+                }
             },
             label = null,
             colors =

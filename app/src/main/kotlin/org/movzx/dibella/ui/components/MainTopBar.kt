@@ -64,11 +64,10 @@ fun SelectionTopBar(
         },
         colors =
             TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                containerColor = androidx.compose.ui.graphics.Color.Transparent,
                 titleContentColor = MaterialTheme.colorScheme.onSurface,
             ),
-        modifier =
-            Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+        windowInsets = WindowInsets(0, 0, 0, 0),
     )
 }
 
@@ -139,10 +138,9 @@ fun MainTopBar(
         },
         colors =
             TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                containerColor = androidx.compose.ui.graphics.Color.Transparent,
                 titleContentColor = MaterialTheme.colorScheme.onSurface,
             ),
-        modifier =
-            Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+        windowInsets = WindowInsets(0, 0, 0, 0),
     )
 }

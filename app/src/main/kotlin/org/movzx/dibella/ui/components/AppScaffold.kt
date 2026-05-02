@@ -1,5 +1,10 @@
 package org.movzx.dibella.ui.components
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.material.icons.Icons
@@ -7,10 +12,14 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,9 +37,114 @@ fun AppScaffold(
     onLoadMore: () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    val fabContent =
-        remember(onRefresh, onLoadMore, isLoading, hasMore, showRefresh, gridState) {
-            @Composable {
+    var isBarsVisible by remember { mutableStateOf(true) }
+    val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -15f && isBarsVisible) isBarsVisible = false
+                else if (available.y > 40f && !isBarsVisible) isBarsVisible = true
+
+                return Offset.Zero
+            }
+        }
+    }
+
+    val barTranslation by
+        animateFloatAsState(
+            targetValue = if (isBarsVisible) 0f else 1f,
+            animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+            label = "barTranslation",
+        )
+
+    val scrollProgress by
+        remember(gridState) {
+            derivedStateOf {
+                val layoutInfo = gridState.layoutInfo
+                val totalItems = layoutInfo.totalItemsCount
+
+                if (totalItems <= 0) 0f
+                else {
+                    val firstItem = layoutInfo.visibleItemsInfo.firstOrNull()
+
+                    if (firstItem == null) 0f else firstItem.index.toFloat() / totalItems.toFloat()
+                }
+            }
+        }
+
+    Box(modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection)) {
+        content(
+            PaddingValues(
+                top = 64.dp + systemBarsPadding.calculateTopPadding(),
+                bottom = 80.dp + systemBarsPadding.calculateBottomPadding(),
+            )
+        )
+
+        val barColor = MaterialTheme.colorScheme.surface
+
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .graphicsLayer { translationY = -barTranslation * size.height }
+                    .background(barColor)
+                    .statusBarsPadding()
+        ) {
+            topBar()
+        }
+
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .height(3.dp)
+                    .align(Alignment.BottomCenter)
+                    .graphicsLayer {
+                        val bottomBarHeight =
+                            80.dp.toPx() + systemBarsPadding.calculateBottomPadding().toPx()
+
+                        translationY = -(1f - barTranslation) * bottomBarHeight
+                    }
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+        ) {
+            Box(
+                modifier =
+                    Modifier.fillMaxHeight()
+                        .fillMaxWidth(scrollProgress.coerceIn(0f, 1f))
+                        .background(MaterialTheme.colorScheme.primary)
+            )
+        }
+
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .graphicsLayer { translationY = barTranslation * size.height }
+                    .background(barColor)
+                    .navigationBarsPadding()
+        ) {
+            bottomBar()
+        }
+
+        val fabAlpha by
+            animateFloatAsState(
+                targetValue = if (isBarsVisible) 1f else 0f,
+                animationSpec = tween(200),
+                label = "fabAlpha",
+            )
+
+        if (fabAlpha > 0.01f) {
+            Box(
+                modifier =
+                    Modifier.align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                        .padding(bottom = 80.dp + systemBarsPadding.calculateBottomPadding())
+                        .graphicsLayer {
+                            alpha = fabAlpha
+                            scaleX = fabAlpha
+                            scaleY = fabAlpha
+                        }
+            ) {
                 AppFab(
                     gridState = gridState,
                     isLoading = isLoading,
@@ -41,13 +155,7 @@ fun AppScaffold(
                 )
             }
         }
-
-    Scaffold(
-        topBar = topBar,
-        bottomBar = bottomBar,
-        floatingActionButton = fabContent,
-        content = content,
-    )
+    }
 }
 
 @Composable

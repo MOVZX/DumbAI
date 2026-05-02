@@ -57,10 +57,11 @@ fun Modifier.scrollbar(state: ScrollState, width: Dp = 4.dp, color: Color? = nul
 
 fun Modifier.gridScrollbar(
     state: androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState,
-    width: Dp = 4.dp,
+    width: Dp = 5.dp,
     color: Color? = null,
+    endOffset: Dp = 2.dp,
 ): Modifier = composed {
-    val barColor = color ?: MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    val barColor = color ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
     val targetAlpha = if (state.isScrollInProgress) 1f else 0f
     val duration = if (state.isScrollInProgress) 150 else 500
 
@@ -86,14 +87,14 @@ fun Modifier.gridScrollbar(
 
             val barHeight =
                 (visibleCount.toFloat() / totalItems.toFloat() * viewHeight).coerceAtLeast(
-                    width.toPx() * 2
+                    width.toPx() * 3
                 )
 
             val barOffset = (firstItem.index.toFloat() / totalItems.toFloat() * viewHeight)
 
             drawRect(
                 color = barColor.copy(alpha = alpha * barColor.alpha),
-                topLeft = Offset(size.width - width.toPx(), barOffset),
+                topLeft = Offset(size.width - width.toPx() - endOffset.toPx(), barOffset),
                 size = Size(width.toPx(), barHeight),
             )
         }

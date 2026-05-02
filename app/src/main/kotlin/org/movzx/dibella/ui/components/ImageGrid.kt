@@ -13,7 +13,6 @@ import coil3.ImageLoader
 import kotlinx.coroutines.flow.Flow
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FavoriteImage
-import org.movzx.dibella.util.gridScrollbar
 
 @Composable
 fun ImageGrid(
@@ -27,8 +26,10 @@ fun ImageGrid(
     showFavorite: Boolean,
     viewMode: String,
     favoritesPath: String? = null,
+    isSelected: (Long) -> Boolean = { false },
     isSelectionMode: Boolean = false,
     selectedIds: Set<Long> = emptySet(),
+    contentPadding: PaddingValues = PaddingValues(8.dp),
     onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
     onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onEnsureFavoriteResourcesThrottled: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
@@ -75,7 +76,7 @@ fun ImageGrid(
         columns = StaggeredGridCells.Fixed(columnCount),
         state = state,
         modifier =
-            Modifier.fillMaxSize().gridScrollbar(state).pointerInput(columnCount) {
+            Modifier.fillMaxSize().pointerInput(columnCount) {
                 awaitEachGesture {
                     var totalZoom = 1f
 
@@ -107,7 +108,7 @@ fun ImageGrid(
                     } while (event.changes.any { it.pressed })
                 }
             },
-        contentPadding = PaddingValues(8.dp),
+        contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalItemSpacing = 8.dp,
     ) {
@@ -156,19 +157,15 @@ fun ImageGrid(
             )
         }
 
-        if (isLoading && images.isNotEmpty()) {
-            items(count = columnCount * 2, contentType = { "skeleton" }) { index ->
-                val aspectRatios = listOf(0.8f, 1.0f, 1.2f, 1.4f, 0.75f, 1.33f, 0.67f, 1.5f)
-                val aspectRatio = aspectRatios[index % aspectRatios.size]
-
-                Box(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .aspectRatio(aspectRatio)
-                            .clip(MaterialTheme.shapes.large)
-                            .shimmerBackground()
-                )
-            }
+        if (isLoading) {
+            items(columnCount)
+            Box(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(MaterialTheme.shapes.large)
+                        .shimmerBackground()
+            )
         }
     }
 }

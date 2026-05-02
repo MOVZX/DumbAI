@@ -7,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -98,6 +97,10 @@ fun GalleryScreen(
         )
     }
 
+    val feedViewModel: org.movzx.dibella.viewmodel.FeedViewModel = hiltViewModel(activity)
+    val feedState by feedViewModel.uiState.collectAsState()
+    val feedCount = if (feedState.isLoading) 0 else feedState.images.size
+
     AppScaffold(
         topBar = {
             InteractiveTopBar(
@@ -118,54 +121,59 @@ fun GalleryScreen(
                 onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
             )
         },
-        bottomBar = { MainBottomBar(currentRoute, onNavigate) },
+        bottomBar = {
+            MainBottomBar(
+                currentRoute = currentRoute,
+                onNavigate = onNavigate,
+                feedCount = feedCount,
+                favoritesCount = favoritesState.images.size,
+                galleryCount = uiState.images.size,
+            )
+        },
         gridState = gridState,
         isLoading = uiState.isLoading,
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            ImageGrid(
-                images =
+        ImageGrid(
+            images =
+                if (uiState.isShowingDuplicates) uiState.duplicateGroups.flatten()
+                else uiState.images,
+            imageLoader = imageLoader,
+            state = gridState,
+            isLoading = uiState.isLoading,
+            favoriteIds = favoritesState.favoriteIds,
+            downloadProgresses = uiState.downloadProgresses,
+            columnCount = uiState.gridColumns,
+            showFavorite = false,
+            viewMode = "gallery",
+            isSelectionMode = uiState.isSelectionMode,
+            selectedIds = uiState.selectedIds,
+            contentPadding = padding,
+            onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
+            onEnsureFavoriteResources = { img, force, onProgress ->
+                favViewModel.ensureFavoriteResources(img, force, onProgress)
+            },
+            onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
+                favViewModel.ensureFavoriteResourcesThrottled(img, force, onProgress)
+            },
+            onImageClick = { image ->
+                val images =
                     if (uiState.isShowingDuplicates) uiState.duplicateGroups.flatten()
-                    else uiState.images,
-                imageLoader = imageLoader,
-                state = gridState,
-                isLoading = uiState.isLoading,
-                favoriteIds = favoritesState.favoriteIds,
-                downloadProgresses = favoritesState.downloadProgresses,
-                columnCount = uiState.gridColumns,
-                showFavorite = false,
-                viewMode = "gallery",
-                isSelectionMode = uiState.isSelectionMode,
-                selectedIds = uiState.selectedIds,
-                onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
-                onEnsureFavoriteResources = { img, force, onProgress ->
-                    favViewModel.ensureFavoriteResources(img, force, onProgress)
-                },
-                onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
-                    favViewModel.ensureFavoriteResourcesThrottled(img, force, onProgress)
-                },
-                onImageClick = { image ->
-                    val images =
-                        if (uiState.isShowingDuplicates) uiState.duplicateGroups.flatten()
-                        else uiState.images
+                    else uiState.images
 
-                    val index = images.indexOf(image)
+                val index = images.indexOf(image)
 
-                    if (index != -1) onImageClick(images, index, "gallery")
-                },
-                onToggleFavorite = { favViewModel.toggleFavorite(it) },
-                onRetryThumbnail = { url, onComplete ->
-                    favViewModel.retryThumbnail(url, onComplete)
-                },
-                onUpdateGridColumns = { viewModel.updateGridColumns(it) },
-                onToggleSelection = { viewModel.toggleSelection(it) },
-                onLongClick = { viewModel.toggleSelection(it) },
-                autoplayEnabled = feedVideoAutoplay,
-                isPreviewOpen = selectedImageIndex != null,
-            )
+                if (index != -1) onImageClick(images, index, "gallery")
+            },
+            onToggleFavorite = { favViewModel.toggleFavorite(it) },
+            onRetryThumbnail = { url, onComplete -> favViewModel.retryThumbnail(url, onComplete) },
+            onUpdateGridColumns = { viewModel.updateGridColumns(it) },
+            onToggleSelection = { viewModel.toggleSelection(it) },
+            onLongClick = { viewModel.toggleSelection(it) },
+            autoplayEnabled = feedVideoAutoplay,
+            isPreviewOpen = selectedImageIndex != null,
+        )
 
-            if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)
-                EmptyState("gallery")
-        }
+        if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)
+            EmptyState("gallery")
     }
 }

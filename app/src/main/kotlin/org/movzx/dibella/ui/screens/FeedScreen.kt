@@ -68,6 +68,11 @@ fun FeedScreen(
         }
     }
 
+    val favState by favViewModel.uiState.collectAsState()
+    val galleryViewModel: org.movzx.dibella.viewmodel.GalleryViewModel = hiltViewModel(activity)
+    val galleryState by galleryViewModel.uiState.collectAsState()
+    val feedCount = uiState.images.size
+
     AppScaffold(
         topBar = {
             MainTopBar(
@@ -78,7 +83,15 @@ fun FeedScreen(
                 onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
             )
         },
-        bottomBar = { MainBottomBar(currentRoute, onNavigate) },
+        bottomBar = {
+            MainBottomBar(
+                currentRoute = currentRoute,
+                onNavigate = onNavigate,
+                feedCount = feedCount,
+                favoritesCount = favState.images.size,
+                galleryCount = galleryState.images.size,
+            )
+        },
         gridState = gridState,
         isLoading = uiState.isLoading,
         hasMore = uiState.hasMore,
@@ -86,49 +99,46 @@ fun FeedScreen(
         onRefresh = { viewModel.refresh() },
         onLoadMore = { viewModel.loadMore() },
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            PullToRefreshBox(
-                isRefreshing = false,
-                onRefresh = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                ImageGrid(
-                    images = uiState.images,
-                    imageLoader = imageLoader,
-                    state = gridState,
-                    isLoading = uiState.isLoading,
-                    favoriteIds = uiState.favoriteIds,
-                    downloadProgresses = uiState.downloadProgresses,
-                    columnCount = uiState.gridColumns,
-                    showFavorite = true,
-                    viewMode = "feed",
-                    favoritesPath = favoritesPath,
-                    onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
-                    onEnsureFavoriteResources = { img, force, onProgress ->
-                        favViewModel.ensureFavoriteResources(img, force, onProgress)
-                    },
-                    onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
-                        favViewModel.ensureFavoriteResourcesThrottled(img, force, onProgress)
-                    },
-                    onImageClick = { image ->
-                        val index = uiState.images.indexOf(image)
+        PullToRefreshBox(
+            isRefreshing = false,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            ImageGrid(
+                images = uiState.images,
+                imageLoader = imageLoader,
+                state = gridState,
+                isLoading = uiState.isLoading,
+                favoriteIds = uiState.favoriteIds,
+                downloadProgresses = uiState.downloadProgresses,
+                columnCount = uiState.gridColumns,
+                showFavorite = true,
+                viewMode = "feed",
+                favoritesPath = favoritesPath,
+                contentPadding = padding,
+                onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
+                onEnsureFavoriteResources = { img, force, onProgress ->
+                    favViewModel.ensureFavoriteResources(img, force, onProgress)
+                },
+                onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
+                    favViewModel.ensureFavoriteResourcesThrottled(img, force, onProgress)
+                },
+                onImageClick = { image ->
+                    val index = uiState.images.indexOf(image)
 
-                        if (index != -1) onImageClick(uiState.images, index, "feed")
-                    },
-                    onToggleFavorite = { viewModel.toggleFavorite(it) },
-                    onRetryThumbnail = { url, onComplete ->
-                        viewModel.retryThumbnail(url, onComplete)
-                    },
-                    onUpdateGridColumns = { viewModel.updateGridColumns(it) },
-                    autoplayEnabled = feedVideoAutoplay,
-                    isPreviewOpen = selectedImageIndex != null,
-                )
-            }
-
-            if (uiState.isLoading && uiState.images.isEmpty())
-                SkeletonGrid(columnCount = uiState.gridColumns)
-
-            if (uiState.images.isEmpty() && !uiState.isLoading) EmptyState("feed")
+                    if (index != -1) onImageClick(uiState.images, index, "feed")
+                },
+                onToggleFavorite = { viewModel.toggleFavorite(it) },
+                onRetryThumbnail = { url, onComplete -> viewModel.retryThumbnail(url, onComplete) },
+                onUpdateGridColumns = { viewModel.updateGridColumns(it) },
+                autoplayEnabled = feedVideoAutoplay,
+                isPreviewOpen = selectedImageIndex != null,
+            )
         }
+
+        if (uiState.isLoading && uiState.images.isEmpty())
+            SkeletonGrid(columnCount = uiState.gridColumns)
+
+        if (uiState.images.isEmpty() && !uiState.isLoading) EmptyState("feed")
     }
 }
