@@ -228,6 +228,7 @@ fun playerPoolSizeForColumns(columns: Int): Int {
         1 -> 4
         2 -> 10
         3 -> 18
+        4 -> 24
         else -> 12
     }
 }

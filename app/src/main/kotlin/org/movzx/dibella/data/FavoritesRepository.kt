@@ -692,15 +692,13 @@ class FavoritesRepository(
             val thumbDir = getMediaDir(image.type ?: TYPE_IMAGE, "thumbnail")
             val previewDir = getMediaDir(image.type ?: TYPE_IMAGE, "preview")
             val thumbBaseName = if (image.type == TYPE_VIDEO) "${image.id}_thumb" else "${image.id}"
-            val imageExtensions = listOf("jpg", "png", "webp", "gif", "avif")
-            val videoExtensions = listOf("mp4", "webm", "mkv")
 
-            imageExtensions.forEach { ext ->
+            FileUtils.IMAGE_EXTENSIONS.forEach { ext ->
                 File(thumbDir, "$thumbBaseName.$ext").let { if (it.exists()) it.delete() }
                 File(previewDir, "${image.id}_full.$ext").let { if (it.exists()) it.delete() }
             }
 
-            videoExtensions.forEach { ext ->
+            FileUtils.VIDEO_EXTENSIONS.forEach { ext ->
                 File(previewDir, "${image.id}.$ext").let { if (it.exists()) it.delete() }
             }
 
