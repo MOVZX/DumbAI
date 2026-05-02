@@ -40,7 +40,8 @@ fun VideoPlayer(
     onFpsUpdate: (Int) -> Unit = {},
     onPlayerTypeUpdate: (String) -> Unit = {},
     onAudioStateChange: (Boolean) -> Unit = {},
-    onPlaybackError: (String?) -> Unit = {},
+    onPlaybackError: (String?) -> Unit = { _ -> },
+    onReady: () -> Unit = {},
     onZoomChange: (Boolean) -> Unit = {},
     onTap: () -> Unit = {},
     onLongPress: () -> Unit = {},
@@ -128,6 +129,7 @@ fun VideoPlayer(
                 onFpsUpdate = onFpsUpdate,
                 onAudioStateChange = onAudioStateChange,
                 onPlaybackError = onPlaybackError,
+                onReady = onReady,
                 onSwitchToMpv = { useMpv = true },
                 seekPosition = seekPosition,
                 onSeekConsumed = onSeekConsumed,
@@ -149,6 +151,7 @@ private fun ExoVideoPlayer(
     onFpsUpdate: (Int) -> Unit,
     onAudioStateChange: (Boolean) -> Unit,
     onPlaybackError: (String?) -> Unit,
+    onReady: () -> Unit,
     onSwitchToMpv: () -> Unit,
     seekPosition: Long?,
     onSeekConsumed: () -> Unit,
@@ -252,6 +255,7 @@ private fun ExoVideoPlayer(
 
                     override fun onRenderedFirstFrame() {
                         isReady = true
+                        onReady()
                     }
                 }
             exoPlayer.addListener(listener)

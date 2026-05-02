@@ -314,31 +314,11 @@ fun ImageCard(
         var isError by remember { mutableStateOf(false) }
         var isLoading by remember { mutableStateOf(true) }
         var videoProgress by remember { mutableFloatStateOf(0f) }
+        var isVideoReady by remember(image.id) { mutableStateOf(false) }
 
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            androidx.compose.animation.AnimatedContent(
-                targetState = imageRequest,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(300)) togetherWith
-                        fadeOut(animationSpec = tween(300))
-                },
-                label = "ImageContent",
-            ) { targetRequest ->
-                AsyncImage(
-                    model = targetRequest,
-                    imageLoader = imageLoader,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    onState = { state ->
-                        isLoading = state is coil3.compose.AsyncImagePainter.State.Loading
-                        isError = state is coil3.compose.AsyncImagePainter.State.Error
-                    },
-                )
-            }
-
             if (videoData != null && isVisibleInViewport && isAutoplayDebounced && !videoError) {
                 VideoPlayer(
                     url = videoData,
@@ -348,11 +328,43 @@ fun ImageCard(
                     onProgressUpdate = { pos, dur ->
                         if (dur > 0) videoProgress = pos.toFloat() / dur.toFloat()
                     },
+                    onReady = { isVideoReady = true },
                     onPlaybackError = { videoError = true },
                     onTap = { if (isSelectionMode) onToggleSelection() else onClick(image) },
                     onLongPress = onLongClick,
                     modifier = Modifier.fillMaxSize(),
                 )
+            }
+
+            val thumbnailAlpha by
+                animateFloatAsState(
+                    targetValue = if (isVideoReady) 0f else 1f,
+                    animationSpec = tween(durationMillis = 300),
+                    label = "thumbnailAlpha",
+                )
+
+            if (thumbnailAlpha > 0.01f) {
+                androidx.compose.animation.AnimatedContent(
+                    targetState = imageRequest,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(300)) togetherWith
+                            fadeOut(animationSpec = tween(300))
+                    },
+                    label = "ImageContent",
+                    modifier = Modifier.graphicsLayer { alpha = thumbnailAlpha },
+                ) { targetRequest ->
+                    AsyncImage(
+                        model = targetRequest,
+                        imageLoader = imageLoader,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onState = { state ->
+                            isLoading = state is coil3.compose.AsyncImagePainter.State.Loading
+                            isError = state is coil3.compose.AsyncImagePainter.State.Error
+                        },
+                    )
+                }
             }
 
             if (isSelected) {

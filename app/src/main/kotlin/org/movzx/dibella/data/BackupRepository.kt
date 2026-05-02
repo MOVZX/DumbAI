@@ -60,7 +60,7 @@ constructor(
 
                 val backup =
                     AppBackup(
-                        version = 4,
+                        version = 1,
                         settings = settings,
                         favorites = favorites,
                         feedItems = feedItems,

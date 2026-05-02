@@ -72,6 +72,24 @@ fun ImageGrid(
         }
     }
 
+    val focusedItemId by remember {
+        derivedStateOf {
+            val layoutInfo = state.layoutInfo
+
+            val viewportCenter =
+                (layoutInfo.viewportEndOffset + layoutInfo.viewportStartOffset) / 2f
+
+            layoutInfo.visibleItemsInfo
+                .filter { it.key is Long }
+                .minByOrNull { item ->
+                    val itemCenter = item.offset.y + (item.size.height / 2f)
+
+                    Math.abs(itemCenter - viewportCenter)
+                }
+                ?.key as? Long
+        }
+    }
+
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(columnCount),
         state = state,
@@ -157,15 +175,15 @@ fun ImageGrid(
             )
         }
 
-        if (isLoading) {
-            items(columnCount)
-            Box(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clip(MaterialTheme.shapes.large)
-                        .shimmerBackground()
-            )
-        }
+        if (isLoading)
+            items(columnCount) {
+                Box(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(MaterialTheme.shapes.large)
+                            .shimmerBackground()
+                )
+            }
     }
 }
