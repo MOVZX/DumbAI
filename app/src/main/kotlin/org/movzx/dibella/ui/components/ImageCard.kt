@@ -105,6 +105,7 @@ fun ImageCard(
 
     var isAutoplayDebounced by remember { mutableStateOf(false) }
     var videoError by remember { mutableStateOf(false) }
+    var isLongPressPreviewActive by remember { mutableStateOf(false) }
 
     LaunchedEffect(isVisibleInViewport) {
         if (isVisibleInViewport) {
@@ -113,12 +114,13 @@ fun ImageCard(
             isAutoplayDebounced = true
         } else {
             isAutoplayDebounced = false
+            isLongPressPreviewActive = false
         }
     }
 
     val videoData =
-        remember(image.url, favoriteInfo, autoplayEnabled, favDir) {
-            if (autoplayEnabled && image.type == "video") {
+        remember(image.url, favoriteInfo, autoplayEnabled, isLongPressPreviewActive, favDir) {
+            if ((autoplayEnabled || isLongPressPreviewActive) && image.type == "video") {
                 org.movzx.dibella.util.resolveImageData(
                     context,
                     image,
@@ -302,6 +304,9 @@ fun ImageCard(
                     },
                     onLongClick = {
                         view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+
+                        if (image.type == "video") isLongPressPreviewActive = true
+
                         onLongClick()
                     },
                 ),
@@ -314,7 +319,7 @@ fun ImageCard(
         var isError by remember { mutableStateOf(false) }
         var isLoading by remember { mutableStateOf(true) }
         var videoProgress by remember { mutableFloatStateOf(0f) }
-        var isVideoReady by remember(image.id) { mutableStateOf(false) }
+        var isVideoReady by remember(image.id, videoData == null) { mutableStateOf(false) }
 
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
@@ -338,7 +343,8 @@ fun ImageCard(
 
             val thumbnailAlpha by
                 animateFloatAsState(
-                    targetValue = if (isVideoReady) 0f else 1f,
+                    targetValue =
+                        if (isVideoReady && !isScrolling && isVisibleInViewport) 0f else 1f,
                     animationSpec = tween(durationMillis = 300),
                     label = "thumbnailAlpha",
                 )

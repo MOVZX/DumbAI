@@ -18,9 +18,6 @@ fun AppFab(
     gridState: LazyStaggeredGridState,
     isLoading: Boolean = false,
     hasMore: Boolean = false,
-    showRefresh: Boolean = false,
-    onRefresh: () -> Unit = {},
-    onLoadMore: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val showScrollToTop by remember { derivedStateOf { gridState.firstVisibleItemIndex > 0 } }
@@ -46,21 +43,6 @@ fun AppFab(
             }
         }
 
-        if (showRefresh && !isLoading && !showScrollToTop) {
-            FloatingActionButton(
-                onClick = onRefresh,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    Icons.Default.Refresh,
-                    stringResource(R.string.desc_refresh),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-
         if (showScrollToBottom) {
             FloatingActionButton(
                 onClick = {
@@ -75,21 +57,6 @@ fun AppFab(
                 Icon(
                     Icons.Default.ArrowDownward,
                     stringResource(R.string.desc_scroll_to_bottom),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-
-        if (hasMore && !isLoading && !showScrollToBottom) {
-            FloatingActionButton(
-                onClick = onLoadMore,
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    Icons.Default.KeyboardDoubleArrowDown,
-                    stringResource(R.string.desc_load_more),
                     modifier = Modifier.size(20.dp),
                 )
             }

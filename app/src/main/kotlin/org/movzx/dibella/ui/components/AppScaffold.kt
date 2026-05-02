@@ -1,14 +1,13 @@
 package org.movzx.dibella.ui.components
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material3.*
@@ -22,6 +21,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import org.movzx.dibella.R
 
@@ -40,22 +40,93 @@ fun AppScaffold(
     var isBarsVisible by remember { mutableStateOf(true) }
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
 
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -15f && isBarsVisible) isBarsVisible = false
-                else if (available.y > 15f && !isBarsVisible) isBarsVisible = true
+    var pullOffset by remember { mutableFloatStateOf(0f) }
+    val pullThreshold = 80.dp
+    val pullLimit = 140.dp
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val pullThresholdPx = with(density) { pullThreshold.toPx() }
+    val pullLimitPx = with(density) { pullLimit.toPx() }
 
-                return Offset.Zero
+    val nestedScrollConnection =
+        remember(isBarsVisible, hasMore, isLoading, showRefresh) {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    // Reset pull offset if scrolling in opposite direction of current pull
+                    if (available.y > 0 && pullOffset < 0) {
+                        val consumed =
+                            if (available.y + pullOffset > 0) -pullOffset else available.y
+
+                        pullOffset += consumed
+
+                        return Offset(0f, consumed)
+                    }
+
+                    if (available.y < -15f && isBarsVisible) isBarsVisible = false
+                    else if (available.y > 40f && !isBarsVisible) isBarsVisible = true
+
+                    return Offset.Zero
+                }
+
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
+                    if (isLoading) return Offset.Zero
+
+                    if (available.y > 0 && showRefresh) {
+                        val progress = (pullOffset / pullLimitPx).coerceIn(0f, 1f)
+                        val resistance = 1f - progress
+                        pullOffset =
+                            (pullOffset + available.y * 0.5f * resistance).coerceAtMost(pullLimitPx)
+
+                        return Offset(0f, available.y)
+                    }
+
+                    if (available.y < 0 && hasMore) {
+                        val progress = (Math.abs(pullOffset) / pullLimitPx).coerceIn(0f, 1f)
+                        val resistance = 1f - progress
+                        pullOffset =
+                            (pullOffset + available.y * 0.5f * resistance).coerceAtLeast(
+                                -pullLimitPx
+                            )
+
+                        return Offset(0f, available.y)
+                    }
+
+                    return Offset.Zero
+                }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    return Velocity.Zero
+                }
+
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity,
+                ): Velocity {
+                    if (pullOffset > pullThresholdPx) onRefresh()
+                    else if (pullOffset < -pullThresholdPx) onLoadMore()
+
+                    pullOffset = 0f
+
+                    return Velocity.Zero
+                }
             }
         }
-    }
 
     val barTranslation by
         animateFloatAsState(
             targetValue = if (isBarsVisible) 0f else 1f,
             animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
             label = "barTranslation",
+        )
+
+    val animatedPullOffset by
+        animateFloatAsState(
+            targetValue = pullOffset,
+            animationSpec = spring(stiffness = Spring.StiffnessLow),
+            label = "pullOffset",
         )
 
     val scrollProgress by
@@ -74,12 +145,54 @@ fun AppScaffold(
         }
 
     Box(modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection)) {
-        content(
-            PaddingValues(
-                top = 64.dp + systemBarsPadding.calculateTopPadding(),
-                bottom = 80.dp + systemBarsPadding.calculateBottomPadding(),
+        Box(modifier = Modifier.fillMaxSize().graphicsLayer { translationY = animatedPullOffset }) {
+            content(
+                PaddingValues(
+                    top = 64.dp + systemBarsPadding.calculateTopPadding(),
+                    bottom = 80.dp + systemBarsPadding.calculateBottomPadding(),
+                )
             )
-        )
+        }
+
+        if (pullOffset != 0f && !isLoading) {
+            val isTop = pullOffset > 0
+            val progress = (Math.abs(pullOffset) / pullThresholdPx).coerceIn(0f, 1.5f)
+
+            Box(
+                modifier =
+                    Modifier.align(if (isTop) Alignment.TopCenter else Alignment.BottomCenter)
+                        .padding(
+                            top =
+                                if (isTop) 100.dp + systemBarsPadding.calculateTopPadding()
+                                else 0.dp,
+                            bottom =
+                                if (!isTop) 100.dp + systemBarsPadding.calculateBottomPadding()
+                                else 0.dp,
+                        )
+                        .graphicsLayer {
+                            alpha = (progress / 1f).coerceIn(0f, 1f)
+                            scaleX = progress.coerceIn(0.5f, 1.2f)
+                            scaleY = progress.coerceIn(0.5f, 1.2f)
+                            translationY = animatedPullOffset * 0.5f
+                        }
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    shadowElevation = 4.dp,
+                ) {
+                    Icon(
+                        Icons.Default.KeyboardDoubleArrowDown,
+                        contentDescription = null,
+                        modifier =
+                            Modifier.padding(8.dp).size(24.dp).graphicsLayer {
+                                rotationZ = if (isTop) 0f else 180f
+                            },
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
 
         val barColor = MaterialTheme.colorScheme.surface
 
@@ -145,14 +258,7 @@ fun AppScaffold(
                             scaleY = fabAlpha
                         }
             ) {
-                AppFab(
-                    gridState = gridState,
-                    isLoading = isLoading,
-                    hasMore = hasMore,
-                    showRefresh = showRefresh,
-                    onRefresh = onRefresh,
-                    onLoadMore = onLoadMore,
-                )
+                AppFab(gridState = gridState, isLoading = isLoading, hasMore = hasMore)
             }
         }
     }

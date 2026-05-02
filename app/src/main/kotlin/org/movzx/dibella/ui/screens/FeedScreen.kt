@@ -4,9 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.ImageLoader
@@ -99,42 +97,36 @@ fun FeedScreen(
         onRefresh = { viewModel.refresh() },
         onLoadMore = { viewModel.loadMore() },
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = false,
-            onRefresh = { viewModel.refresh() },
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            ImageGrid(
-                images = uiState.images,
-                imageLoader = imageLoader,
-                state = gridState,
-                isLoading = uiState.isLoading,
-                favoriteIds = uiState.favoriteIds,
-                downloadProgresses = uiState.downloadProgresses,
-                columnCount = uiState.gridColumns,
-                showFavorite = true,
-                viewMode = "feed",
-                favoritesPath = favoritesPath,
-                contentPadding = padding,
-                onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
-                onEnsureFavoriteResources = { img, force, onProgress ->
-                    favViewModel.ensureFavoriteResources(img, force, onProgress)
-                },
-                onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
-                    favViewModel.ensureFavoriteResourcesThrottled(img, force, onProgress)
-                },
-                onImageClick = { image ->
-                    val index = uiState.images.indexOf(image)
+        ImageGrid(
+            images = uiState.images,
+            imageLoader = imageLoader,
+            state = gridState,
+            isLoading = uiState.isLoading,
+            favoriteIds = uiState.favoriteIds,
+            downloadProgresses = uiState.downloadProgresses,
+            columnCount = uiState.gridColumns,
+            showFavorite = true,
+            viewMode = "feed",
+            favoritesPath = favoritesPath,
+            contentPadding = padding,
+            onGetFavoriteFlow = { favViewModel.getFavoriteFlow(it) },
+            onEnsureFavoriteResources = { img, force, onProgress ->
+                favViewModel.ensureFavoriteResources(img, force, onProgress)
+            },
+            onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
+                favViewModel.ensureFavoriteResourcesThrottled(img, force, onProgress)
+            },
+            onImageClick = { image ->
+                val index = uiState.images.indexOf(image)
 
-                    if (index != -1) onImageClick(uiState.images, index, "feed")
-                },
-                onToggleFavorite = { viewModel.toggleFavorite(it) },
-                onRetryThumbnail = { url, onComplete -> viewModel.retryThumbnail(url, onComplete) },
-                onUpdateGridColumns = { viewModel.updateGridColumns(it) },
-                autoplayEnabled = feedVideoAutoplay,
-                isPreviewOpen = selectedImageIndex != null,
-            )
-        }
+                if (index != -1) onImageClick(uiState.images, index, "feed")
+            },
+            onToggleFavorite = { viewModel.toggleFavorite(it) },
+            onRetryThumbnail = { url, onComplete -> viewModel.retryThumbnail(url, onComplete) },
+            onUpdateGridColumns = { viewModel.updateGridColumns(it) },
+            autoplayEnabled = feedVideoAutoplay,
+            isPreviewOpen = selectedImageIndex != null,
+        )
 
         if (uiState.isLoading && uiState.images.isEmpty())
             SkeletonGrid(columnCount = uiState.gridColumns)
