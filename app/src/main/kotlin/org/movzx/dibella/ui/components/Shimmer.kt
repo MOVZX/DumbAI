@@ -13,32 +13,30 @@ fun Modifier.shimmerBackground(): Modifier = composed {
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translateAnim by
         transition.animateFloat(
-            initialValue = -200f,
+            initialValue = 0f,
             targetValue = 1000f,
             animationSpec =
                 infiniteRepeatable(
-                    animation = tween(durationMillis = 1500, easing = LinearEasing),
+                    animation = tween(durationMillis = 1200, easing = LinearEasing),
                     repeatMode = RepeatMode.Restart,
                 ),
             label = "shimmer",
         )
 
-    val baseColor = MaterialTheme.colorScheme.surface
+    val baseColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
     val highlightColor = MaterialTheme.colorScheme.surfaceVariant
-
-    val shimmerColors =
-        listOf(
-            baseColor.copy(alpha = 0.9f),
-            highlightColor.copy(alpha = 0.4f),
-            baseColor.copy(alpha = 0.9f),
-        )
+    val shimmerColors = listOf(baseColor, highlightColor, baseColor)
 
     this.drawBehind {
+        val width = size.width
+        val height = size.height
+        val xPos = (translateAnim / 1000f) * (width + 500f) - 250f
+
         val brush =
             Brush.linearGradient(
                 colors = shimmerColors,
-                start = Offset(translateAnim, translateAnim),
-                end = Offset(translateAnim + 500f, translateAnim + 500f),
+                start = Offset(xPos, 0f),
+                end = Offset(xPos + 250f, height),
             )
 
         drawRect(brush = brush)

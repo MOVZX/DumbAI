@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -60,6 +62,9 @@ fun ImageCard(
     autoplayEnabled: Boolean = false,
     isVisibleInViewport: Boolean = false,
     isScrolling: Boolean = false,
+    animationIndex: Int = -1,
+    isPressed: Boolean = false,
+    onPressChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -183,6 +188,7 @@ fun ImageCard(
         }
 
     var showHeartAnimation by remember { mutableStateOf(false) }
+    var showHeartParticles by remember { mutableStateOf(false) }
     var isFirstComposition by remember { mutableStateOf(true) }
     var showUnfavoriteDialog by remember { mutableStateOf(false) }
     var showRedownloadDialog by remember { mutableStateOf(false) }
@@ -232,16 +238,63 @@ fun ImageCard(
         )
 
     LaunchedEffect(isFavorite) {
-        if (isFavorite && !isFirstComposition) showHeartAnimation = true
+        if (isFavorite && !isFirstComposition) {
+            showHeartAnimation = true
+            showHeartParticles = true
+        }
 
         isFirstComposition = false
     }
+
+    val interactionSource = remember {
+        androidx.compose.foundation.interaction.MutableInteractionSource()
+    }
+
+    val isPressedLocal by interactionSource.collectIsPressedAsState()
+
+    LaunchedEffect(isPressedLocal) { onPressChange(isPressedLocal) }
+
+    val scale by
+        animateFloatAsState(
+            targetValue = if (isPressed) 0.97f else 1f,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+            label = "CardScale",
+        )
+
+    var isVisible by remember { mutableStateOf(animationIndex == -1) }
+
+    LaunchedEffect(Unit) {
+        if (animationIndex != -1) {
+            delay((animationIndex % 12) * 80L)
+
+            isVisible = true
+        }
+    }
+
+    val entryProgress by
+        animateFloatAsState(
+            targetValue = if (isVisible) 1f else 0f,
+            animationSpec =
+                spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow,
+                ),
+            label = "EntryProgress",
+        )
 
     Card(
         modifier =
             Modifier.fillMaxWidth()
                 .aspectRatio(aspectRatio)
+                .graphicsLayer {
+                    alpha = entryProgress
+                    translationY = (1f - entryProgress) * 100f
+                    scaleX = scale
+                    scaleY = scale
+                }
                 .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = androidx.compose.foundation.LocalIndication.current,
                     onClick = {
                         view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
 
@@ -264,17 +317,26 @@ fun ImageCard(
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            AsyncImage(
-                model = imageRequest,
-                imageLoader = imageLoader,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                onState = { state ->
-                    isLoading = state is coil3.compose.AsyncImagePainter.State.Loading
-                    isError = state is coil3.compose.AsyncImagePainter.State.Error
+            androidx.compose.animation.AnimatedContent(
+                targetState = imageRequest,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300)) togetherWith
+                        fadeOut(animationSpec = tween(300))
                 },
-            )
+                label = "ImageContent",
+            ) { targetRequest ->
+                AsyncImage(
+                    model = targetRequest,
+                    imageLoader = imageLoader,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    onState = { state ->
+                        isLoading = state is coil3.compose.AsyncImagePainter.State.Loading
+                        isError = state is coil3.compose.AsyncImagePainter.State.Error
+                    },
+                )
+            }
 
             if (videoData != null && isVisibleInViewport && isAutoplayDebounced && !videoError) {
                 VideoPlayer(
@@ -460,6 +522,13 @@ fun ImageCard(
                 }
             }
 
+            if (showHeartParticles) {
+                HeartParticles(
+                    modifier = Modifier.align(Alignment.Center),
+                    onFinished = { showHeartParticles = false },
+                )
+            }
+
             if (heartScale > 0f) {
                 Icon(
                     imageVector = Icons.Filled.Favorite,
@@ -468,6 +537,45 @@ fun ImageCard(
                     modifier = Modifier.align(Alignment.Center).size(72.dp).scale(heartScale),
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun HeartParticles(modifier: Modifier = Modifier, onFinished: () -> Unit) {
+    val particles = remember { List(8) { it } }
+    val progress = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
+        )
+
+        onFinished()
+    }
+
+    Box(modifier = modifier) {
+        particles.forEach { index ->
+            val angle = index * (360f / particles.size)
+            val distance = 40.dp * progress.value
+            val alpha = 1f - progress.value
+            val scale = 0.5f + (1f - progress.value) * 0.5f
+
+            Icon(
+                imageVector = Icons.Filled.Favorite,
+                contentDescription = null,
+                tint = colorResource(org.movzx.dibella.R.color.error).copy(alpha = alpha),
+                modifier =
+                    Modifier.size(12.dp).graphicsLayer {
+                        val rad = Math.toRadians(angle.toDouble())
+
+                        translationX = (Math.cos(rad) * distance.toPx()).toFloat()
+                        translationY = (Math.sin(rad) * distance.toPx()).toFloat()
+                        scaleX = scale
+                        scaleY = scale
+                    },
+            )
         }
     }
 }

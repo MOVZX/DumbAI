@@ -1,15 +1,9 @@
 package org.movzx.dibella.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -43,8 +37,11 @@ fun ImageGrid(
     autoplayEnabled: Boolean = false,
     isPreviewOpen: Boolean = false,
 ) {
+    var pressedId by remember { mutableStateOf<Long?>(null) }
+    val animatedItems = remember { mutableSetOf<Long>() }
+
     val visibleItemIds by remember {
-        androidx.compose.runtime.derivedStateOf {
+        derivedStateOf {
             val layoutInfo = state.layoutInfo
             val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
 
@@ -77,7 +74,20 @@ fun ImageGrid(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalItemSpacing = 8.dp,
     ) {
-        items(items = images, key = { it.id }, contentType = { "civitai_image" }) { image ->
+        itemsIndexed(
+            items = images,
+            key = { _, it -> it.id },
+            contentType = { _, _ -> "civitai_image" },
+        ) { index, image ->
+            var isAnimated by
+                remember(image.id) { mutableStateOf(animatedItems.contains(image.id)) }
+
+            if (!isAnimated && visibleItemIds.contains(image.id)) {
+                isAnimated = true
+
+                animatedItems.add(image.id)
+            }
+
             ImageCard(
                 image = image,
                 imageLoader = imageLoader,
@@ -92,7 +102,10 @@ fun ImageGrid(
                 onGetFavoriteFlow = onGetFavoriteFlow,
                 onEnsureFavoriteResources = onEnsureFavoriteResources,
                 onEnsureFavoriteResourcesThrottled = onEnsureFavoriteResourcesThrottled,
-                onClick = onImageClick,
+                onClick = {
+                    pressedId = null
+                    onImageClick(it)
+                },
                 onToggleFavorite = onToggleFavorite,
                 onRetryThumbnail = onRetryThumbnail,
                 onToggleSelection = { onToggleSelection(image.id) },
@@ -100,6 +113,9 @@ fun ImageGrid(
                 autoplayEnabled = autoplayEnabled && !isPreviewOpen,
                 isVisibleInViewport = visibleItemIds.contains(image.id),
                 isScrolling = state.isScrollInProgress,
+                animationIndex = if (isAnimated) -1 else index,
+                isPressed = pressedId == image.id,
+                onPressChange = { isPressed -> pressedId = if (isPressed) image.id else null },
             )
         }
 

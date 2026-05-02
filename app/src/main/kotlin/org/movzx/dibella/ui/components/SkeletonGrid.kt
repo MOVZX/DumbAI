@@ -1,6 +1,5 @@
 package org.movzx.dibella.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -29,7 +28,7 @@ fun SkeletonGrid(columnCount: Int) {
                     Modifier.fillMaxWidth()
                         .aspectRatio(aspectRatio)
                         .clip(MaterialTheme.shapes.large)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .shimmerBackground()
             )
         }
     }

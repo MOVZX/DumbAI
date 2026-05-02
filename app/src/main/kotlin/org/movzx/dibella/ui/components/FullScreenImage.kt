@@ -8,6 +8,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -152,6 +153,14 @@ fun FullScreenImage(
 
     BackHandler(onBack = onDismiss)
 
+    LaunchedEffect(showUI) {
+        if (showUI && hidePlayerControls) {
+            kotlinx.coroutines.delay(3000)
+
+            showUI = false
+        }
+    }
+
     Box(
         modifier =
             Modifier.fillMaxSize()
@@ -159,7 +168,8 @@ fun FullScreenImage(
                     androidx.compose.ui.res
                         .colorResource(R.color.pure_black)
                         .copy(
-                            alpha = (1f - (abs(offsetY) / (dismissThreshold * 2f))).coerceIn(0f, 1f)
+                            alpha =
+                                (1f - (abs(offsetY) / (dismissThreshold * 1.5f))).coerceIn(0f, 1f)
                         )
                 )
                 .pointerInput(isZoomed) {
@@ -168,6 +178,7 @@ fun FullScreenImage(
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 offsetY += dragAmount.y
+                                showUI = false
                             },
                             onDragEnd = {
                                 if (abs(offsetY) > dismissThreshold) onDismiss() else offsetY = 0f
@@ -176,148 +187,173 @@ fun FullScreenImage(
                         )
                     }
                 }
-                .graphicsLayer { translationY = offsetY }
+                .graphicsLayer {
+                    val progress = (abs(offsetY) / dismissThreshold).coerceIn(0f, 1f)
+                    val scale = 1f - progress * 0.2f
+                    scaleX = scale
+                    scaleY = scale
+                    translationY = offsetY
+                }
     ) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
             userScrollEnabled = !isZoomed && offsetY == 0f,
             key = { images.getOrNull(it)?.id ?: it },
+            pageSpacing = 16.dp,
         ) { page ->
-            if (page < images.size) {
-                val image = images[page]
-                val isFavorite = remember(favoriteIds) { favoriteIds.contains(image.id) }
-                val favoriteInfo by
-                    remember(image.id, isFavorite) {
-                            if (isFavorite) onGetFavoriteFlow(image.id) else flowOf(null)
+            val pageOffset =
+                ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+
+            val scale = 0.9f + (1f - abs(pageOffset)).coerceIn(0f, 1f) * 0.1f
+            val alpha = 0.5f + (1f - abs(pageOffset)).coerceIn(0f, 1f) * 0.5f
+
+            Box(
+                modifier =
+                    Modifier.fillMaxSize().graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        this.alpha = alpha
+                    }
+            ) {
+                if (page < images.size) {
+                    val image = images[page]
+                    val isFavorite = remember(favoriteIds) { favoriteIds.contains(image.id) }
+
+                    val favoriteInfo by
+                        remember(image.id, isFavorite) {
+                                if (isFavorite) onGetFavoriteFlow(image.id) else flowOf(null)
+                            }
+                            .collectAsState(initial = null)
+
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val favDir = remember(favoritesPath) { favoritesPath?.let { java.io.File(it) } }
+
+                    val thumbnailData =
+                        remember(image.url, favoriteInfo, favDir) {
+                            org.movzx.dibella.util.resolveImageData(
+                                context,
+                                image,
+                                favoriteInfo,
+                                favoritesDir = favDir,
+                            )
                         }
-                        .collectAsState(initial = null)
 
-                val context = androidx.compose.ui.platform.LocalContext.current
-                val favDir = remember(favoritesPath) { favoritesPath?.let { java.io.File(it) } }
+                    val previewData =
+                        remember(image.url, favoriteInfo, favDir) {
+                            org.movzx.dibella.util.resolveImageData(
+                                context = context,
+                                image = image,
+                                favoriteInfo = favoriteInfo,
+                                thumbnailWidth = 450,
+                                useVideoPath = true,
+                                favoritesDir = favDir,
+                            )
+                        }
 
-                val thumbnailData =
-                    remember(image.url, favoriteInfo, favDir) {
-                        org.movzx.dibella.util.resolveImageData(
-                            context,
-                            image,
-                            favoriteInfo,
-                            favoritesDir = favDir,
-                        )
+                    val thumbnailRequest =
+                        remember(thumbnailData) {
+                            val isLocal =
+                                thumbnailData.startsWith("/") || thumbnailData.startsWith("file://")
+
+                            ImageRequest.Builder(context)
+                                .data(thumbnailData)
+                                .apply { if (isLocal) diskCachePolicy(CachePolicy.DISABLED) }
+                                .build()
+                        }
+
+                    val previewRequest =
+                        remember(previewData) {
+                            val isLocal =
+                                previewData.startsWith("/") || previewData.startsWith("file://")
+
+                            ImageRequest.Builder(context)
+                                .data(previewData)
+                                .apply { if (isLocal) diskCachePolicy(CachePolicy.DISABLED) }
+                                .build()
+                        }
+
+                    LaunchedEffect(isFavorite, image.url) {
+                        if (isFavorite && image.url.startsWith("http"))
+                            onEnsureFavoriteResourcesThrottled(image, false) { _ -> }
                     }
 
-                val previewData =
-                    remember(image.url, favoriteInfo, favDir) {
-                        org.movzx.dibella.util.resolveImageData(
-                            context = context,
-                            image = image,
-                            favoriteInfo = favoriteInfo,
-                            thumbnailWidth = 450,
-                            useVideoPath = true,
-                            favoritesDir = favDir,
-                        )
-                    }
+                    if (image.type == "video") {
+                        LaunchedEffect(pagerState.currentPage) {
+                            videoProgress = 0L
+                            videoDuration = 0L
+                            hasAudio = false
+                            videoPlaybackError = null
+                            isZoomed = false
+                            currentFps = 0
+                            userIsPlaying = true
+                            isHD = false
+                        }
 
-                val thumbnailRequest =
-                    remember(thumbnailData) {
-                        val isLocal =
-                            thumbnailData.startsWith("/") || thumbnailData.startsWith("file://")
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            val videoUrl =
+                                if (image.type == "video" && isHD)
+                                    org.movzx.dibella.util.getVideoOriginalUrl(image.url)
+                                else previewData
 
-                        ImageRequest.Builder(context)
-                            .data(thumbnailData)
-                            .apply { if (isLocal) diskCachePolicy(CachePolicy.DISABLED) }
-                            .build()
-                    }
+                            VideoPlayer(
+                                url = videoUrl,
+                                isPlaying = page == pagerState.currentPage && userIsPlaying,
+                                isMuted = userIsMuted,
+                                playbackSpeed = playbackSpeed,
+                                scaleMode = scaleMode,
+                                onProgressUpdate = { pos, dur ->
+                                    if (!isDraggingSeekBar) {
+                                        videoProgress = pos
+                                        videoDuration = if (dur > 0) dur else 0L
+                                    }
+                                },
+                                onFpsUpdate = { currentFps = it },
+                                onPlayerTypeUpdate = { currentPlayerType = it },
+                                onAudioStateChange = { hasAudio = it },
+                                onPlaybackError = { videoPlaybackError = it },
+                                onZoomChange = { isZoomed = it },
+                                onTap = { showUI = !showUI },
+                                seekPosition = seekToPosition,
+                                onSeekConsumed = { seekToPosition = null },
+                                usePool = false,
+                            )
 
-                val previewRequest =
-                    remember(previewData) {
-                        val isLocal =
-                            previewData.startsWith("/") || previewData.startsWith("file://")
+                            if (videoPlaybackError != null) {
+                                Column(
+                                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Default.ErrorOutline,
+                                        contentDescription = null,
+                                        tint = androidx.compose.ui.res.colorResource(R.color.error),
+                                        modifier = Modifier.size(48.dp),
+                                    )
 
-                        ImageRequest.Builder(context)
-                            .data(previewData)
-                            .apply { if (isLocal) diskCachePolicy(CachePolicy.DISABLED) }
-                            .build()
-                    }
-
-                LaunchedEffect(isFavorite, image.url) {
-                    if (isFavorite && image.url.startsWith("http"))
-                        onEnsureFavoriteResourcesThrottled(image, false) { _ -> }
-                }
-
-                if (image.type == "video") {
-                    LaunchedEffect(pagerState.currentPage) {
-                        videoProgress = 0L
-                        videoDuration = 0L
-                        hasAudio = false
-                        videoPlaybackError = null
-                        isZoomed = false
-                        currentFps = 0
-                        userIsPlaying = true
-                        isHD = false
-                    }
-
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        val videoUrl =
-                            if (image.type == "video" && isHD)
-                                org.movzx.dibella.util.getVideoOriginalUrl(image.url)
-                            else previewData
-
-                        VideoPlayer(
-                            url = videoUrl,
-                            isPlaying = page == pagerState.currentPage && userIsPlaying,
-                            isMuted = userIsMuted,
-                            playbackSpeed = playbackSpeed,
-                            scaleMode = scaleMode,
-                            onProgressUpdate = { pos, dur ->
-                                if (!isDraggingSeekBar) {
-                                    videoProgress = pos
-                                    videoDuration = if (dur > 0) dur else 0L
+                                    Text(
+                                        text = stringResource(R.string.msg_playback_error),
+                                        color =
+                                            androidx.compose.ui.res.colorResource(
+                                                R.color.pure_white
+                                            ),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    )
                                 }
-                            },
-                            onFpsUpdate = { currentFps = it },
-                            onPlayerTypeUpdate = { currentPlayerType = it },
-                            onAudioStateChange = { hasAudio = it },
-                            onPlaybackError = { videoPlaybackError = it },
-                            onZoomChange = { isZoomed = it },
-                            onTap = { showUI = !showUI },
-                            seekPosition = seekToPosition,
-                            onSeekConsumed = { seekToPosition = null },
-                            usePool = false,
-                        )
-
-                        if (videoPlaybackError != null) {
-                            Column(
-                                modifier = Modifier.align(Alignment.Center).padding(32.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Icon(
-                                    Icons.Default.ErrorOutline,
-                                    contentDescription = null,
-                                    tint = androidx.compose.ui.res.colorResource(R.color.error),
-                                    modifier = Modifier.size(48.dp),
-                                )
-
-                                Text(
-                                    text = stringResource(R.string.msg_playback_error),
-                                    color =
-                                        androidx.compose.ui.res.colorResource(R.color.pure_white),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                )
                             }
                         }
-                    }
-                } else {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        ZoomableImage(
-                            model = previewRequest,
-                            imageLoader = imageLoader,
-                            thumbnailModel = thumbnailRequest,
-                            onZoomChange = { isZoomed = it },
-                            onTap = { showUI = !showUI },
-                        )
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            ZoomableImage(
+                                model = previewRequest,
+                                imageLoader = imageLoader,
+                                thumbnailModel = thumbnailRequest,
+                                onZoomChange = { isZoomed = it },
+                                onTap = { showUI = !showUI },
+                            )
+                        }
                     }
                 }
             }
@@ -325,8 +361,20 @@ fun FullScreenImage(
 
         AnimatedVisibility(
             visible = showUI && offsetY == 0f,
-            enter = fadeIn() + slideInVertically { -it / 2 },
-            exit = fadeOut() + slideOutVertically { -it / 2 },
+            enter =
+                fadeIn(animationSpec = tween(300)) +
+                    slideInVertically(
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy)
+                    ) {
+                        -it
+                    },
+            exit =
+                fadeOut(animationSpec = tween(200)) +
+                    slideOutVertically(
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy)
+                    ) {
+                        -it
+                    },
             modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp),
         ) {
             val currentImage =
@@ -386,8 +434,18 @@ fun FullScreenImage(
 
         AnimatedVisibility(
             visible = showUI && offsetY == 0f,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 2 },
+            enter =
+                fadeIn(animationSpec = tween(300, delayMillis = 100)) +
+                    slideInVertically(
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy),
+                        initialOffsetY = { it },
+                    ),
+            exit =
+                fadeOut(animationSpec = tween(200)) +
+                    slideOutVertically(
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy),
+                        targetOffsetY = { it },
+                    ),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
             Column(
@@ -465,7 +523,7 @@ fun FullScreenImage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (currentImage?.type == "video") {
-                        IconButton(
+                        AnimatedIconButton(
                             onClick = {
                                 view.performHapticFeedback(
                                     android.view.HapticFeedbackConstants.CONFIRM
@@ -483,7 +541,7 @@ fun FullScreenImage(
                             )
                         }
 
-                        IconButton(
+                        AnimatedIconButton(
                             onClick = {
                                 view.performHapticFeedback(
                                     android.view.HapticFeedbackConstants.CONFIRM
@@ -532,7 +590,7 @@ fun FullScreenImage(
                             )
                         }
 
-                        IconButton(
+                        AnimatedIconButton(
                             onClick = {
                                 view.performHapticFeedback(
                                     android.view.HapticFeedbackConstants.CONFIRM
@@ -556,7 +614,7 @@ fun FullScreenImage(
                             )
                         }
 
-                        IconButton(
+                        AnimatedIconButton(
                             onClick = {
                                 view.performHapticFeedback(
                                     android.view.HapticFeedbackConstants.CONFIRM
@@ -597,7 +655,7 @@ fun FullScreenImage(
                     if (viewMode != "gallery" && currentImage != null) {
                         val isFavorite = favoriteIds.contains(currentImage.id)
 
-                        IconButton(
+                        AnimatedIconButton(
                             onClick = {
                                 if (isFavorite) {
                                     view.performHapticFeedback(
@@ -632,7 +690,7 @@ fun FullScreenImage(
                         val progress = downloadProgresses[currentImage.id]
                         val isDownloaded = downloadedIds.contains(currentImage.id)
 
-                        IconButton(
+                        AnimatedIconButton(
                             onClick = {
                                 view.performHapticFeedback(
                                     android.view.HapticFeedbackConstants.CONFIRM
@@ -668,7 +726,7 @@ fun FullScreenImage(
                     }
 
                     if (viewMode == "gallery") {
-                        IconButton(
+                        AnimatedIconButton(
                             onClick = {
                                 view.performHapticFeedback(
                                     android.view.HapticFeedbackConstants.CONFIRM
@@ -690,4 +748,38 @@ fun FullScreenImage(
             }
         }
     }
+}
+
+@Composable
+fun AnimatedIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val interactionSource =
+        androidx.compose.runtime.remember {
+            androidx.compose.foundation.interaction.MutableInteractionSource()
+        }
+
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by
+        animateFloatAsState(
+            targetValue = if (isPressed) 0.88f else 1f,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+            label = "buttonScale",
+        )
+
+    IconButton(
+        onClick = onClick,
+        modifier =
+            modifier.graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+        enabled = enabled,
+        interactionSource = interactionSource,
+        content = content,
+    )
 }

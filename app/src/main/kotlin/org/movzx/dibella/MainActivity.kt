@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
@@ -516,7 +517,27 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 exitConfirmMsg = exitConfirmMsg,
                             )
 
-                            if (selectedImageIndex != null) {
+                            AnimatedVisibility(
+                                visible = selectedImageIndex != null,
+                                enter =
+                                    fadeIn(animationSpec = tween(300)) +
+                                        scaleIn(
+                                            initialScale = 0.85f,
+                                            animationSpec =
+                                                spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy
+                                                ),
+                                        ),
+                                exit =
+                                    fadeOut(animationSpec = tween(250)) +
+                                        scaleOut(
+                                            targetScale = 0.85f,
+                                            animationSpec =
+                                                spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy
+                                                ),
+                                        ),
+                            ) {
                                 val targetIndex = selectedImageIndex ?: 0
                                 val favoriteIds by favoritesViewModel.uiState.collectAsState()
                                 val galleryState by galleryViewModel.uiState.collectAsState()

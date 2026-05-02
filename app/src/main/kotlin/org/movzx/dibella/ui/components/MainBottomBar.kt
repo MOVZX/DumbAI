@@ -1,5 +1,6 @@
 package org.movzx.dibella.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Collections
@@ -9,7 +10,9 @@ import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -23,13 +26,23 @@ fun MainBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
         modifier =
             Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)),
     ) {
+        val feedSelected = currentRoute == "feed"
+
+        val feedScale by
+            animateFloatAsState(
+                targetValue = if (feedSelected) 1.15f else 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "feedScale",
+            )
+
         NavigationBarItem(
-            selected = currentRoute == "feed",
-            onClick = { if (currentRoute != "feed") onNavigate("feed") },
+            selected = feedSelected,
+            onClick = { if (feedSelected.not()) onNavigate("feed") },
             icon = {
                 Icon(
-                    if (currentRoute == "feed") Icons.Filled.Home else Icons.Default.Home,
+                    if (feedSelected) Icons.Filled.Home else Icons.Default.Home,
                     contentDescription = stringResource(R.string.nav_feed),
+                    modifier = Modifier.scale(feedScale),
                 )
             },
             label = null,
@@ -40,14 +53,23 @@ fun MainBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
                 ),
         )
 
+        val favSelected = currentRoute == "favorites"
+
+        val favScale by
+            animateFloatAsState(
+                targetValue = if (favSelected) 1.15f else 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "favScale",
+            )
+
         NavigationBarItem(
-            selected = currentRoute == "favorites",
-            onClick = { if (currentRoute != "favorites") onNavigate("favorites") },
+            selected = favSelected,
+            onClick = { if (favSelected.not()) onNavigate("favorites") },
             icon = {
                 Icon(
-                    if (currentRoute == "favorites") Icons.Filled.Favorite
-                    else Icons.Outlined.FavoriteBorder,
+                    if (favSelected) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = stringResource(R.string.nav_favorites),
+                    modifier = Modifier.scale(favScale),
                 )
             },
             label = null,
@@ -58,14 +80,23 @@ fun MainBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
                 ),
         )
 
+        val gallerySelected = currentRoute == "gallery"
+
+        val galleryScale by
+            animateFloatAsState(
+                targetValue = if (gallerySelected) 1.15f else 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "galleryScale",
+            )
+
         NavigationBarItem(
-            selected = currentRoute == "gallery",
-            onClick = { if (currentRoute != "gallery") onNavigate("gallery") },
+            selected = gallerySelected,
+            onClick = { if (gallerySelected.not()) onNavigate("gallery") },
             icon = {
                 Icon(
-                    if (currentRoute == "gallery") Icons.Filled.Collections
-                    else Icons.Outlined.Collections,
+                    if (gallerySelected) Icons.Filled.Collections else Icons.Outlined.Collections,
                     contentDescription = stringResource(R.string.nav_gallery),
+                    modifier = Modifier.scale(galleryScale),
                 )
             },
             label = null,
