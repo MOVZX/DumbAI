@@ -17,6 +17,14 @@ data class AppSettingsBackup(
     val alwaysEnableHD: Boolean = false,
     val alwaysMuteVideo: Boolean = false,
     val feedVideoAutoplay: Boolean = false,
+    val feedScrollIndexImage: Int = 0,
+    val feedScrollOffsetImage: Int = 0,
+    val feedScrollIndexVideo: Int = 0,
+    val feedScrollOffsetVideo: Int = 0,
+    val favoritesScrollIndex: Int = 0,
+    val favoritesScrollOffset: Int = 0,
+    val galleryScrollIndex: Int = 0,
+    val galleryScrollOffset: Int = 0,
 )
 
 @JsonClass(generateAdapter = true)

@@ -186,6 +186,14 @@ class UserPreferencesRepository(private val context: Context) {
             alwaysEnableHD = prefs[PreferencesKeys.ALWAYS_ENABLE_HD] ?: false,
             alwaysMuteVideo = prefs[PreferencesKeys.ALWAYS_MUTE_VIDEO] ?: false,
             feedVideoAutoplay = prefs[PreferencesKeys.FEED_VIDEO_AUTOPLAY] ?: false,
+            feedScrollIndexImage = prefs[PreferencesKeys.FEED_SCROLL_INDEX_IMAGE] ?: 0,
+            feedScrollOffsetImage = prefs[PreferencesKeys.FEED_SCROLL_OFFSET_IMAGE] ?: 0,
+            feedScrollIndexVideo = prefs[PreferencesKeys.FEED_SCROLL_INDEX_VIDEO] ?: 0,
+            feedScrollOffsetVideo = prefs[PreferencesKeys.FEED_SCROLL_OFFSET_VIDEO] ?: 0,
+            favoritesScrollIndex = prefs[PreferencesKeys.FAVORITES_SCROLL_INDEX] ?: 0,
+            favoritesScrollOffset = prefs[PreferencesKeys.FAVORITES_SCROLL_OFFSET] ?: 0,
+            galleryScrollIndex = prefs[PreferencesKeys.GALLERY_SCROLL_INDEX] ?: 0,
+            galleryScrollOffset = prefs[PreferencesKeys.GALLERY_SCROLL_OFFSET] ?: 0,
         )
     }
 
@@ -209,6 +217,14 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.ALWAYS_ENABLE_HD] = settings.alwaysEnableHD
             preferences[PreferencesKeys.ALWAYS_MUTE_VIDEO] = settings.alwaysMuteVideo
             preferences[PreferencesKeys.FEED_VIDEO_AUTOPLAY] = settings.feedVideoAutoplay
+            preferences[PreferencesKeys.FEED_SCROLL_INDEX_IMAGE] = settings.feedScrollIndexImage
+            preferences[PreferencesKeys.FEED_SCROLL_OFFSET_IMAGE] = settings.feedScrollOffsetImage
+            preferences[PreferencesKeys.FEED_SCROLL_INDEX_VIDEO] = settings.feedScrollIndexVideo
+            preferences[PreferencesKeys.FEED_SCROLL_OFFSET_VIDEO] = settings.feedScrollOffsetVideo
+            preferences[PreferencesKeys.FAVORITES_SCROLL_INDEX] = settings.favoritesScrollIndex
+            preferences[PreferencesKeys.FAVORITES_SCROLL_OFFSET] = settings.favoritesScrollOffset
+            preferences[PreferencesKeys.GALLERY_SCROLL_INDEX] = settings.galleryScrollIndex
+            preferences[PreferencesKeys.GALLERY_SCROLL_OFFSET] = settings.galleryScrollOffset
         }
     }
 
