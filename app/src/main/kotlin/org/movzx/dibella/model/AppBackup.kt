@@ -25,6 +25,8 @@ data class AppSettingsBackup(
     val favoritesScrollOffset: Int = 0,
     val galleryScrollIndex: Int = 0,
     val galleryScrollOffset: Int = 0,
+    val nextCursorImage: String? = null,
+    val nextCursorVideo: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -37,8 +39,21 @@ data class FavoriteImageBackup(
 )
 
 @JsonClass(generateAdapter = true)
+data class FeedItemBackup(
+    val id: Long,
+    val url: String,
+    val width: Int?,
+    val height: Int?,
+    val nsfw: Boolean?,
+    val type: String?,
+    val feedType: String,
+    val orderIndex: Int,
+)
+
+@JsonClass(generateAdapter = true)
 data class AppBackup(
     val version: Int = 1,
     val settings: AppSettingsBackup?,
     val favorites: List<FavoriteImageBackup>,
+    val feedItems: List<FeedItemBackup> = emptyList(),
 )

@@ -10,9 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okio.buffer
 import okio.source
-import org.movzx.dibella.model.AppBackup
-import org.movzx.dibella.model.FavoriteImage
-import org.movzx.dibella.model.FavoriteImageBackup
+import org.movzx.dibella.model.*
 import org.movzx.dibella.util.CivitaiUrlBuilder
 
 @Singleton
@@ -22,6 +20,7 @@ constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: UserPreferencesRepository,
     private val favoritesRepository: FavoritesRepository,
+    private val feedCacheDao: FeedCacheDao,
     private val moshi: Moshi,
 ) {
     suspend fun exportData(uri: Uri): Boolean =
@@ -38,8 +37,35 @@ constructor(
                         )
                     }
 
+                val feedItems = mutableListOf<FeedItemBackup>()
+
+                listOf("image", "video").forEach { feedType ->
+                    feedCacheDao.getFeed(feedType).forEach { item ->
+                        feedItems.add(
+                            FeedItemBackup(
+                                id = item.id,
+                                url = CivitaiUrlBuilder.compressUrl(item.url),
+                                width = item.width,
+                                height = item.height,
+                                nsfw = item.nsfw,
+                                type = item.type,
+                                feedType = item.feedType,
+                                orderIndex = item.orderIndex,
+                            )
+                        )
+                    }
+                }
+
                 val settings = repository.getCurrentSettings()
-                val backup = AppBackup(version = 2, settings = settings, favorites = favorites)
+
+                val backup =
+                    AppBackup(
+                        version = 4,
+                        settings = settings,
+                        favorites = favorites,
+                        feedItems = feedItems,
+                    )
+
                 val adapter = moshi.adapter(AppBackup::class.java)
                 val json = adapter.toJson(backup)
 
@@ -76,6 +102,29 @@ constructor(
                         }
 
                     favoritesRepository.importFavorites(favoriteImages)
+
+                    if (backup.feedItems.isNotEmpty()) {
+                        val items =
+                            backup.feedItems.map { back ->
+                                FeedItemCache(
+                                    id = back.id,
+                                    url = CivitaiUrlBuilder.expandUrl(back.url, back.type),
+                                    width = back.width,
+                                    height = back.height,
+                                    nsfw = back.nsfw,
+                                    type = back.type,
+                                    feedType = back.feedType,
+                                    orderIndex = back.orderIndex,
+                                )
+                            }
+
+                        listOf("image", "video").forEach { type ->
+                            val feedTypeItems = items.filter { it.feedType == type }
+
+                            if (feedTypeItems.isNotEmpty())
+                                feedCacheDao.replaceFeed(type, feedTypeItems)
+                        }
+                    }
 
                     true
                 } ?: false

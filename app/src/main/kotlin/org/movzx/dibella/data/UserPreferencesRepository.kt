@@ -194,6 +194,8 @@ class UserPreferencesRepository(private val context: Context) {
             favoritesScrollOffset = prefs[PreferencesKeys.FAVORITES_SCROLL_OFFSET] ?: 0,
             galleryScrollIndex = prefs[PreferencesKeys.GALLERY_SCROLL_INDEX] ?: 0,
             galleryScrollOffset = prefs[PreferencesKeys.GALLERY_SCROLL_OFFSET] ?: 0,
+            nextCursorImage = prefs[PreferencesKeys.NEXT_CURSOR_IMAGE],
+            nextCursorVideo = prefs[PreferencesKeys.NEXT_CURSOR_VIDEO],
         )
     }
 
@@ -225,6 +227,18 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.FAVORITES_SCROLL_OFFSET] = settings.favoritesScrollOffset
             preferences[PreferencesKeys.GALLERY_SCROLL_INDEX] = settings.galleryScrollIndex
             preferences[PreferencesKeys.GALLERY_SCROLL_OFFSET] = settings.galleryScrollOffset
+
+            val imageCursorKey = PreferencesKeys.NEXT_CURSOR_IMAGE
+
+            if (settings.nextCursorImage != null)
+                preferences[imageCursorKey] = settings.nextCursorImage
+            else preferences.remove(imageCursorKey)
+
+            val videoCursorKey = PreferencesKeys.NEXT_CURSOR_VIDEO
+
+            if (settings.nextCursorVideo != null)
+                preferences[videoCursorKey] = settings.nextCursorVideo
+            else preferences.remove(videoCursorKey)
         }
     }
 

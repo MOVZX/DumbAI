@@ -95,7 +95,8 @@ constructor(
                     }
 
                     if (
-                        !isFirstSettingsLoad &&
+                        !BaseViewModel.isImporting &&
+                            !isFirstSettingsLoad &&
                             (nsfwChanged ||
                                 sortChanged ||
                                 periodChanged ||
@@ -110,35 +111,45 @@ constructor(
         }
 
         viewModelScope.launch {
-            repository.type
-                .flatMapLatest { type -> repository.feedScrollIndex(type) }
-                .collect { index -> _uiState.update { it.copy(scrollIndex = index) } }
-        }
+            val currentType = repository.type.first()
+            val initialScrollIndex = repository.feedScrollIndex(currentType).first()
+            val initialScrollOffset = repository.feedScrollOffset(currentType).first()
 
-        viewModelScope.launch {
-            repository.type
-                .flatMapLatest { type -> repository.feedScrollOffset(type) }
-                .collect { offset -> _uiState.update { it.copy(scrollOffset = offset) } }
-        }
-
-        viewModelScope.launch {
             imageCursor = repository.nextCursor("image").first()
             videoCursor = repository.nextCursor("video").first()
             val cachedImages = feedCacheDao.getFeed("image").map { it.toCivitaiImage() }
             val cachedVideos = feedCacheDao.getFeed("video").map { it.toCivitaiImage() }
             imageFeed = cachedImages
             videoFeed = cachedVideos
-            val currentType = repository.type.first()
             val initialImages = if (currentType == "video") videoFeed else imageFeed
 
             _uiState.update {
                 it.copy(
+                    scrollIndex = initialScrollIndex,
+                    scrollOffset = initialScrollOffset,
                     images = initialImages,
                     hasMore = (if (currentType == "video") videoCursor else imageCursor) != null,
                 )
             }
 
             if (_uiState.value.images.isEmpty()) loadImages(isNew = true)
+        }
+
+        viewModelScope.launch {
+            repository.type
+                .flatMapLatest { type -> repository.feedScrollIndex(type) }
+                .collect { index ->
+                    if (_uiState.value.isRestored) _uiState.update { it.copy(scrollIndex = index) }
+                }
+        }
+
+        viewModelScope.launch {
+            repository.type
+                .flatMapLatest { type -> repository.feedScrollOffset(type) }
+                .collect { offset ->
+                    if (_uiState.value.isRestored)
+                        _uiState.update { it.copy(scrollOffset = offset) }
+                }
         }
     }
 

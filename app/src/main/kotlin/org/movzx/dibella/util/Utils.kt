@@ -55,6 +55,51 @@ fun Modifier.scrollbar(state: ScrollState, width: Dp = 4.dp, color: Color? = nul
         }
     }
 
+fun Modifier.gridScrollbar(
+    state: androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState,
+    width: Dp = 4.dp,
+    color: Color? = null,
+): Modifier = composed {
+    val barColor = color ?: MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    val targetAlpha = if (state.isScrollInProgress) 1f else 0f
+    val duration = if (state.isScrollInProgress) 150 else 500
+
+    val alpha by
+        animateFloatAsState(
+            targetValue = targetAlpha,
+            animationSpec = tween(durationMillis = duration),
+            label = "scrollbar_alpha",
+        )
+
+    drawWithContent {
+        drawContent()
+
+        val layoutInfo = state.layoutInfo
+        val totalItems = layoutInfo.totalItemsCount
+        val visibleItems = layoutInfo.visibleItemsInfo
+
+        if (totalItems > 0 && visibleItems.isNotEmpty()) {
+            val firstItem = visibleItems.first()
+            val lastItem = visibleItems.last()
+            val visibleCount = lastItem.index - firstItem.index + 1
+            val viewHeight = size.height
+
+            val barHeight =
+                (visibleCount.toFloat() / totalItems.toFloat() * viewHeight).coerceAtLeast(
+                    width.toPx() * 2
+                )
+
+            val barOffset = (firstItem.index.toFloat() / totalItems.toFloat() * viewHeight)
+
+            drawRect(
+                color = barColor.copy(alpha = alpha * barColor.alpha),
+                topLeft = Offset(size.width - width.toPx(), barOffset),
+                size = Size(width.toPx(), barHeight),
+            )
+        }
+    }
+}
+
 private fun getEffectiveFavoritesDir(favoritesDir: File?): File {
     return favoritesDir
         ?: File(

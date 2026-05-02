@@ -32,10 +32,8 @@ constructor(
 
             Logger.d(
                 "Dibella_Cache",
-                "Favorites: Restoring scroll pos ($initialIndex, $initialOffset)",
+                "Favorites: Pre-loading scroll pos ($initialIndex, $initialOffset)",
             )
-
-            _uiState.update { it.copy(scrollIndex = initialIndex, scrollOffset = initialOffset) }
 
             combine(
                     favoritesRepository.allFavorites,
@@ -63,6 +61,8 @@ constructor(
                             gridColumns = columns,
                             type = type,
                             favoritesPath = path,
+                            scrollIndex = if (!it.isRestored) initialIndex else it.scrollIndex,
+                            scrollOffset = if (!it.isRestored) initialOffset else it.scrollOffset,
                         )
                     }
                 }

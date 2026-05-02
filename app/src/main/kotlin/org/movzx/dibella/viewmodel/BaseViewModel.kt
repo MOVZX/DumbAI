@@ -19,6 +19,10 @@ abstract class BaseViewModel(
     protected val favoritesRepository: FavoritesRepository,
     protected val galleryRepository: GalleryRepository,
 ) : ViewModel() {
+    companion object {
+        var isImporting: Boolean = false
+    }
+
     private val _uiMessage = MutableSharedFlow<Int>()
     val uiMessage = _uiMessage.asSharedFlow()
     val restrictedDispatcher = Dispatchers.IO

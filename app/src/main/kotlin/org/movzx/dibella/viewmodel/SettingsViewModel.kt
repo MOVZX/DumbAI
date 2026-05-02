@@ -182,12 +182,15 @@ constructor(
 
     fun importData(uri: Uri) {
         viewModelScope.launch {
+            BaseViewModel.isImporting = true
             val success = backupRepository.importData(uri)
 
             if (success) {
                 sendMessage(R.string.msg_import_success)
                 _exitEvent.emit(Unit)
             } else {
+                BaseViewModel.isImporting = false
+
                 sendMessage(R.string.msg_import_failed)
             }
         }

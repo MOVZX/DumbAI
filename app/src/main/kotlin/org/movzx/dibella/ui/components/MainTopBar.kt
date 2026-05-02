@@ -78,7 +78,7 @@ fun MainTopBar(
     gridColumns: Int,
     onShowDisplayOptions: () -> Unit,
     onUpdateGridColumns: (Int) -> Unit,
-    onShowFilters: () -> Unit,
+    onShowFilters: (() -> Unit)?,
     onShowSettings: () -> Unit,
 ) {
     CenterAlignedTopAppBar(
@@ -120,11 +120,13 @@ fun MainTopBar(
         },
         actions = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onShowFilters) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = stringResource(R.string.filters),
-                    )
+                if (onShowFilters != null) {
+                    IconButton(onClick = onShowFilters) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = stringResource(R.string.filters),
+                        )
+                    }
                 }
 
                 IconButton(onClick = onShowSettings) {

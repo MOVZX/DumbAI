@@ -62,7 +62,7 @@ fun InteractiveTopBar(
     onRemoveDuplicates: () -> Unit,
     onOpenLeftSidebar: () -> Unit,
     onUpdateGridColumns: (Int) -> Unit,
-    onShowFilters: () -> Unit,
+    onShowFilters: (() -> Unit)?,
     onShowSettings: () -> Unit,
 ) {
     if (isSelectionMode) {
@@ -99,6 +99,7 @@ fun MainScreen(imageLoader: ImageLoader) {
     val activity = context as MainActivity
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+    val videoPlayerManager = remember { VideoPlayerManager(context) }
     val feedViewModel: FeedViewModel = hiltViewModel(activity)
     val favoritesViewModel: FavoritesViewModel = hiltViewModel(activity)
     val galleryViewModel: GalleryViewModel = hiltViewModel(activity)
@@ -174,248 +175,259 @@ fun MainScreen(imageLoader: ImageLoader) {
     UiMessageEffect(favoritesViewModel.uiMessage)
     UiMessageEffect(galleryViewModel.uiMessage)
 
-    ModalNavigationDrawer(
-        drawerState = leftDrawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                modifier = Modifier.width(300.dp).fillMaxHeight(),
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
-                drawerShape = androidx.compose.ui.graphics.RectangleShape,
-            ) {
-                if (currentRoute == "feed") {
-                    DisplaySidebar(
-                        currentRoute = currentRoute,
-                        pageLimit = feedUiState.pageLimit,
-                        gridColumns = feedUiState.gridColumns,
-                        type = "all",
-                        onDismiss = { scope.launch { leftDrawerState.close() } },
-                        onUpdatePageLimit = { feedViewModel.updatePageLimit(it) },
-                        onUpdateGridColumns = { feedViewModel.updateGridColumns(it) },
-                        onUpdateType = {},
-                    )
-                } else if (currentRoute == "favorites") {
-                    DisplaySidebar(
-                        currentRoute = currentRoute,
-                        pageLimit = 100,
-                        gridColumns = favoritesUiState.gridColumns,
-                        type = favoritesUiState.type,
-                        onDismiss = { scope.launch { leftDrawerState.close() } },
-                        onUpdatePageLimit = {},
-                        onUpdateGridColumns = { favoritesViewModel.updateGridColumns(it) },
-                        onUpdateType = { favoritesViewModel.updateType(it) },
-                        onScanDuplicates = {
-                            scope.launch {
-                                favoritesViewModel.findDuplicates()
-                                leftDrawerState.close()
-                            }
-                        },
-                    )
-                } else if (currentRoute == "gallery") {
-                    val galleryUiState by galleryViewModel.uiState.collectAsState()
-                    DisplaySidebar(
-                        currentRoute = currentRoute,
-                        pageLimit = 100,
-                        gridColumns = galleryUiState.gridColumns,
-                        type = galleryUiState.type,
-                        onDismiss = { scope.launch { leftDrawerState.close() } },
-                        onUpdatePageLimit = {},
-                        onUpdateGridColumns = { galleryViewModel.updateGridColumns(it) },
-                        onUpdateType = { galleryViewModel.updateType(it) },
-                        onScanDuplicates = {
-                            scope.launch {
-                                galleryViewModel.findDuplicates()
-                                leftDrawerState.close()
-                            }
-                        },
-                    )
-                }
-            }
-        },
-    ) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            ModalNavigationDrawer(
-                drawerState = rightDrawerState,
-                gesturesEnabled = rightGesturesEnabled,
-                drawerContent = {
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                        if (
-                            rightSidebarType == RightSidebarType.FILTERS && currentRoute == "feed"
-                        ) {
-                            FilterSidebar(
-                                nsfw = feedUiState.nsfw,
-                                sort = feedUiState.sort,
-                                period = feedUiState.period,
-                                type = feedUiState.type,
-                                tagIds = feedUiState.tagIds,
-                                onDismiss = { scope.launch { rightDrawerState.close() } },
-                                onFilterChange = { n, s, p, t, tg ->
-                                    feedViewModel.updateFilters(n, s, p, t, tg)
-                                },
-                                onResetFilters = { feedViewModel.resetFilters() },
-                            )
-                        } else {
-                            SettingsSidebar(
-                                cacheSize = settingsState.cacheSize,
-                                apiKey = settingsState.apiKey,
-                                downloadPath = settingsState.downloadPath,
-                                favoritesPath = settingsState.favoritesPath,
-                                debugEnabled = settingsState.debugEnabled,
-                                hidePlayerControls = settingsState.hidePlayerControls,
-                                alwaysEnableHD = settingsState.alwaysEnableHD,
-                                alwaysMuteVideo = settingsState.alwaysMuteVideo,
-                                feedVideoAutoplay = settingsState.feedVideoAutoplay,
-                                onDismiss = { scope.launch { rightDrawerState.close() } },
-                                onClearCache = { settingsViewModel.clearImageCache() },
-                                onSaveApiKey = { settingsViewModel.updateApiKey(it) },
-                                onUpdateDownloadPath = { settingsViewModel.updateDownloadPath(it) },
-                                onUpdateFavoritesPath = {
-                                    settingsViewModel.updateFavoritesPath(it)
-                                },
-                                onPickDirectory = { dirPickerLauncher.launch(null) },
-                                onPickFavoritesDirectory = { favDirPickerLauncher.launch(null) },
-                                onExport = {
-                                    exportLauncher.launch(
-                                        context.getString(R.string.backup_filename)
-                                    )
-                                },
-                                onImport = {
-                                    importLauncher.launch(
-                                        arrayOf(context.getString(R.string.mime_json))
-                                    )
-                                },
-                                onToggleDebug = { settingsViewModel.updateDebugEnabled(it) },
-                                onHidePlayerControls = {
-                                    settingsViewModel.updateHidePlayerControls(it)
-                                },
-                                onAlwaysEnableHD = { settingsViewModel.updateAlwaysEnableHD(it) },
-                                onAlwaysMuteVideo = { settingsViewModel.updateAlwaysMuteVideo(it) },
-                                onFeedVideoAutoplay = {
-                                    settingsViewModel.updateFeedVideoAutoplay(it)
-                                },
-                            )
-                        }
-                    }
-                },
-            ) {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        val startDestination = settingsState.lastRoute ?: return@Box
-
-                        AppNavigation(
-                            navController = navController,
-                            startDestination = startDestination,
-                            imageLoader = imageLoader,
-                            feedVideoAutoplay = settingsState.feedVideoAutoplay,
-                            favoritesPath = settingsState.effectiveFavoritesPath,
-                            feedGridState = feedGridState,
-                            favoritesGridState = favoritesGridState,
-                            galleryGridState = galleryGridState,
-                            favoritesRestored = favoritesRestored,
-                            onFavoritesRestored = { favoritesRestored = it },
-                            galleryRestored = galleryRestored,
-                            onGalleryRestored = { galleryRestored = it },
-                            onOpenLeftSidebar = { scope.launch { leftDrawerState.open() } },
-                            onOpenRightSidebar = { type ->
-                                rightSidebarType = type
-                                scope.launch { rightDrawerState.open() }
-                            },
-                            onImageClick = { images, index, viewMode ->
-                                fullScreenImages = images
-                                selectedImageIndex = index
-                                fullScreenViewMode = viewMode
-                            },
-                            onUpdateLastRoute = { settingsViewModel.updateLastRoute(it) },
-                            leftDrawerState = leftDrawerState,
-                            rightDrawerState = rightDrawerState,
-                            scope = scope,
-                            selectedImageIndex = selectedImageIndex,
-                            backPressedTime = backPressedTime,
-                            onUpdateBackPressedTime = { backPressedTime = it },
-                            exitConfirmMsg = exitConfirmMsg,
+    CompositionLocalProvider(LocalVideoPlayerManager provides videoPlayerManager) {
+        ModalNavigationDrawer(
+            drawerState = leftDrawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    modifier = Modifier.width(300.dp).fillMaxHeight(),
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    drawerShape = androidx.compose.ui.graphics.RectangleShape,
+                ) {
+                    if (currentRoute == "feed") {
+                        DisplaySidebar(
+                            currentRoute = currentRoute,
+                            pageLimit = feedUiState.pageLimit,
+                            gridColumns = feedUiState.gridColumns,
+                            type = "all",
+                            onDismiss = { scope.launch { leftDrawerState.close() } },
+                            onUpdatePageLimit = { feedViewModel.updatePageLimit(it) },
+                            onUpdateGridColumns = { feedViewModel.updateGridColumns(it) },
+                            onUpdateType = {},
                         )
-
-                        AnimatedVisibility(
-                            visible = selectedImageIndex != null,
-                            enter =
-                                fadeIn(animationSpec = tween(300)) +
-                                    scaleIn(
-                                        initialScale = 0.85f,
-                                        animationSpec =
-                                            spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    ),
-                            exit =
-                                fadeOut(animationSpec = tween(250)) +
-                                    scaleOut(
-                                        targetScale = 0.85f,
-                                        animationSpec =
-                                            spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    ),
-                        ) {
-                            val targetIndex = selectedImageIndex ?: 0
-                            val favoriteIds by favoritesViewModel.uiState.collectAsState()
-                            val galleryState by galleryViewModel.uiState.collectAsState()
-
-                            val activeViewModel: org.movzx.dibella.viewmodel.BaseViewModel =
-                                when (fullScreenViewMode) {
-                                    "feed" -> feedViewModel
-                                    "favorites" -> favoritesViewModel
-                                    else -> galleryViewModel
+                    } else if (currentRoute == "favorites") {
+                        DisplaySidebar(
+                            currentRoute = currentRoute,
+                            pageLimit = 100,
+                            gridColumns = favoritesUiState.gridColumns,
+                            type = favoritesUiState.type,
+                            onDismiss = { scope.launch { leftDrawerState.close() } },
+                            onUpdatePageLimit = {},
+                            onUpdateGridColumns = { favoritesViewModel.updateGridColumns(it) },
+                            onUpdateType = { favoritesViewModel.updateType(it) },
+                            onScanDuplicates = {
+                                scope.launch {
+                                    favoritesViewModel.findDuplicates()
+                                    leftDrawerState.close()
                                 }
+                            },
+                        )
+                    } else if (currentRoute == "gallery") {
+                        val galleryUiState by galleryViewModel.uiState.collectAsState()
+                        DisplaySidebar(
+                            currentRoute = currentRoute,
+                            pageLimit = 100,
+                            gridColumns = galleryUiState.gridColumns,
+                            type = galleryUiState.type,
+                            onDismiss = { scope.launch { leftDrawerState.close() } },
+                            onUpdatePageLimit = {},
+                            onUpdateGridColumns = { galleryViewModel.updateGridColumns(it) },
+                            onUpdateType = { galleryViewModel.updateType(it) },
+                            onScanDuplicates = {
+                                scope.launch {
+                                    galleryViewModel.findDuplicates()
+                                    leftDrawerState.close()
+                                }
+                            },
+                        )
+                    }
+                }
+            },
+        ) {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                ModalNavigationDrawer(
+                    drawerState = rightDrawerState,
+                    gesturesEnabled = rightGesturesEnabled,
+                    drawerContent = {
+                        CompositionLocalProvider(
+                            LocalLayoutDirection provides LayoutDirection.Ltr
+                        ) {
+                            if (
+                                rightSidebarType == RightSidebarType.FILTERS &&
+                                    currentRoute == "feed"
+                            ) {
+                                FilterSidebar(
+                                    nsfw = feedUiState.nsfw,
+                                    sort = feedUiState.sort,
+                                    period = feedUiState.period,
+                                    type = feedUiState.type,
+                                    tagIds = feedUiState.tagIds,
+                                    onDismiss = { scope.launch { rightDrawerState.close() } },
+                                    onFilterChange = { n, s, p, t, tg ->
+                                        feedViewModel.updateFilters(n, s, p, t, tg)
+                                    },
+                                    onResetFilters = { feedViewModel.resetFilters() },
+                                )
+                            } else {
+                                SettingsSidebar(
+                                    cacheSize = settingsState.cacheSize,
+                                    apiKey = settingsState.apiKey,
+                                    downloadPath = settingsState.downloadPath,
+                                    favoritesPath = settingsState.favoritesPath,
+                                    debugEnabled = settingsState.debugEnabled,
+                                    hidePlayerControls = settingsState.hidePlayerControls,
+                                    alwaysEnableHD = settingsState.alwaysEnableHD,
+                                    alwaysMuteVideo = settingsState.alwaysMuteVideo,
+                                    feedVideoAutoplay = settingsState.feedVideoAutoplay,
+                                    onDismiss = { scope.launch { rightDrawerState.close() } },
+                                    onClearCache = { settingsViewModel.clearImageCache() },
+                                    onSaveApiKey = { settingsViewModel.updateApiKey(it) },
+                                    onUpdateDownloadPath = {
+                                        settingsViewModel.updateDownloadPath(it)
+                                    },
+                                    onUpdateFavoritesPath = {
+                                        settingsViewModel.updateFavoritesPath(it)
+                                    },
+                                    onPickDirectory = { dirPickerLauncher.launch(null) },
+                                    onPickFavoritesDirectory = {
+                                        favDirPickerLauncher.launch(null)
+                                    },
+                                    onExport = {
+                                        exportLauncher.launch(
+                                            context.getString(R.string.backup_filename)
+                                        )
+                                    },
+                                    onImport = {
+                                        importLauncher.launch(
+                                            arrayOf(context.getString(R.string.mime_json))
+                                        )
+                                    },
+                                    onToggleDebug = { settingsViewModel.updateDebugEnabled(it) },
+                                    onHidePlayerControls = {
+                                        settingsViewModel.updateHidePlayerControls(it)
+                                    },
+                                    onAlwaysEnableHD = {
+                                        settingsViewModel.updateAlwaysEnableHD(it)
+                                    },
+                                    onAlwaysMuteVideo = {
+                                        settingsViewModel.updateAlwaysMuteVideo(it)
+                                    },
+                                    onFeedVideoAutoplay = {
+                                        settingsViewModel.updateFeedVideoAutoplay(it)
+                                    },
+                                )
+                            }
+                        }
+                    },
+                ) {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            val startDestination = settingsState.lastRoute ?: return@Box
 
-                            val downloadProgresses =
-                                when (fullScreenViewMode) {
-                                    "feed" ->
-                                        feedViewModel.uiState
-                                            .collectAsState()
-                                            .value
-                                            .downloadProgresses
-                                    "favorites" ->
-                                        favoritesViewModel.uiState
-                                            .collectAsState()
-                                            .value
-                                            .downloadProgresses
-                                    "gallery" ->
+                            AppNavigation(
+                                navController = navController,
+                                startDestination = startDestination,
+                                imageLoader = imageLoader,
+                                feedVideoAutoplay = settingsState.feedVideoAutoplay,
+                                favoritesPath = settingsState.effectiveFavoritesPath,
+                                feedGridState = feedGridState,
+                                favoritesGridState = favoritesGridState,
+                                galleryGridState = galleryGridState,
+                                favoritesRestored = favoritesRestored,
+                                onFavoritesRestored = { favoritesRestored = it },
+                                galleryRestored = galleryRestored,
+                                onGalleryRestored = { galleryRestored = it },
+                                onOpenLeftSidebar = { scope.launch { leftDrawerState.open() } },
+                                onOpenRightSidebar = { type ->
+                                    rightSidebarType = type
+                                    scope.launch { rightDrawerState.open() }
+                                },
+                                onImageClick = { images, index, viewMode ->
+                                    fullScreenImages = images
+                                    selectedImageIndex = index
+                                    fullScreenViewMode = viewMode
+                                },
+                                onUpdateLastRoute = { settingsViewModel.updateLastRoute(it) },
+                                leftDrawerState = leftDrawerState,
+                                rightDrawerState = rightDrawerState,
+                                scope = scope,
+                                selectedImageIndex = selectedImageIndex,
+                                backPressedTime = backPressedTime,
+                                onUpdateBackPressedTime = { backPressedTime = it },
+                                exitConfirmMsg = exitConfirmMsg,
+                            )
+
+                            AnimatedVisibility(
+                                visible = selectedImageIndex != null,
+                                enter =
+                                    fadeIn(animationSpec = tween(300)) +
+                                        scaleIn(
+                                            initialScale = 0.85f,
+                                            animationSpec =
+                                                spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy
+                                                ),
+                                        ),
+                                exit =
+                                    fadeOut(animationSpec = tween(250)) +
+                                        scaleOut(
+                                            targetScale = 0.85f,
+                                            animationSpec =
+                                                spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy
+                                                ),
+                                        ),
+                            ) {
+                                val targetIndex = selectedImageIndex ?: 0
+
+                                val activeViewModel: org.movzx.dibella.viewmodel.BaseViewModel =
+                                    when (fullScreenViewMode) {
+                                        "feed" -> feedViewModel
+                                        "favorites" -> favoritesViewModel
+                                        else -> galleryViewModel
+                                    }
+
+                                val currentDownloadProgresses =
+                                    when (fullScreenViewMode) {
+                                        "feed" -> feedUiState.downloadProgresses
+                                        "favorites" -> favoritesUiState.downloadProgresses
+                                        "gallery" ->
+                                            galleryViewModel.uiState
+                                                .collectAsState()
+                                                .value
+                                                .downloadProgresses
+                                        else -> emptyMap()
+                                    }
+
+                                FullScreenImage(
+                                    images = fullScreenImages,
+                                    initialIndex = targetIndex,
+                                    imageLoader = imageLoader,
+                                    favoriteIds = favoritesUiState.favoriteIds,
+                                    downloadedIds =
                                         galleryViewModel.uiState
                                             .collectAsState()
                                             .value
-                                            .downloadProgresses
-                                    else -> emptyMap()
-                                }
-
-                            FullScreenImage(
-                                images = fullScreenImages,
-                                initialIndex = targetIndex,
-                                imageLoader = imageLoader,
-                                favoriteIds = favoriteIds.favoriteIds,
-                                downloadedIds = galleryState.downloadedIds,
-                                downloadProgresses = downloadProgresses,
-                                viewMode = fullScreenViewMode,
-                                favoritesPath = settingsState.effectiveFavoritesPath,
-                                hidePlayerControls = settingsState.hidePlayerControls,
-                                alwaysEnableHD = settingsState.alwaysEnableHD,
-                                alwaysMuteVideo = settingsState.alwaysMuteVideo,
-                                autoplayEnabled = settingsState.feedVideoAutoplay,
-                                onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
-                                onEnsureFavoriteResources = { img, force, onProgress ->
-                                    activeViewModel.ensureFavoriteResourcesThrottled(
-                                        img,
-                                        force,
-                                        onProgress,
-                                    )
-                                },
-                                onToggleFavorite = { activeViewModel.toggleFavorite(it) },
-                                onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
-                                    activeViewModel.ensureFavoriteResourcesThrottled(
-                                        img,
-                                        force,
-                                        onProgress,
-                                    )
-                                },
-                                onDownloadImage = { activeViewModel.downloadImage(it) },
-                                onDeleteLocalFile = { galleryViewModel.deleteLocalFile(it) },
-                                onDismiss = { selectedImageIndex = null },
-                                onIndexChange = { selectedImageIndex = it },
-                            )
+                                            .downloadedIds,
+                                    downloadProgresses = currentDownloadProgresses,
+                                    viewMode = fullScreenViewMode,
+                                    favoritesPath = settingsState.effectiveFavoritesPath,
+                                    hidePlayerControls = settingsState.hidePlayerControls,
+                                    alwaysEnableHD = settingsState.alwaysEnableHD,
+                                    alwaysMuteVideo = settingsState.alwaysMuteVideo,
+                                    autoplayEnabled = settingsState.feedVideoAutoplay,
+                                    onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
+                                    onEnsureFavoriteResources = { img, force, onProgress ->
+                                        activeViewModel.ensureFavoriteResourcesThrottled(
+                                            img,
+                                            force,
+                                            onProgress,
+                                        )
+                                    },
+                                    onToggleFavorite = { activeViewModel.toggleFavorite(it) },
+                                    onEnsureFavoriteResourcesThrottled = { img, force, onProgress ->
+                                        activeViewModel.ensureFavoriteResourcesThrottled(
+                                            img,
+                                            force,
+                                            onProgress,
+                                        )
+                                    },
+                                    onDownloadImage = { activeViewModel.downloadImage(it) },
+                                    onDeleteLocalFile = { galleryViewModel.deleteLocalFile(it) },
+                                    onDismiss = { selectedImageIndex = null },
+                                    onIndexChange = { selectedImageIndex = it },
+                                )
+                            }
                         }
                     }
                 }

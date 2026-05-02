@@ -13,6 +13,7 @@ import coil3.ImageLoader
 import kotlinx.coroutines.flow.Flow
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FavoriteImage
+import org.movzx.dibella.util.gridScrollbar
 
 @Composable
 fun ImageGrid(
@@ -74,7 +75,7 @@ fun ImageGrid(
         columns = StaggeredGridCells.Fixed(columnCount),
         state = state,
         modifier =
-            Modifier.fillMaxSize().pointerInput(columnCount) {
+            Modifier.fillMaxSize().gridScrollbar(state).pointerInput(columnCount) {
                 awaitEachGesture {
                     var totalZoom = 1f
 
