@@ -1,11 +1,13 @@
 package org.movzx.dibella.ui.components
 
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import kotlinx.coroutines.flow.Flow
@@ -34,11 +36,13 @@ fun ImageGrid(
     onRetryThumbnail: (String, () -> Unit) -> Unit = { _, _ -> },
     onToggleSelection: (Long) -> Unit = {},
     onLongClick: (Long) -> Unit = {},
+    onUpdateGridColumns: (Int) -> Unit = {},
     autoplayEnabled: Boolean = false,
     isPreviewOpen: Boolean = false,
 ) {
     var pressedId by remember { mutableStateOf<Long?>(null) }
     val animatedItems = remember { mutableSetOf<Long>() }
+    var zoomScale by remember { mutableFloatStateOf(1f) }
 
     val visibleItemIds by remember {
         derivedStateOf {
@@ -69,7 +73,39 @@ fun ImageGrid(
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(columnCount),
         state = state,
-        modifier = Modifier.fillMaxSize(),
+        modifier =
+            Modifier.fillMaxSize().pointerInput(columnCount) {
+                awaitEachGesture {
+                    var totalZoom = 1f
+
+                    awaitFirstDown(requireUnconsumed = false)
+
+                    do {
+                        val event = awaitPointerEvent()
+                        val zoom = event.calculateZoom()
+
+                        if (event.changes.size > 1) {
+                            totalZoom *= zoom
+
+                            if (totalZoom > 1.4f) {
+                                if (columnCount > 1) {
+                                    onUpdateGridColumns(columnCount - 1)
+                                    event.changes.forEach { it.consume() }
+
+                                    break
+                                }
+                            } else if (totalZoom < 0.7f) {
+                                if (columnCount < 4) {
+                                    onUpdateGridColumns(columnCount + 1)
+                                    event.changes.forEach { it.consume() }
+
+                                    break
+                                }
+                            }
+                        }
+                    } while (event.changes.any { it.pressed })
+                }
+            },
         contentPadding = PaddingValues(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalItemSpacing = 8.dp,

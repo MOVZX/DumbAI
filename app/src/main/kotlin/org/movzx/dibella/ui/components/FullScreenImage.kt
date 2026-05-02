@@ -161,6 +161,8 @@ fun FullScreenImage(
         }
     }
 
+    val velocityTracker = remember { androidx.compose.ui.input.pointer.util.VelocityTracker() }
+
     Box(
         modifier =
             Modifier.fillMaxSize()
@@ -178,12 +180,21 @@ fun FullScreenImage(
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 offsetY += dragAmount.y
+                                velocityTracker.addPosition(change.uptimeMillis, change.position)
                                 showUI = false
                             },
                             onDragEnd = {
-                                if (abs(offsetY) > dismissThreshold) onDismiss() else offsetY = 0f
+                                val velocity = velocityTracker.calculateVelocity().y
+
+                                if (abs(offsetY) > dismissThreshold || velocity > 1000f) onDismiss()
+                                else offsetY = 0f
+
+                                velocityTracker.resetTracking()
                             },
-                            onDragCancel = { offsetY = 0f },
+                            onDragCancel = {
+                                offsetY = 0f
+                                velocityTracker.resetTracking()
+                            },
                         )
                     }
                 }

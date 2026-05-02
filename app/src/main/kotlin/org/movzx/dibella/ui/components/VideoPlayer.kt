@@ -290,15 +290,14 @@ private fun ExoVideoPlayer(
 
         LaunchedEffect(exoPlayer, isPlaying) {
             exoPlayer.playWhenReady = isPlaying
+            var lastRenderedCount = 0L
+            var lastTime = System.currentTimeMillis()
 
-            if (!usePool) {
-                var lastRenderedCount = 0L
-                var lastTime = System.currentTimeMillis()
+            while (isActive && isPlaying) {
+                if (exoPlayer.duration > 0)
+                    onProgressUpdate(exoPlayer.currentPosition, exoPlayer.duration)
 
-                while (isActive && isPlaying) {
-                    if (exoPlayer.duration > 0)
-                        onProgressUpdate(exoPlayer.currentPosition, exoPlayer.duration)
-
+                if (!usePool) {
                     val currentRenderedCount =
                         exoPlayer.videoDecoderCounters?.renderedOutputBufferCount?.toLong() ?: 0L
 
@@ -314,9 +313,9 @@ private fun ExoVideoPlayer(
                         lastRenderedCount = currentRenderedCount
                         lastTime = currentTime
                     }
-
-                    delay(33)
                 }
+
+                delay(if (usePool) 200 else 33)
             }
         }
 
@@ -325,9 +324,7 @@ private fun ExoVideoPlayer(
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_PAUSE) exoPlayer.pause()
-                else if (event == Lifecycle.Event.ON_RESUME) {
-                    if (currentIsPlaying) exoPlayer.play()
-                }
+                else if (event == Lifecycle.Event.ON_RESUME) if (currentIsPlaying) exoPlayer.play()
             }
 
             lifecycleOwner.lifecycle.addObserver(observer)

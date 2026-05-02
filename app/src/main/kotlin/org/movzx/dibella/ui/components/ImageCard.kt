@@ -313,6 +313,7 @@ fun ImageCard(
     ) {
         var isError by remember { mutableStateOf(false) }
         var isLoading by remember { mutableStateOf(true) }
+        var videoProgress by remember { mutableFloatStateOf(0f) }
 
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
@@ -344,6 +345,9 @@ fun ImageCard(
                     isPlaying = isVisibleInViewport && !isScrolling,
                     isMuted = true,
                     scaleMode = ScaleMode.CROP,
+                    onProgressUpdate = { pos, dur ->
+                        if (dur > 0) videoProgress = pos.toFloat() / dur.toFloat()
+                    },
                     onPlaybackError = { videoError = true },
                     onTap = { if (isSelectionMode) onToggleSelection() else onClick(image) },
                     onLongPress = onLongClick,
@@ -393,6 +397,17 @@ fun ImageCard(
                             )
                         )
             )
+
+            if (videoProgress > 0f && isVisibleInViewport && !videoError) {
+                LinearProgressIndicator(
+                    progress = { videoProgress },
+                    modifier = Modifier.fillMaxWidth().height(2.dp).align(Alignment.BottomCenter),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = Color.Transparent,
+                    gapSize = 0.dp,
+                    drawStopIndicator = {},
+                )
+            }
 
             if (image.type == "video" && viewMode != "feed") {
                 Box(

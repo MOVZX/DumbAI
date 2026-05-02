@@ -53,6 +53,7 @@ fun SelectionTopBar(
                     )
                 }
             }
+
             IconButton(onClick = onAction) {
                 Icon(
                     actionIcon,
@@ -96,9 +97,11 @@ fun MainTopBar(
                         contentDescription = stringResource(R.string.display_options),
                     )
                 }
+
                 IconButton(
                     onClick = {
-                        val nextCols = if (gridColumns >= 3) 1 else gridColumns + 1
+                        val nextCols = if (gridColumns >= 4) 1 else gridColumns + 1
+
                         onUpdateGridColumns(nextCols)
                     }
                 ) {
@@ -107,7 +110,8 @@ fun MainTopBar(
                             when (gridColumns) {
                                 1 -> Icons.Default.ViewStream
                                 2 -> Icons.Default.Dashboard
-                                else -> Icons.Default.ViewWeek
+                                3 -> Icons.Default.ViewModule
+                                else -> Icons.Filled.Grid4x4
                             },
                         contentDescription = stringResource(R.string.label_grid_columns),
                     )
@@ -122,6 +126,7 @@ fun MainTopBar(
                         contentDescription = stringResource(R.string.filters),
                     )
                 }
+
                 IconButton(onClick = onShowSettings) {
                     Icon(
                         imageVector = Icons.Default.Settings,

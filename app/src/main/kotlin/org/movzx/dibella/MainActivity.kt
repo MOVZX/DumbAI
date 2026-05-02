@@ -825,6 +825,7 @@ fun FeedScreen(
                     onRetryThumbnail = { url, onComplete ->
                         viewModel.retryThumbnail(url, onComplete)
                     },
+                    onUpdateGridColumns = { viewModel.updateGridColumns(it) },
                     autoplayEnabled = feedVideoAutoplay,
                     isPreviewOpen = selectedImageIndex != null,
                 )
@@ -985,6 +986,7 @@ fun FavoritesScreen(
                 },
                 onToggleFavorite = { viewModel.toggleFavorite(it) },
                 onRetryThumbnail = { url, onComplete -> viewModel.retryThumbnail(url, onComplete) },
+                onUpdateGridColumns = { viewModel.updateGridColumns(it) },
                 onToggleSelection = { viewModel.toggleSelection(it) },
                 onLongClick = { viewModel.toggleSelection(it) },
                 autoplayEnabled = feedVideoAutoplay,
@@ -1179,6 +1181,7 @@ fun GalleryScreen(
                 },
                 onToggleFavorite = { favViewModel.toggleFavorite(it) },
                 onRetryThumbnail = { url, onComplete -> viewModel.retryThumbnail(url, onComplete) },
+                onUpdateGridColumns = { viewModel.updateGridColumns(it) },
                 onToggleSelection = { viewModel.toggleSelection(it) },
                 onLongClick = { viewModel.toggleSelection(it) },
                 autoplayEnabled = feedVideoAutoplay,
