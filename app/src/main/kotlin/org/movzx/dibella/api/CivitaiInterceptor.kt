@@ -2,8 +2,7 @@ package org.movzx.dibella.api
 
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.movzx.dibella.data.UserPreferencesRepository
@@ -12,31 +11,9 @@ import org.movzx.dibella.util.Logger
 @Singleton
 class CivitaiInterceptor @Inject constructor(private val repository: UserPreferencesRepository) :
     Interceptor {
-    @Volatile private var apiKey: String = ""
-    @Volatile private var debugEnabled: Boolean = false
-    private val scope =
-        kotlinx.coroutines.CoroutineScope(
-            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main
-        )
-
-    init {
-        scope.launch {
-            try {
-                val settings = repository.getInterceptorSettings()
-                apiKey = settings.first
-                debugEnabled = settings.second
-            } catch (e: Exception) {
-                Logger.e("Dibella_Net", "Failed to load interceptor settings: ${e.message}")
-            }
-        }
-    }
-
-    fun updateSettings(key: String, enabled: Boolean) {
-        this.apiKey = key
-        this.debugEnabled = enabled
-    }
 
     override fun intercept(chain: Interceptor.Chain): Response {
+        val (apiKey, debugEnabled) = runBlocking { repository.getInterceptorSettings() }
         val original = chain.request()
         val requestBuilder = original.newBuilder()
         val host = original.url.host

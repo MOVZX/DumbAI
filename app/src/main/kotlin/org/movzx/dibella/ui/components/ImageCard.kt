@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -125,40 +127,44 @@ fun ImageCard(
     var hasEnsuredResources by remember(image.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    val isThumbnailCached =
-        remember(
+    val isThumbnailCached by
+        produceState(
+            initialValue = false,
             context,
             image.id,
             image.type,
-            favoriteInfo?.isSynced, // Observe the sync flag
+            favoriteInfo?.isSynced,
             downloadProgresses[image.id],
             retryCount,
             favDir,
         ) {
-            org.movzx.dibella.util.hasLocalCache(
-                context,
-                image.id,
-                image.type == "video",
-                favoritesDir = favDir,
-            )
+            value =
+                org.movzx.dibella.util.hasLocalCache(
+                    context = context,
+                    imageId = image.id,
+                    isVideo = image.type == "video",
+                    favoritesDir = favDir,
+                )
         }
 
-    val isPreviewCached =
-        remember(
+    val isPreviewCached by
+        produceState(
+            initialValue = false,
             context,
             image.id,
             image.type,
-            favoriteInfo?.isSynced, // Observe the sync flag
+            favoriteInfo?.isSynced,
             downloadProgresses[image.id],
             retryCount,
             favDir,
         ) {
-            org.movzx.dibella.util.hasFullCache(
-                context,
-                image.id,
-                image.type == "video",
-                favoritesDir = favDir,
-            )
+            value =
+                org.movzx.dibella.util.hasFullCache(
+                    context = context,
+                    imageId = image.id,
+                    isVideo = image.type == "video",
+                    favoritesDir = favDir,
+                )
         }
 
     LaunchedEffect(image.id, isFavorite) {

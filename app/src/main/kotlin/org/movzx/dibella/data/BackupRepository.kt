@@ -11,6 +11,9 @@ import kotlinx.coroutines.withContext
 import okio.buffer
 import okio.source
 import org.movzx.dibella.model.AppBackup
+import org.movzx.dibella.model.FavoriteImage
+import org.movzx.dibella.model.FavoriteImageBackup
+import org.movzx.dibella.util.CivitaiUrlBuilder
 
 @Singleton
 class BackupRepository
@@ -24,9 +27,19 @@ constructor(
     suspend fun exportData(uri: Uri): Boolean =
         withContext(Dispatchers.IO) {
             try {
-                val favorites = favoritesRepository.getAllFavoritesSync()
+                val favorites =
+                    favoritesRepository.getAllFavoritesSync().map { fav ->
+                        FavoriteImageBackup(
+                            id = fav.id,
+                            url = CivitaiUrlBuilder.compressUrl(fav.url),
+                            nsfw = fav.nsfw,
+                            type = fav.type,
+                            timestamp = fav.timestamp,
+                        )
+                    }
+
                 val settings = repository.getCurrentSettings()
-                val backup = AppBackup(version = 1, settings = settings, favorites = favorites)
+                val backup = AppBackup(version = 2, settings = settings, favorites = favorites)
                 val adapter = moshi.adapter(AppBackup::class.java)
                 val json = adapter.toJson(backup)
 
@@ -47,7 +60,22 @@ constructor(
                     val backup = adapter.fromJson(source) ?: return@withContext false
 
                     backup.settings?.let { repository.importSettings(it) }
-                    favoritesRepository.importFavorites(backup.favorites)
+
+                    val favoriteImages =
+                        backup.favorites.map { back ->
+                            FavoriteImage(
+                                id = back.id,
+                                url = CivitaiUrlBuilder.expandUrl(back.url, back.type),
+                                width = null,
+                                height = null,
+                                nsfw = back.nsfw,
+                                type = back.type,
+                                timestamp = back.timestamp,
+                                isSynced = false,
+                            )
+                        }
+
+                    favoritesRepository.importFavorites(favoriteImages)
 
                     true
                 } ?: false

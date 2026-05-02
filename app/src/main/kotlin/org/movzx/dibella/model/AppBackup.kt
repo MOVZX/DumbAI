@@ -20,8 +20,17 @@ data class AppSettingsBackup(
 )
 
 @JsonClass(generateAdapter = true)
+data class FavoriteImageBackup(
+    val id: Long,
+    val url: String,
+    val nsfw: Boolean?,
+    val type: String?,
+    val timestamp: Long,
+)
+
+@JsonClass(generateAdapter = true)
 data class AppBackup(
     val version: Int = 1,
     val settings: AppSettingsBackup?,
-    val favorites: List<FavoriteImage>,
+    val favorites: List<FavoriteImageBackup>,
 )

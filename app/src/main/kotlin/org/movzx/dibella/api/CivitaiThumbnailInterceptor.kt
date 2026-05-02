@@ -1,17 +1,17 @@
 package org.movzx.dibella.api
 
+import java.util.concurrent.TimeUnit
 import okhttp3.Interceptor
+import okhttp3.Request
 import okhttp3.Response
+import org.movzx.dibella.util.CivitaiUrlBuilder
+import org.movzx.dibella.util.FileUtils
 import org.movzx.dibella.util.Logger
-import org.movzx.dibella.util.getOriginalUrl
-import org.movzx.dibella.util.getThumbnailUrl
-import org.movzx.dibella.util.getVideoOriginalUrl
 
 class CivitaiThumbnailInterceptor : Interceptor {
-    private val fallbackWidths = listOf(800, 1200)
     private val videoThumbnailTimeout = 10_000L
     private val imageThumbnailTimeout = 15_000L
-    private val maxRetries = 10
+    private val maxRetries = 3
 
     private fun cacheable(response: Response): Response {
         if (!response.isSuccessful) return response
@@ -23,315 +23,107 @@ class CivitaiThumbnailInterceptor : Interceptor {
                 requestUrl.contains("anim=false") ||
                     (!requestUrl.contains("transcode=true") &&
                         requestUrl.contains("/original=false/")) -> 7 * 86400
-
                 requestUrl.contains("/original=true/") ||
                     (requestUrl.contains("original=true") &&
                         !requestUrl.contains("transcode=true")) -> 1 * 86400
-
                 else -> 3 * 86400
             }
 
-        return response
-            .newBuilder()
-            .header("Cache-Control", "public, max-age=$maxAge, s-maxage=$maxAge")
-            .build()
+        return response.newBuilder().header("Cache-Control", "public, max-age=$maxAge").build()
+    }
+
+    private fun Response?.closeQuietly() {
+        try {
+            this?.close()
+        } catch (e: Exception) {
+            // Ignored
+        }
+    }
+
+    private fun safeProceed(
+        chain: Interceptor.Chain,
+        request: Request,
+        url: String,
+        timeoutMs: Long,
+    ): Response? {
+        return try {
+            val newRequest = request.newBuilder().url(url).build()
+
+            chain
+                .withReadTimeout(timeoutMs.toInt(), TimeUnit.MILLISECONDS)
+                .withConnectTimeout(timeoutMs.toInt(), TimeUnit.MILLISECONDS)
+                .proceed(newRequest)
+        } catch (e: Exception) {
+            Logger.w("Dibella_Net", "Request failed for $url: ${e.message}")
+
+            null
+        }
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val url = request.url.toString()
+
+        if (!CivitaiUrlBuilder.isCivitaiUrl(url)) return chain.proceed(request)
+
         var response = chain.proceed(request)
 
-        if (!url.contains("image.civitai.com")) return response
+        if (response.isSuccessful && isValidMedia(response)) return cacheable(response)
 
-        val isThumbnailUrl = url.contains("anim=false")
-        val isPreviewUrl = url.contains("transcode=true") && !url.contains("anim=false")
-        val isOriginalUrl = url.contains("/original=true/")
-
-        if (isThumbnailUrl && response.isSuccessful) {
-            if (isRealImage(response)) {
-                return cacheable(response)
-            }
-
-            Logger.d("Dibella_Net", "Thumbnail URL returned non-image, closing and falling back")
-
-            response.close()
-            // Continue to fallback logic below
-        }
-
-        if ((isPreviewUrl || isOriginalUrl) && response.isSuccessful) {
-            if (isRealVideo(response)) return cacheable(response)
-
-            if (isRealImage(response)) {
-                Logger.d(
-                    "Dibella_Net",
-                    "Preview URL returned image, retrying with video preview: $url",
-                )
-
-                val videoPreviewUrl = url.replace("anim=false,", "").replace(",anim=false", "")
-
-                if (videoPreviewUrl != url) {
-                    response.close()
-
-                    val retryResponse =
-                        chain.proceed(request.newBuilder().url(videoPreviewUrl).build())
-
-                    if (retryResponse.isSuccessful && isRealVideo(retryResponse))
-                        return cacheable(retryResponse)
-
-                    retryResponse.close()
-                }
-            } else {
-                response.close()
-            }
-        }
-
-        if (response.isSuccessful && isRealImage(response)) return cacheable(response)
-
-        val isVideoThumbnail = url.contains("/original=false/")
         val isVideo = url.contains("anim=false") || url.contains("transcode=true")
+        val timeout = if (isVideo) videoThumbnailTimeout else imageThumbnailTimeout
+        val fallbacks = CivitaiUrlBuilder.getFallbackChain(url)
         var retryCount = 0
 
-        fun tryUrlWithRetry(testUrl: String, isFallback: Boolean = false): Response? {
-            if (retryCount >= maxRetries) {
-                Logger.w("Dibella_Net", "Max retries ($maxRetries) reached for: $testUrl")
+        for (fallbackUrl in fallbacks) {
+            if (retryCount >= maxRetries) break
 
-                return null
-            }
+            response.closeQuietly()
 
-            if (testUrl == url) return null
+            Logger.d("Dibella_Net", "[Fallback] Attempt ${retryCount + 1}: $fallbackUrl")
 
-            val previousResponse = response
+            val fallbackResponse = safeProceed(chain, request, fallbackUrl, timeout)
 
-            try {
-                previousResponse.close()
+            if (fallbackResponse != null) {
+                response = fallbackResponse
 
-                val newRequest = request.newBuilder().url(testUrl).build()
-                val attemptType = if (isFallback) "fallback" else "retry"
+                if (response.isSuccessful && isValidMedia(response)) {
+                    Logger.d("Dibella_Net", "[Fallback] Success: $fallbackUrl")
 
-                Logger.d(
-                    "Dibella_Net",
-                    "[$attemptType] Attempt ${retryCount + 1}/$maxRetries: $testUrl",
-                )
-
-                val timeout = if (isVideo) videoThumbnailTimeout else imageThumbnailTimeout
-                val timedResponse = withTimeout(chain, newRequest, timeout)
-
-                timedResponse?.let {
-                    if (it.isSuccessful && isRealImage(it)) {
-                        if (isVideo && !isRealVideo(it) && !isThumbnailUrl) {
-                            Logger.d(
-                                "Dibella_Net",
-                                "Video retry returned image, trying preview: $testUrl",
-                            )
-
-                            val prevResponse = response
-                            val previewUrl =
-                                testUrl.replace("anim=false,", "").replace(",anim=false", "")
-
-                            if (previewUrl != testUrl) {
-                                response.close()
-
-                                val previewResponse =
-                                    chain.proceed(request.newBuilder().url(previewUrl).build())
-
-                                if (previewResponse.isSuccessful && isRealImage(previewResponse)) {
-                                    response = previewResponse
-
-                                    return cacheable(response)
-                                }
-
-                                previewResponse.close()
-                            }
-
-                            response = prevResponse
-                        } else {
-                            Logger.d(
-                                "Dibella_Net",
-                                "Success after ${retryCount + 1} attempts: $testUrl",
-                            )
-
-                            response = it
-
-                            return cacheable(response)
-                        }
-                    }
+                    return cacheable(response)
                 }
-            } catch (e: Exception) {
-                Logger.e("Dibella_Net", "Error during retry: ${e.message}")
             }
 
             retryCount++
-
-            return null
-        }
-
-        if (isVideoThumbnail && isVideo) {
-            val previewUrl = url.replace("anim=false,", "").replace(",anim=false", "")
-
-            if (previewUrl != url)
-                if (tryUrlWithRetry(previewUrl, isFallback = true) != null)
-                    return cacheable(response)
-
-            for (width in fallbackWidths) {
-                val newUrl = getThumbnailUrl(url, width)
-
-                if (tryUrlWithRetry(newUrl) != null) return cacheable(response)
-            }
-
-            if (!response.isSuccessful || !isRealImage(response)) {
-                val transcodeUrl = url.replace(",optimized=true", "")
-
-                if (tryUrlWithRetry(transcodeUrl, isFallback = true) != null)
-                    return cacheable(response)
-            }
-        }
-
-        if (
-            (!response.isSuccessful || !isRealImage(response)) &&
-                isVideo &&
-                !url.contains("original=true")
-        ) {
-            val originalVideoUrl = getVideoOriginalUrl(url)
-
-            if (originalVideoUrl != url) {
-                response.close()
-
-                Logger.d(
-                    "Dibella_Net",
-                    "Video thumbnail failed, trying original video URL for frame extraction: $originalVideoUrl",
-                )
-
-                response = chain.proceed(request.newBuilder().url(originalVideoUrl).build())
-
-                if (response.isSuccessful && isRealImage(response)) return cacheable(response)
-            }
-        }
-
-        if (
-            (!response.isSuccessful || !isRealImage(response)) &&
-                !url.contains("original=true") &&
-                !isVideoThumbnail
-        ) {
-            val originalUrl = getOriginalUrl(url)
-
-            if (originalUrl != url) {
-                response.close()
-
-                val fallbackType = if (isVideo) "video" else "image"
-
-                Logger.d("Dibella_Net", "Final fallback [$fallbackType] trying: $originalUrl")
-
-                response = chain.proceed(request.newBuilder().url(originalUrl).build())
-            }
-        }
-
-        if (!response.isSuccessful || !isRealImage(response)) {
-            val fallbackUrl = getOriginalUrl(url).replace("/original=true", "/width=450")
-
-            if (fallbackUrl != url) {
-                response.close()
-
-                Logger.d("Dibella_Net", "Last resort fallback trying: $fallbackUrl")
-
-                response = chain.proceed(request.newBuilder().url(fallbackUrl).build())
-            }
         }
 
         return cacheable(response)
     }
 
-    private fun withTimeout(
-        chain: Interceptor.Chain,
-        request: okhttp3.Request,
-        timeoutMs: Long,
-    ): Response? {
-        val startTime = System.currentTimeMillis()
-
-        return try {
-            val response = chain.proceed(request)
-            val elapsed = System.currentTimeMillis() - startTime
-
-            if (elapsed > timeoutMs) {
-                Logger.w("Dibella_Net", "Request timed out after ${elapsed}ms: ${request.url}")
-
-                response.close()
-
-                null
-            } else {
-                response
-            }
-        } catch (e: java.util.concurrent.TimeoutException) {
-            Logger.w("Dibella_Net", "Request timeout: ${request.url}")
-
-            null
-        } catch (e: Exception) {
-            Logger.e("Dibella_Net", "Request error: ${e.message}")
-
-            null
-        }
-    }
-
-    private fun isRealImage(response: Response): Boolean {
+    private fun isValidMedia(response: Response): Boolean {
         val body = response.body ?: return false
 
         if (body.contentLength() == 0L) return false
+
+        val contentType = body.contentType()?.toString()?.lowercase() ?: ""
+
+        if (contentType.contains("application/json") || contentType.contains("text/html"))
+            return false
 
         return try {
             val source = body.source()
 
             if (!source.request(64)) return false
 
-            val peek = source.peek()
-            val bytes = peek.readByteArray(64)
+            val bytes = source.peek().readByteArray(64)
 
             if (bytes.isNotEmpty() && bytes[0] == '{'.code.toByte()) return false
 
-            val ext = org.movzx.dibella.util.FileUtils.getExtensionFromBytes(bytes)
-
-            if (ext != null) return true
-
-            val contentType = body.contentType()?.toString() ?: ""
-
-            contentType.contains("image/") ||
-                contentType.contains("video/") ||
-                contentType.contains("webm") ||
-                contentType.contains("mp4")
+            FileUtils.getExtensionFromBytes(bytes) != null ||
+                contentType.startsWith("image/") ||
+                contentType.startsWith("video/")
         } catch (e: Exception) {
-            Logger.e("Dibella_Net", "Error verifying image: ${e.message}")
-
-            false
-        }
-    }
-
-    private fun isRealVideo(response: Response): Boolean {
-        val body = response.body ?: return false
-
-        if (body.contentLength() == 0L) return false
-
-        val contentType = body.contentType()?.toString() ?: ""
-
-        if (contentType.contains("image/")) return false
-
-        if (
-            contentType.contains("video/") ||
-                contentType.contains("webm") ||
-                contentType.contains("mp4")
-        )
-            return true
-
-        return try {
-            val source = body.source()
-
-            if (!source.request(64)) return false
-
-            val peek = source.peek()
-            val bytes = peek.readByteArray(64)
-            val ext = org.movzx.dibella.util.FileUtils.getExtensionFromBytes(bytes)
-
-            ext in listOf("mp4", "webm", "mkv", "mov", "avi", "mpg", "mpeg")
-        } catch (e: Exception) {
-            Logger.e("Dibella_Net", "Error verifying video: ${e.message}")
+            Logger.e("Dibella_Net", "Error verifying media: ${e.message}")
 
             false
         }

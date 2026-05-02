@@ -112,7 +112,6 @@ constructor(
     fun updateApiKey(key: String) {
         viewModelScope.launch {
             repository.updateApiKey(key)
-            civitaiInterceptor.updateSettings(key, _uiState.value.debugEnabled)
             sendMessage(R.string.msg_api_key_saved)
         }
     }
@@ -126,10 +125,7 @@ constructor(
     }
 
     fun updateDebugEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            repository.updateDebugEnabled(enabled)
-            civitaiInterceptor.updateSettings(_uiState.value.apiKey, enabled)
-        }
+        viewModelScope.launch { repository.updateDebugEnabled(enabled) }
     }
 
     fun updateHidePlayerControls(enabled: Boolean) {

@@ -29,6 +29,11 @@ import org.movzx.dibella.util.getThumbnailUrl
 import org.movzx.dibella.util.getVideoPreviewUrl
 import org.movzx.dibella.util.getVideoThumbnailUrl
 
+private const val TYPE_IMAGE = "image"
+private const val TYPE_VIDEO = "video"
+private const val TYPE_THUMBNAILS = "thumbnails"
+private const val TYPE_PREVIEWS = "previews"
+
 @Singleton
 class FavoritesRepository(
     private val context: Context,
@@ -118,8 +123,8 @@ class FavoritesRepository(
 
     private suspend fun getMediaDir(type: String, contentType: String): File {
         val base = getFavoritesDir()
-        val mediaSub = if (type == "video") "video" else "image"
-        val contentSub = if (contentType == "preview") "previews" else "thumbnails"
+        val mediaSub = if (type == TYPE_VIDEO) TYPE_VIDEO else TYPE_IMAGE
+        val contentSub = if (contentType == "preview") TYPE_PREVIEWS else TYPE_THUMBNAILS
         val dir = File(File(base, mediaSub), contentSub)
 
         if (!dir.exists()) dir.mkdirs()
@@ -267,11 +272,11 @@ class FavoritesRepository(
                             return@withContext
                         }
 
-                val thumbDir = getMediaDir(image.type ?: "image", "thumbnail")
-                val previewDir = getMediaDir(image.type ?: "image", "preview")
+                val thumbDir = getMediaDir(image.type ?: TYPE_IMAGE, "thumbnail")
+                val previewDir = getMediaDir(image.type ?: TYPE_IMAGE, "preview")
 
                 val thumbBaseName =
-                    if (image.type == "video") "${image.id}_thumb" else "${image.id}"
+                    if (image.type == TYPE_VIDEO) "${image.id}_thumb" else "${image.id}"
 
                 if (force) {
                     Logger.d("Dibella_IO", "│ [${image.id}] Force cleaning local files")
@@ -295,7 +300,7 @@ class FavoritesRepository(
                 var fullFound = false
                 var thumbFound = false
 
-                if (image.type == "video") {
+                if (image.type == TYPE_VIDEO) {
                     val existingVideo =
                         FileUtils.VIDEO_EXTENSIONS.map { extension ->
                                 File(previewDir, "${image.id}.$extension")
@@ -403,7 +408,7 @@ class FavoritesRepository(
                     var thumbResolved = false
                     val finalJpgFile = File(thumbDir, "$thumbBaseName.jpg")
 
-                    if (image.type == "video" && videoFound) {
+                    if (image.type == TYPE_VIDEO && videoFound) {
                         val videoFile =
                             FileUtils.VIDEO_EXTENSIONS.map { extension ->
                                     File(previewDir, "${image.id}.$extension")
@@ -429,7 +434,7 @@ class FavoritesRepository(
 
                     if (!thumbResolved) {
                         val thumbUrl =
-                            if (image.type == "video") getVideoThumbnailUrl(image.url)
+                            if (image.type == TYPE_VIDEO) getVideoThumbnailUrl(image.url)
                             else getThumbnailUrl(image.url, 450)
 
                         Logger.d(
@@ -450,7 +455,7 @@ class FavoritesRepository(
                                 updateTotalProgress()
                             }
 
-                        if (image.type == "video" && !downloadSuccess) {
+                        if (image.type == TYPE_VIDEO && !downloadSuccess) {
                             Logger.w(
                                 "Dibella_Net",
                                 "│ [${image.id}] Static thumbnail fallback -> Video Preview",
@@ -492,8 +497,8 @@ class FavoritesRepository(
 
                 if (updated || favorite.isSynced != true) {
                     val isFullySynced =
-                        (image.type == "video" && videoFound && thumbFound) ||
-                            (image.type != "video" && fullFound && thumbFound)
+                        (image.type == TYPE_VIDEO && videoFound && thumbFound) ||
+                            (image.type != TYPE_VIDEO && fullFound && thumbFound)
 
                     if (isFullySynced) {
                         val updatedFavorite = favorite.copy(isSynced = true)
@@ -501,12 +506,13 @@ class FavoritesRepository(
                         favoriteImageDao.insertFavorite(updatedFavorite)
 
                         val thumbUrl =
-                            if (image.type == "video") getVideoThumbnailUrl(image.url)
+                            if (image.type == TYPE_VIDEO) getVideoThumbnailUrl(image.url)
                             else getThumbnailUrl(image.url, 450)
 
                         evictFromCoilCache(thumbUrl)
 
-                        if (image.type == "video") evictFromCoilCache(getVideoPreviewUrl(image.url))
+                        if (image.type == TYPE_VIDEO)
+                            evictFromCoilCache(getVideoPreviewUrl(image.url))
 
                         evictFromCoilCache(image.url)
 
@@ -683,9 +689,9 @@ class FavoritesRepository(
 
             favoriteImageDao.deleteFavorite(favorite)
 
-            val thumbDir = getMediaDir(image.type ?: "image", "thumbnail")
-            val previewDir = getMediaDir(image.type ?: "image", "preview")
-            val thumbBaseName = if (image.type == "video") "${image.id}_thumb" else "${image.id}"
+            val thumbDir = getMediaDir(image.type ?: TYPE_IMAGE, "thumbnail")
+            val previewDir = getMediaDir(image.type ?: TYPE_IMAGE, "preview")
+            val thumbBaseName = if (image.type == TYPE_VIDEO) "${image.id}_thumb" else "${image.id}"
             val imageExtensions = listOf("jpg", "png", "webp", "gif", "avif")
             val videoExtensions = listOf("mp4", "webm", "mkv")
 
@@ -740,14 +746,14 @@ class FavoritesRepository(
             val base = getFavoritesDir()
 
             favorites.forEach { fav ->
-                val mediaSub = if (fav.type == "video") "video" else "image"
-                val previewDir = File(File(base, mediaSub), "previews")
+                val mediaSub = if (fav.type == TYPE_VIDEO) TYPE_VIDEO else TYPE_IMAGE
+                val previewDir = File(File(base, mediaSub), TYPE_PREVIEWS)
 
                 val extensions =
-                    if (fav.type == "video") listOf("mp4", "webm", "mkv")
+                    if (fav.type == TYPE_VIDEO) listOf("mp4", "webm", "mkv")
                     else listOf("jpg", "png", "webp", "gif", "avif")
 
-                val baseName = if (fav.type == "video") "${fav.id}" else "${fav.id}_full"
+                val baseName = if (fav.type == TYPE_VIDEO) "${fav.id}" else "${fav.id}_full"
 
                 val mainFile =
                     extensions
@@ -769,14 +775,15 @@ class FavoritesRepository(
 
             for (group in duplicateGroups) {
                 val groupWithTimestamps = group.map { image ->
-                    val mediaSub = if (image.type == "video") "video" else "image"
-                    val previewDir = File(File(base, mediaSub), "previews")
+                    val mediaSub = if (image.type == TYPE_VIDEO) TYPE_VIDEO else TYPE_IMAGE
+                    val previewDir = File(File(base, mediaSub), TYPE_PREVIEWS)
 
                     val extensions =
-                        if (image.type == "video") listOf("mp4", "webm", "mkv")
+                        if (image.type == TYPE_VIDEO) listOf("mp4", "webm", "mkv")
                         else listOf("jpg", "png", "webp", "gif", "avif")
 
-                    val baseName = if (image.type == "video") "${image.id}" else "${image.id}_full"
+                    val baseName =
+                        if (image.type == TYPE_VIDEO) "${image.id}" else "${image.id}_full"
 
                     val path =
                         extensions

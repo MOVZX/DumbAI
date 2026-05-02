@@ -16,8 +16,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FavoriteImage
+
+private const val TYPE_IMAGE = "image"
+private const val TYPE_VIDEO = "video"
+private const val TYPE_THUMBNAILS = "thumbnails"
+private const val TYPE_PREVIEWS = "previews"
 
 fun Modifier.scrollbar(state: ScrollState, width: Dp = 4.dp, color: Color? = null): Modifier =
     composed {
@@ -59,60 +66,64 @@ private fun getEffectiveFavoritesDir(favoritesDir: File?): File {
         )
 }
 
-fun hasLocalCache(
+suspend fun hasLocalCache(
     context: Context,
     imageId: Long,
     isVideo: Boolean,
     favoritesDir: File? = null,
-): Boolean {
-    val dir = getEffectiveFavoritesDir(favoritesDir)
+): Boolean =
+    withContext(Dispatchers.IO) {
+        val dir = getEffectiveFavoritesDir(favoritesDir)
 
-    if (!dir.exists()) return false
+        if (!dir.exists()) return@withContext false
 
-    val mediaSub = if (isVideo) "video" else "image"
-    val baseName = if (isVideo) "${imageId}_thumb" else "$imageId"
+        val mediaSub = if (isVideo) TYPE_VIDEO else TYPE_IMAGE
+        val baseName = if (isVideo) "${imageId}_thumb" else "$imageId"
 
-    val found =
-        FileUtils.IMAGE_EXTENSIONS.any { ext ->
-            val thumbFile = File(File(File(dir, mediaSub), "thumbnails"), "$baseName.$ext")
-
-            thumbFile.exists() && thumbFile.length() > 100
-        }
-
-    if (found) Logger.v("Dibella_IO", "[$imageId] Local thumbnail cache found")
-
-    return found
-}
-
-fun hasFullCache(
-    context: Context,
-    imageId: Long,
-    isVideo: Boolean,
-    favoritesDir: File? = null,
-): Boolean {
-    val dir = getEffectiveFavoritesDir(favoritesDir)
-
-    if (!dir.exists()) return false
-
-    val found =
-        if (isVideo) {
-            FileUtils.VIDEO_EXTENSIONS.any { ext ->
-                val previewFile = File(File(File(dir, "video"), "previews"), "$imageId.$ext")
-
-                previewFile.exists() && previewFile.length() > 100
-            }
-        } else {
+        val found =
             FileUtils.IMAGE_EXTENSIONS.any { ext ->
-                val fullFile = File(File(File(dir, "image"), "previews"), "${imageId}_full.$ext")
+                val thumbFile = File(File(File(dir, mediaSub), TYPE_THUMBNAILS), "$baseName.$ext")
 
-                fullFile.exists() && fullFile.length() > 100
+                thumbFile.exists() && thumbFile.length() > 100
             }
-        }
 
-    if (found) Logger.v("Dibella_IO", "[$imageId] Full resolution cache found")
+        if (found) Logger.v("Dibella_IO", "[$imageId] Local thumbnail cache found")
 
-    return found
-}
+        return@withContext found
+    }
+
+suspend fun hasFullCache(
+    context: Context,
+    imageId: Long,
+    isVideo: Boolean,
+    favoritesDir: File? = null,
+): Boolean =
+    withContext(Dispatchers.IO) {
+        val dir = getEffectiveFavoritesDir(favoritesDir)
+
+        if (!dir.exists()) return@withContext false
+
+        val found =
+            if (isVideo) {
+                FileUtils.VIDEO_EXTENSIONS.any { ext ->
+                    val previewFile =
+                        File(File(File(dir, TYPE_VIDEO), TYPE_PREVIEWS), "$imageId.$ext")
+
+                    previewFile.exists() && previewFile.length() > 100
+                }
+            } else {
+                FileUtils.IMAGE_EXTENSIONS.any { ext ->
+                    val fullFile =
+                        File(File(File(dir, TYPE_IMAGE), TYPE_PREVIEWS), "${imageId}_full.$ext")
+
+                    fullFile.exists() && fullFile.length() > 100
+                }
+            }
+
+        if (found) Logger.v("Dibella_IO", "[$imageId] Full resolution cache found")
+
+        return@withContext found
+    }
 
 fun resolveImageData(
     context: Context,
@@ -123,10 +134,10 @@ fun resolveImageData(
     favoritesDir: File? = null,
 ): String {
     val dir = getEffectiveFavoritesDir(favoritesDir)
-    val isVideo = image.type == "video"
-    val mediaSub = if (isVideo) "video" else "image"
+    val isVideo = image.type == TYPE_VIDEO
+    val mediaSub = if (isVideo) TYPE_VIDEO else TYPE_IMAGE
     val isFull = useVideoPath || thumbnailWidth > 400
-    val contentSub = if (isFull) "previews" else "thumbnails"
+    val contentSub = if (isFull) TYPE_PREVIEWS else TYPE_THUMBNAILS
 
     val baseName =
         when {
@@ -161,68 +172,32 @@ fun resolveImageData(
     return image.url
 }
 
-fun modifyCivitaiUrl(url: String, variant: String): String {
-    if (!url.contains("image.civitai.com")) return url
-
-    return when {
-        url.contains("/original=true/") -> url.replace("/original=true/", "/$variant/")
-        url.contains("/original=false/") -> url.replace("/original=false/", "/$variant/")
-        url.contains(Regex("/width=\\d+/")) -> url.replace(Regex("/width=\\d+/"), "/$variant/")
-        else -> {
-            val lastSlashIndex = url.lastIndexOf('/')
-
-            if (lastSlashIndex != -1) {
-                val prefix = url.substring(0, lastSlashIndex)
-                val fileName = url.substring(lastSlashIndex + 1)
-
-                "$prefix/$variant/$fileName"
-            } else url
-        }
-    }
-}
-
 fun getThumbnailUrl(url: String, width: Int): String {
-    return modifyCivitaiUrl(url, "width=$width")
+    return CivitaiUrlBuilder.getThumbnailUrl(url, width)
 }
 
 fun getVideoThumbnailUrl(url: String): String {
-    if (!url.contains("image.civitai.com")) return url
-
-    val baseUrl =
-        if (url.contains("/original=true/")) url.substringBefore("/original=true/")
-        else url.substringBeforeLast("/")
-
-    return "$baseUrl/anim=false,transcode=true,width=450,original=false,optimized=true"
+    return CivitaiUrlBuilder.getVideoThumbnailUrl(url)
 }
 
 fun getVideoPreviewUrl(url: String): String {
-    if (!url.contains("image.civitai.com")) return url
-
-    val baseUrl =
-        if (url.contains("/original=true/")) url.substringBefore("/original=true/")
-        else url.substringBeforeLast("/")
-
-    return "$baseUrl/transcode=true,width=450,optimized=true"
+    return CivitaiUrlBuilder.getVideoPreviewUrl(url)
 }
 
 fun getVideoOriginalUrl(url: String): String {
-    if (!url.contains("image.civitai.com")) return url
-
-    val baseUrl =
-        if (url.contains("/original=true/")) url.substringBefore("/original=true/")
-        else url.substringBeforeLast("/")
-
-    return "$baseUrl/original=true"
+    return CivitaiUrlBuilder.getOriginalUrl(url)
 }
 
 fun getOriginalUrl(url: String): String {
-    if (!url.contains("image.civitai.com")) return url
+    return CivitaiUrlBuilder.getOriginalUrl(url)
+}
 
-    return when {
-        url.contains(Regex("/width=\\d+/")) -> url.replace(Regex("/width=\\d+/"), "/original=true/")
-        url.contains("/original=false/") -> url.replace("/original=false/", "/original=true/")
-        else -> url
-    }
+fun modifyCivitaiUrl(url: String, variant: String): String {
+    return if (CivitaiUrlBuilder.isCivitaiUrl(url)) {
+        if (variant.startsWith("width="))
+            CivitaiUrlBuilder.getThumbnailUrl(url, variant.substringAfter("=").toIntOrNull() ?: 450)
+        else CivitaiUrlBuilder.getOriginalUrl(url)
+    } else url
 }
 
 fun formatDuration(ms: Long): String {
@@ -232,11 +207,19 @@ fun formatDuration(ms: Long): String {
     val minutes = totalMinutes % 60
     val hours = totalMinutes / 60
     val centiseconds = (ms % 1000) / 10
+    val s = seconds.toString().padStart(2, '0')
+    val cs = centiseconds.toString().padStart(2, '0')
 
     return when {
-        hours > 0 -> String.format("%d:%02d:%02d:%02d", hours, minutes, seconds, centiseconds)
-        minutes > 0 -> String.format("%02d:%02d:%02d", minutes, seconds, centiseconds)
-        else -> String.format("%02d:%02d", seconds, centiseconds)
+        hours > 0 -> {
+            val m = minutes.toString().padStart(2, '0')
+            "$hours:$m:$s:$cs"
+        }
+        minutes > 0 -> {
+            val m = minutes.toString().padStart(2, '0')
+            "$m:$s:$cs"
+        }
+        else -> "$s:$cs"
     }
 }
 
