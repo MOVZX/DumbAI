@@ -44,7 +44,7 @@ fun AppScaffold(
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (available.y < -15f && isBarsVisible) isBarsVisible = false
-                else if (available.y > 30f && !isBarsVisible) isBarsVisible = true
+                else if (available.y > 15f && !isBarsVisible) isBarsVisible = true
 
                 return Offset.Zero
             }
