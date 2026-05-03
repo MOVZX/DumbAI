@@ -7,14 +7,10 @@ import okio.BufferedSource
 import okio.ByteString.Companion.decodeHex
 
 object FileUtils {
-    val IMAGE_EXTENSIONS = listOf("jpg", "png", "webp", "gif", "avif")
-    val VIDEO_EXTENSIONS = listOf("mp4", "webm", "mkv")
-    private val PNG_HEADER = "89504E47".decodeHex()
+    val IMAGE_EXTENSIONS = listOf("jpeg", "jpg", "webp")
+    val VIDEO_EXTENSIONS = listOf("mp4", "webm")
     private val JPEG_HEADER = "FFD8FF".decodeHex()
     private val WEBP_HEADER = "52494646".decodeHex()
-    private val GIF_HEADER = "47494638".decodeHex()
-    private val EBML_HEADER = "1A45DFA3".decodeHex()
-    private val AVIF_HEADER = "61766966".decodeHex()
 
     fun detectExtension(contentType: String?, source: BufferedSource, url: String): String {
         try {
@@ -36,15 +32,11 @@ object FileUtils {
 
         val mappedExt =
             when (contentType?.lowercase()) {
-                "image/png" -> "png"
                 "image/jpeg",
                 "image/jpg" -> "jpg"
                 "image/webp" -> "webp"
-                "image/gif" -> "gif"
-                "image/avif" -> "avif"
                 "video/mp4" -> "mp4"
                 "video/webm" -> "webm"
-                "video/x-matroska" -> "mkv"
                 else -> null
             }
 
@@ -55,7 +47,7 @@ object FileUtils {
         }
 
         val urlExt = url.substringAfterLast('.', "").lowercase()
-        val validExts = setOf("png", "jpg", "jpeg", "webp", "gif", "avif", "mp4", "webm", "mkv")
+        val validExts = setOf("jpeg", "jpg", "webp", "mp4", "webm")
 
         if (urlExt in validExts) {
             val result = if (urlExt == "jpeg") "jpg" else urlExt
@@ -77,14 +69,9 @@ object FileUtils {
 
         return when {
             hex.startsWith("FFD8FF") -> "jpg"
-            hex.startsWith("89504E47") -> "png"
-            hex.startsWith("47494638") -> "gif"
             hex.startsWith("52494646") && hex.contains("57454250") -> "webp"
-            hex.startsWith("1A45DFA3") -> {
-                if (hex.contains("7765626D")) "webm" else "mkv"
-            }
-            hex.contains("66747970") && hex.contains("61766966") -> "avif"
             hex.contains("66747970") -> "mp4"
+            hex.startsWith("1A45DFA3") && hex.contains("7765626D") -> "webm"
             else -> null
         }
     }

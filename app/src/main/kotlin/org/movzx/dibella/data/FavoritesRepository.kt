@@ -794,8 +794,8 @@ class FavoritesRepository(
                 val previewDir = File(File(base, mediaSub), TYPE_PREVIEWS)
 
                 val extensions =
-                    if (fav.type == TYPE_VIDEO) listOf("mp4", "webm", "mkv")
-                    else listOf("jpg", "png", "webp", "gif", "avif")
+                    if (fav.type == TYPE_VIDEO) listOf("mp4", "webm")
+                    else listOf("jpeg", "jpg", "webp")
 
                 val baseName = if (fav.type == TYPE_VIDEO) "${fav.id}" else "${fav.id}_full"
 
@@ -823,8 +823,8 @@ class FavoritesRepository(
                     val previewDir = File(File(base, mediaSub), TYPE_PREVIEWS)
 
                     val extensions =
-                        if (image.type == TYPE_VIDEO) listOf("mp4", "webm", "mkv")
-                        else listOf("jpg", "png", "webp", "gif", "avif")
+                        if (image.type == TYPE_VIDEO) listOf("mp4", "webm")
+                        else listOf("jpeg", "jpg", "webp")
 
                     val baseName =
                         if (image.type == TYPE_VIDEO) "${image.id}" else "${image.id}_full"
