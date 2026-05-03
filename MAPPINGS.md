@@ -47,7 +47,7 @@ This document provides a comprehensive mapping of all function and method names 
 ### CivitaiInterceptor.kt
 
 - `L12`: `class CivitaiInterceptor` - OkHttp interceptor for auth and logging
-- `L15`: `override fun intercept()` - Injects Bearer token and adds User-Agent
+- `L15`: `override fun intercept()` - Injects Bearer token and adds User-Agent; reads settings via StateFlow
 
 ### CivitaiThumbnailInterceptor.kt
 
@@ -102,6 +102,8 @@ This document provides a comprehensive mapping of all function and method names 
 ### FavoritesRepository.kt
 
 - `L39`: `class FavoritesRepository` - Manages favorite images and local file caching
+- `L45`: `val resourceCheckTimestamps` - Tracks timestamps for stale check cleanup
+- `L61`: `private fun cleanupStaleResourceChecks()` - Periodic cleanup of stale resource checks
 - `L83`: `suspend fun repairSync()` - Repairs local file sync and triggers metadata extraction
 - `L149`: `fun updateOkHttpClient()` - Updates HTTP client with new auth token
 - `L164`: `fun getFavoriteFlow()` - Returns Flow of favorite by ID
@@ -113,7 +115,7 @@ This document provides a comprehensive mapping of all function and method names 
 - `L693`: `private suspend fun addFavorite()` - Adds item to database and triggers resource sync
 - `L703`: `private suspend fun removeFavorite()` - Removes item from database and purges local files
 - `L728`: `suspend fun clearUnusedResources()` - Deletes orphaned cached files
-- `L760`: `suspend fun findDuplicateGroups()` - Finds duplicate images in favorites
+- `L760`: `suspend fun findDuplicateGroups()` - Finds duplicate images in favorites (parallel hash)
 - `L789`: `suspend fun removeDuplicates()` - Removes duplicate groups
 - `L832`: `suspend fun getAllFavoritesSync()` - Blocking fetch all favorites
 - `L834`: `suspend fun importFavorites()` - Bulk import favorites
@@ -122,7 +124,7 @@ This document provides a comprehensive mapping of all function and method names 
 ### GalleryRepository.kt
 
 - `L30`: `class GalleryRepository` - Scans and manages local downloaded files
-- `L47`: `suspend fun refreshDownloadedIds()` - Rescans download directory for IDs
+- `L47`: `suspend fun refreshDownloadedIds()` - Rescans download directory for IDs (uses withLock)
 - `L72`: `suspend fun scanDirectory()` - Scans for media files in directory, extracts metadata
 - `L177`: `suspend fun deleteLocalFile()` - Deletes local file and updates state
 - `L201`: `suspend fun downloadImage()` - Downloads image/video with progress
@@ -133,29 +135,32 @@ This document provides a comprehensive mapping of all function and method names 
 ### UserPreferencesRepository.kt
 
 - `L17`: `class UserPreferencesRepository` - Jetpack DataStore for settings persistence
+- `L19`: `val scope` - CoroutineScope for StateFlow operations
 - `L77`: `fun feedScrollIndex()` - Flow of scroll index for feed type
 - `L87`: `fun feedScrollOffset()` - Flow of scroll offset for feed type
 - `L97`: `fun nextCursor()` - Flow of pagination cursor for feed type
-- `L178`: `suspend fun getCurrentSettings()` - Snapshot of all settings for backup
-- `L208`: `suspend fun importSettings()` - Bulk update settings from backup
-- `L251`: `suspend fun updateFilters()` - Updates NSFW, sort, period, type, tags
-- `L274`: `suspend fun updateScrollPosition()` - Debounced scroll position save
-- `L297`: `suspend fun updateNextCursor()` - Updates pagination cursor
-- `L309`: `suspend fun updatePageLimit()` - Updates page limit setting
-- `L315`: `suspend fun updateGridColumns()` - Updates grid column count
-- `L323`: `suspend fun updateDownloadPath()` - Updates download directory path
-- `L332`: `suspend fun updateFavoritesPath()` - Updates favorites directory path
-- `L341`: `suspend fun updateApiKey()` - Updates Civitai API key
-- `L347`: `suspend fun updateDebugEnabled()` - Toggles debug logging
-- `L355`: `suspend fun updateFavoritesType()` - Updates favorites media type filter
-- `L361`: `suspend fun updateGalleryType()` - Updates gallery media type filter
-- `L367`: `suspend fun updateLastRoute()` - Tracks last visited navigation route
-- `L373`: `suspend fun updateHidePlayerControls()` - Toggles video player controls visibility
-- `L381`: `suspend fun updateAlwaysEnableHD()` - Toggles high-definition media preference
-- `L389`: `suspend fun updateAlwaysMuteVideo()` - Toggles video player mute preference
-- `L397`: `suspend fun updateFeedVideoAutoplay()` - Toggles video autoplay in feed
-- `L405`: `suspend fun updateAmoledMode()` - Toggles AMOLED black background mode
-- `L411`: `suspend fun getInterceptorSettings()` - Optimized auth+debug for interceptor
+- `L182`: `data class InterceptorSettings` - Data class holding API key and debug flag
+- `L184`: `val interceptorSettings` - StateFlow of combined interceptor settings
+- `L188`: `init block` - Combines apiKey and debugEnabled flows into interceptorSettings
+- `L193`: `suspend fun getCurrentSettings()` - Snapshot of all settings for backup
+- `L223`: `suspend fun importSettings()` - Bulk update settings from backup
+- `L266`: `suspend fun updateFilters()` - Updates NSFW, sort, period, type, tags
+- `L289`: `suspend fun updateScrollPosition()` - Debounced scroll position save
+- `L312`: `suspend fun updateNextCursor()` - Updates pagination cursor
+- `L324`: `suspend fun updatePageLimit()` - Updates page limit setting
+- `L330`: `suspend fun updateGridColumns()` - Updates grid column count
+- `L338`: `suspend fun updateDownloadPath()` - Updates download directory path
+- `L347`: `suspend fun updateFavoritesPath()` - Updates favorites directory path
+- `L356`: `suspend fun updateApiKey()` - Updates Civitai API key
+- `L362`: `suspend fun updateDebugEnabled()` - Toggles debug logging
+- `L370`: `suspend fun updateFavoritesType()` - Updates favorites media type filter
+- `L376`: `suspend fun updateGalleryType()` - Updates gallery media type filter
+- `L382`: `suspend fun updateLastRoute()` - Tracks last visited navigation route
+- `L388`: `suspend fun updateHidePlayerControls()` - Toggles video player controls visibility
+- `L396`: `suspend fun updateAlwaysEnableHD()` - Toggles high-definition media preference
+- `L404`: `suspend fun updateAlwaysMuteVideo()` - Toggles video player mute preference
+- `L412`: `suspend fun updateFeedVideoAutoplay()` - Toggles video autoplay in feed
+- `L420`: `suspend fun updateAmoledMode()` - Toggles AMOLED black background mode
 
 ## app/src/main/kotlin/org/movzx/dibella/di/
 
@@ -253,10 +258,13 @@ This document provides a comprehensive mapping of all function and method names 
 
 ### VideoPlayerManager.kt
 
-- `L14`: `object VideoPlayerManager` - Pooled ExoPlayer management
-- `L19`: `fun acquirePlayer()` - Gets an available player from pool
-- `L36`: `fun releasePlayer()` - Returns player to pool
-- `L42`: `fun releaseAll()` - Releases all players and clears pool
+- `L14`: `class VideoPlayerManager` - Pooled ExoPlayer management with thread-safe activeCount
+- `L19`: `var maxPoolSize` - Configurable pool size limit
+- `L22`: `var activeCount` - Synchronized counter of active players
+- `L26`: `fun updateLimit()` - Updates max pool size and shrinks if needed
+- `L36`: `fun acquirePlayer()` - Gets an available player from pool
+- `L55`: `fun releasePlayer()` - Returns player to pool
+- `L98`: `fun releaseAll()` - Releases all players and clears pool
 
 ### VideoPlayerModels.kt
 
@@ -451,4 +459,11 @@ This document provides a comprehensive mapping of all function and method names 
 - `L69`: `fun safeAttachSurface()` - Thread-safe surface attachment
 - `L71`: `fun safeDetachSurface()` - Thread-safe surface detachment
 - `L73`: `fun safeCommand()` - Thread-safe command execution
-- `L114`: `fun logMessage()` - Bridge for MPV log messages to Android log
+- `L101`: `fun safeSetPropertyDouble()` - Thread-safe double property setter
+- `L106`: `fun safeSetOptionString()` - Thread-safe option setter
+- `L110`: `fun safeGetPropertyInt()` - Thread-safe int property getter
+- `L112`: `fun safeGetPropertyDouble()` - Thread-safe double property getter
+- `L114`: `fun safeGetPropertyString()` - Thread-safe string property getter
+- `L116`: `fun safeGetPropertyBoolean()` - Thread-safe boolean property getter
+- `L118`: `fun safeGetPropertyLong()` - Thread-safe long property getter (converts int)
+- `L128`: `fun logMessage()` - Bridge for MPV log messages to Android log
