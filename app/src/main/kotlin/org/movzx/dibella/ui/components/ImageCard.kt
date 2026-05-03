@@ -343,11 +343,12 @@ fun ImageCard(
                 )
             }
 
-            val thumbnailAlpha by remember(isVideoReady, isScrolling, isVisibleInViewport) {
-                derivedStateOf {
-                    if (isVideoReady && !isScrolling && isVisibleInViewport) 0f else 1f
+            val thumbnailAlpha by
+                remember(isVideoReady, isScrolling, isVisibleInViewport) {
+                    derivedStateOf {
+                        if (isVideoReady && !isScrolling && isVisibleInViewport) 0f else 1f
+                    }
                 }
-            }
 
             if (thumbnailAlpha > 0.01f) {
                 androidx.compose.animation.AnimatedContent(

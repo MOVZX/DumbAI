@@ -2,7 +2,6 @@ package org.movzx.dibella.api
 
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.movzx.dibella.data.UserPreferencesRepository
@@ -13,7 +12,9 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
     Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val (apiKey, debugEnabled) = runBlocking { repository.getInterceptorSettings() }
+        val settings = repository.interceptorSettings.value
+        val apiKey = settings.apiKey
+        val debugEnabled = settings.debugEnabled
         val original = chain.request()
         val requestBuilder = original.newBuilder()
         val host = original.url.host

@@ -92,6 +92,9 @@ object MPVLib {
     fun safeGetPropertyDouble(name: String): Double? =
         synchronized(this) { getPropertyDouble(name) }
 
+    fun safeGetPropertyString(name: String): String? =
+        synchronized(this) { getPropertyString(name) }
+
     fun safeGetPropertyBoolean(name: String): Boolean? =
         synchronized(this) { getPropertyBoolean(name) }
 

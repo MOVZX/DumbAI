@@ -19,6 +19,7 @@ class VideoPlayerManager(private val context: Context) {
     var maxPoolSize: Int = 12
         private set
 
+    @get:Synchronized
     var activeCount: Int = 0
         private set
 

@@ -6,15 +6,18 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import java.io.File
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.*
 import org.movzx.dibella.model.AppSettingsBackup
 import org.movzx.dibella.util.Logger
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class UserPreferencesRepository(private val context: Context) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private object PreferencesKeys {
         val NSFW = stringPreferencesKey("nsfw")
         val SORT = stringPreferencesKey("sort")
@@ -174,6 +177,17 @@ class UserPreferencesRepository(private val context: Context) {
         context.dataStore.data.map { preferences ->
             preferences[PreferencesKeys.AMOLED_MODE] ?: false
         }
+
+    data class InterceptorSettings(val apiKey: String, val debugEnabled: Boolean)
+
+    private val _interceptorSettings = MutableStateFlow(InterceptorSettings("", false))
+    val interceptorSettings: StateFlow<InterceptorSettings> = _interceptorSettings.asStateFlow()
+
+    init {
+        combine(apiKey, debugEnabled) { key, debug -> InterceptorSettings(key, debug) }
+            .onEach { settings -> _interceptorSettings.value = settings }
+            .launchIn(scope)
+    }
 
     suspend fun getCurrentSettings(): AppSettingsBackup {
         val prefs = context.dataStore.data.first()
@@ -407,14 +421,4 @@ class UserPreferencesRepository(private val context: Context) {
 
         context.dataStore.edit { preferences -> preferences[PreferencesKeys.AMOLED_MODE] = enabled }
     }
-
-    suspend fun getInterceptorSettings() =
-        context.dataStore.data
-            .map { prefs ->
-                Pair(
-                    prefs[PreferencesKeys.API_KEY] ?: "",
-                    prefs[PreferencesKeys.DEBUG_ENABLED] ?: false,
-                )
-            }
-            .first()
 }

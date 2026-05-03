@@ -2,6 +2,7 @@ package org.movzx.dibella.util
 
 import java.io.File
 import java.io.FileInputStream
+import kotlinx.coroutines.*
 import okio.BufferedSource
 import okio.ByteString.Companion.decodeHex
 
@@ -162,19 +163,26 @@ object FileUtils {
         }
     }
 
-    fun findDuplicateGroups(files: List<File>): List<List<File>> {
-        val sizeGroups = files.groupBy { it.length() }.filter { it.value.size > 1 }
-        val duplicates = mutableListOf<List<File>>()
+    suspend fun findDuplicateGroups(files: List<File>): List<List<File>> =
+        withContext(Dispatchers.IO) {
+            val sizeGroups = files.groupBy { it.length() }.filter { it.value.size > 1 }
+            val duplicates = mutableListOf<List<File>>()
 
-        sizeGroups.forEach { (_, group) ->
-            val validHashes = group.mapNotNull { file -> calculateHash(file)?.let { file to it } }
+            sizeGroups.forEach { (_, group) ->
+                coroutineScope {
+                    val validHashes =
+                        group
+                            .map { file -> async { calculateHash(file)?.let { file to it } } }
+                            .awaitAll()
+                            .filterNotNull()
 
-            validHashes
-                .groupBy { it.second }
-                .filter { it.value.size > 1 }
-                .forEach { entry -> duplicates.add(entry.value.map { it.first }) }
+                    validHashes
+                        .groupBy { it.second }
+                        .filter { it.value.size > 1 }
+                        .forEach { entry -> duplicates.add(entry.value.map { it.first }) }
+                }
+            }
+
+            duplicates
         }
-
-        return duplicates
-    }
 }

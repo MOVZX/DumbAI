@@ -82,7 +82,7 @@ fun MpvPlayer(
 
                     currentSurface?.let { mpv.safeAttachSurface(it) }
 
-                    val currentFile = MPVLib.getPropertyString("path")
+                    val currentFile = mpv.safeGetPropertyString("path")
 
                     if (currentFile != url) mpv.safeCommand(arrayOf("loadfile", url, "replace"))
 

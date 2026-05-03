@@ -44,29 +44,31 @@ constructor(
         return downloadMutexes.getOrPut(id) { Mutex() }
     }
 
-    suspend fun refreshDownloadedIds() = refreshMutex.withLock {
-        val path = preferencesRepository.downloadPath.first()
-        val rootDir = getDownloadDir(path)
+    suspend fun refreshDownloadedIds() {
+        refreshMutex.withLock {
+            val path = preferencesRepository.downloadPath.first()
+            val rootDir = getDownloadDir(path)
 
-        if (!rootDir.exists()) {
-            _downloadedIds.value = emptySet()
+            if (!rootDir.exists()) {
+                _downloadedIds.value = emptySet()
 
-            return
+                return@withLock
+            }
+
+            val files = rootDir.listFiles() ?: emptyArray()
+
+            val ids =
+                files
+                    .filter { it.isFile && it.name.startsWith("Dibella_") }
+                    .mapNotNull { file ->
+                        file.nameWithoutExtension.removePrefix("Dibella_").toLongOrNull()
+                    }
+                    .toSet()
+
+            Logger.d("Dibella_IO", "Refreshed Downloaded IDs: ${ids.size} found in ${rootDir.name}")
+
+            _downloadedIds.value = ids
         }
-
-        val files = rootDir.listFiles() ?: emptyArray()
-
-        val ids =
-            files
-                .filter { it.isFile && it.name.startsWith("Dibella_") }
-                .mapNotNull { file ->
-                    file.nameWithoutExtension.removePrefix("Dibella_").toLongOrNull()
-                }
-                .toSet()
-
-        Logger.d("Dibella_IO", "Refreshed Downloaded IDs: ${ids.size} found in ${rootDir.name}")
-
-        _downloadedIds.value = ids
     }
 
     suspend fun scanDirectory(path: String?): List<CivitaiImage> =
@@ -312,12 +314,8 @@ constructor(
                             ?: Result.failure(
                                 Exception("Download failed after $maxAttempts attempts")
                             )
-
-                    downloadMutexes.remove(image.id)
                     finalResult
                 } catch (e: Exception) {
-                    downloadMutexes.remove(image.id)
-
                     Logger.e("Dibella_Net", "[${image.id}] Download Exception: ${e.message}")
 
                     if (e is kotlinx.coroutines.CancellationException) throw e

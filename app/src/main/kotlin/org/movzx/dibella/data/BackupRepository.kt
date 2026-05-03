@@ -9,6 +9,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okio.buffer
+import okio.sink
 import okio.source
 import org.movzx.dibella.model.*
 import org.movzx.dibella.util.CivitaiUrlBuilder
@@ -67,9 +68,10 @@ constructor(
                     )
 
                 val adapter = moshi.adapter(AppBackup::class.java)
-                val json = adapter.toJson(backup)
 
-                context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+                context.contentResolver.openOutputStream(uri)?.let { os ->
+                    os.sink().buffer().use { sink -> adapter.toJson(sink, backup) }
+                }
 
                 true
             } catch (e: Exception) {

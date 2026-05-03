@@ -44,6 +44,7 @@ class FavoritesRepository(
     private val imageLoader: coil3.ImageLoader,
 ) : Closeable {
     private val resourceChecksInProgress = ConcurrentHashMap.newKeySet<Long>()
+    private val resourceCheckTimestamps = ConcurrentHashMap<Long, Long>()
     private val toggleMutexes = ConcurrentHashMap<Long, Mutex>()
     private val repositoryJob = SupervisorJob()
     private val repositoryScope = CoroutineScope(repositoryJob + Dispatchers.IO)
@@ -56,6 +57,30 @@ class FavoritesRepository(
 
     init {
         repositoryScope.launch { cleanupTempFiles() }
+
+        repositoryScope.launch {
+            kotlinx.coroutines.delay(60000)
+
+            while (repositoryJob.isActive) {
+                cleanupStaleResourceChecks()
+                kotlinx.coroutines.delay(30000)
+            }
+        }
+    }
+
+    private fun cleanupStaleResourceChecks() {
+        val now = System.currentTimeMillis()
+        val staleThreshold = 5 * 60 * 1000L
+
+        resourceCheckTimestamps.entries
+            .filter { it.value + staleThreshold < now }
+            .map { it.key }
+            .forEach { id ->
+                resourceChecksInProgress.remove(id)
+                resourceCheckTimestamps.remove(id)
+
+                Logger.d("Dibella_Cache", "Cleaned up stale resource check for ID: $id")
+            }
     }
 
     private fun cleanupTempFiles() {
@@ -191,8 +216,6 @@ class FavoritesRepository(
 
                 if (isFav) removeFavorite(image) else addFavorite(image)
             }
-
-            toggleMutexes.remove(image.id)
         }
 
     private suspend fun evictFromCoilCache(url: String) {
@@ -277,6 +300,8 @@ class FavoritesRepository(
 
                 return@withContext
             }
+
+            resourceCheckTimestamps[image.id] = System.currentTimeMillis()
 
             try {
                 Logger.d(
@@ -550,6 +575,7 @@ class FavoritesRepository(
                 Logger.e("Dibella_Cache", "[${image.id}] Sync Error: ${e.message}")
             } finally {
                 resourceChecksInProgress.remove(image.id)
+                resourceCheckTimestamps.remove(image.id)
             }
         }
 
