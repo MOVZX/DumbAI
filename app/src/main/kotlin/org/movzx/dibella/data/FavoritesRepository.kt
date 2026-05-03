@@ -34,6 +34,7 @@ private const val TYPE_IMAGE = "image"
 private const val TYPE_VIDEO = "video"
 private const val TYPE_THUMBNAILS = "thumbnails"
 private const val TYPE_PREVIEWS = "previews"
+private const val STALE_RESOURCE_CHECK_THRESHOLD_MS = 5L * 60 * 1000
 
 @Singleton
 class FavoritesRepository(
@@ -70,10 +71,9 @@ class FavoritesRepository(
 
     private fun cleanupStaleResourceChecks() {
         val now = System.currentTimeMillis()
-        val staleThreshold = 5 * 60 * 1000L
 
         resourceCheckTimestamps.entries
-            .filter { it.value + staleThreshold < now }
+            .filter { it.value + STALE_RESOURCE_CHECK_THRESHOLD_MS < now }
             .map { it.key }
             .forEach { id ->
                 resourceChecksInProgress.remove(id)

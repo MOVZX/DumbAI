@@ -23,6 +23,7 @@ import okhttp3.Request
 import okio.buffer
 import okio.source
 import org.movzx.dibella.model.CivitaiImage
+import org.movzx.dibella.util.DuplicateDetector
 import org.movzx.dibella.util.FileUtils
 import org.movzx.dibella.util.Logger
 
@@ -84,8 +85,8 @@ constructor(
             for (file in files) {
                 if (file.isFile) {
                     val ext = file.extension.lowercase()
-                    val isVideo = ext == "mp4"
-                    val isImage = ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "webp"
+                    val isVideo = ext in FileUtils.VIDEO_EXTENSIONS
+                    val isImage = ext in FileUtils.IMAGE_EXTENSIONS
 
                     if (isImage || isVideo) {
                         val id =
@@ -335,66 +336,19 @@ constructor(
             val files =
                 rootDir.listFiles()?.filter {
                     it.isFile &&
-                        (it.extension.lowercase() in setOf("mp4", "jpg", "jpeg", "png", "webp"))
+                        (it.extension.lowercase() in FileUtils.IMAGE_EXTENSIONS + FileUtils.VIDEO_EXTENSIONS)
                 } ?: return@withContext emptyList()
 
             Logger.d("Dibella_IO", "Checking duplicates in ${rootDir.name} (${files.size} files)")
 
-            val duplicateFiles = FileUtils.findDuplicateGroups(files)
-
-            duplicateFiles.map { group ->
-                group.map { file ->
-                    val id =
-                        if (file.name.startsWith("Dibella_")) {
-                            file.nameWithoutExtension.removePrefix("Dibella_").toLongOrNull()
-                                ?: file.absolutePath.hashCode().toLong()
-                        } else {
-                            file.nameWithoutExtension.filter { it.isDigit() }.toLongOrNull()
-                                ?: file.absolutePath.hashCode().toLong()
-                        }
-
-                    CivitaiImage(
-                        id = id,
-                        url = file.absolutePath,
-                        width = 0,
-                        height = 0,
-                        nsfw = false,
-                        type = if (file.extension.lowercase() == "mp4") "video" else "image",
-                        meta = null,
-                    )
-                }
-            }
+            DuplicateDetector.findDuplicateGroups(files, context)
         }
 
     suspend fun removeDuplicates(duplicateGroups: List<List<CivitaiImage>>): Int =
         withContext(Dispatchers.IO) {
-            var removedCount = 0
-
-            Logger.d("Dibella_IO", "Removing duplicates from ${duplicateGroups.size} groups")
-
-            duplicateGroups.forEach { group ->
-                val sortedGroup = group.sortedBy { File(it.url).lastModified() }
-                val toRemove = sortedGroup.drop(1)
-
-                toRemove.forEach { image ->
-                    val file = File(image.url)
-
-                    if (file.delete()) {
-                        Logger.v("Dibella_IO", "Deleted duplicate: ${file}")
-
-                        MediaScannerConnection.scanFile(context, arrayOf(image.url), null, null)
-                        removedCount++
-                    }
-                }
-            }
-
-            if (removedCount > 0) {
-                Logger.d("Dibella_IO", "Duplicate removal finished: $removedCount files purged")
-
+            DuplicateDetector.removeDuplicateGroups(duplicateGroups, context) {
                 refreshDownloadedIds()
             }
-
-            removedCount
         }
 
     private fun getDownloadDir(path: String?): File {

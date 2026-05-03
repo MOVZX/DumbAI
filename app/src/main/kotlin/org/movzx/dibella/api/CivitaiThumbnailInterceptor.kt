@@ -9,9 +9,15 @@ import org.movzx.dibella.util.FileUtils
 import org.movzx.dibella.util.Logger
 
 class CivitaiThumbnailInterceptor : Interceptor {
-    private val videoThumbnailTimeout = 10_000L
-    private val imageThumbnailTimeout = 15_000L
-    private val maxRetries = 3
+    companion object {
+        const val VIDEO_TIMEOUT_MS = 10_000L
+        const val IMAGE_TIMEOUT_MS = 15_000L
+        const val MAX_RETRIES = 3
+    }
+
+    private val videoThumbnailTimeout = VIDEO_TIMEOUT_MS
+    private val imageThumbnailTimeout = IMAGE_TIMEOUT_MS
+    private val maxRetries = MAX_RETRIES
 
     private fun cacheable(response: Response): Response {
         if (!response.isSuccessful) return response

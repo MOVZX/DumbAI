@@ -196,6 +196,8 @@ constructor(
             val success = backupRepository.importData(uri)
 
             if (success) {
+                BaseViewModel.isImporting = false
+
                 sendMessage(R.string.msg_import_success)
                 _exitEvent.emit(Unit)
             } else {
