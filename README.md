@@ -33,6 +33,14 @@ The data layer is highly modular and utilizes specialized repositories:
 
 ## Key Features
 
+### Hybrid Video Engine
+
+Dibella features a custom-built video engine that prioritizes performance and compatibility:
+
+- **ExoPlayer Pooling**: A managed pool of **Media3/ExoPlayer** instances (up to 12) reduces instantiation overhead and ensures smooth playback across grids.
+- **Hardware-Aware Decoding**: Custom renderer factory optimizes codec selection, bypassing problematic decoders on certain SoC architectures.
+- **MPV Fallback**: An integrated **MPV (libmpv)** player provides a robust fallback for high-bitrate or complex formats that native Android decoders may struggle with.
+
 ### Dual-Sidebar Navigation
 
 The application employs a unique navigation system based on nested **ModalNavigationDrawers** with intelligent gesture control:
@@ -41,26 +49,17 @@ The application employs a unique navigation system based on nested **ModalNaviga
 - **Right Sidebar**: A multi-mode panel that switches between advanced content filters and core application settings.
 - **Gesture Reliability**: Dynamic edge-peeking logic ensures that left and right swipe gestures are correctly routed to the appropriate drawer without interception conflicts.
 
-### Modern UI/UX Experience
-
-Dibella adheres to professional Android standards to deliver a premium user experience:
-
-- **Immersive Edge-to-Edge**: The interface flows seamlessly behind system navigation and status bars for maximum content engagement.
-- **Material You Design**: Full support for Dynamic Colors _(Android 12+)_ and reactive themes that adapt to the user's system preferences.
-- **Fluid Motion**: All primary actions and state transitions, including Floating Action Buttons and shared element transitions, utilize high-quality animations.
-- **Efficiency-First Loading**: Skeleton grids and error-aware image cards replace power-hungry shimmers with optimized static states and clear failure feedback.
-
 ### Local Resource Caching
 
 Dibella prioritizes accessibility by automatically downloading and managing local copies of favorited images and video previews. This system ensures that the user's collection remains browseable regardless of network status.
 
+### Duplicate Detection & Management
+
+The application includes advanced duplicate detection for managing large collections of AI-generated media. It utilizes **SHA-256 hashing** to identify identical files across both favorite resources and local gallery downloads, allowing for efficient bulk cleanup.
+
 ### Smart Image Resolution & Verification
 
-A dedicated utility layer dynamically resolves the most appropriate media source based on context. The application verifies the integrity of downloaded media through **magic byte sniffing**, ensuring that only valid images are displayed and automatically retrying failed thumbnails with alternative resolutions and high-efficiency video fallbacks.
-
-### Duplicate Detection
-
-The app includes advanced duplicate detection for managing large collections of AI-generated media, allowing users to identify and remove duplicate files efficiently in both favorites and local gallery.
+A dedicated utility layer dynamically resolves the most appropriate media source based on context. The application verifies the integrity of downloaded media through **magic byte sniffing**, ensuring that only valid images are displayed and automatically retrying failed thumbnails with alternative resolutions and high-efficiency video previews.
 
 ### Dynamic Networking
 
@@ -68,7 +67,7 @@ The networking layer uses custom **OkHttp Interceptors** to handle:
 
 - **Secure Auth**: Scoped API key injection for API requests only.
 - **Anti-Bot Protection**: Browser-like headers (User-Agent/Referer) to ensure reliable CDN access.
-- **Robust Fallbacks**: Content-aware retries for 404/403 errors and aligned 10s timeouts for optimal responsiveness on high-end hardware.
+- **Robust Fallbacks**: Content-aware retries for 404/403 errors and optimized timeouts for maximum responsiveness.
 
 ## Screenshots
 
@@ -89,7 +88,7 @@ The networking layer uses custom **OkHttp Interceptors** to handle:
 - **Database**: Room
 - **Persistence**: Jetpack DataStore
 - **Image Loading**: Coil3 _(including Video Frame support)_
-- **Media Playback**: Media3 / ExoPlayer
+- **Media Playback**: Media3 / ExoPlayer & MPV _(libmpv via JNI)_
 - **Concurrency**: Kotlin Coroutines & Flow
 
 ## Project Structure
@@ -97,9 +96,10 @@ The networking layer uses custom **OkHttp Interceptors** to handle:
 - `api/`: Retrofit interfaces and network interceptors.
 - `data/`: Repositories, Room DAOs, and DataStore implementations.
 - `model/`: Immutable data classes and API response models.
-- `ui/`: Composable screens, shared components, and application themes.
+- `ui/screens/`: Navigation destinations and screen-level composables.
+- `ui/components/`: Shared UI elements and specialized media players.
 - `util/`: Extension functions and logic utilities.
-- `viewmodel/`: Specialized ViewModels inheriting from the centralized BaseViewModel.
+- `viewmodel/`: ViewModels inheriting from the centralized BaseViewModel and their corresponding UI states.
 
 ## Build and Installation
 

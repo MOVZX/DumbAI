@@ -10,9 +10,9 @@ The application utilizes the Model-View-ViewModel (MVVM) pattern. To mitigate bo
 
 - **Persistent Preferences**: Direct interface with `UserPreferencesRepository` for grid and request settings.
 - **Scroll Management**: Centralized `saveScrollPosition` and restoration logic mapped to specific content types.
-- **Message Bus**: A `SharedFlow`-based messaging system for decoupled UI notifications (Toasts) using resource IDs.
+- **Message Bus**: A resource-ID based messaging system for decoupled UI notifications (Toasts) via `SharedFlow`.
 - **Shared Actions**: Centralized logic for `toggleFavorite`, `ensureFavoriteResources`, and `performDownload`.
-- **Concurrency Control**: Utilizes `Dispatchers.IO.limitedParallelism` to manage concurrent heavy operations (like resource synchronization) to avoid UI lag on high-end hardware.
+- **Concurrency Control**: Utilizes `Dispatchers.IO.limitedParallelism` to manage concurrent heavy operations (like resource synchronization) to avoid UI lag.
 
 ### Dependency Injection
 
@@ -34,8 +34,8 @@ Each screen is driven by a single `UiState` data class emitted as a `StateFlow`.
 A critical specialized implementation manages scroll positions during data refreshes and content type switches:
 
 1.  **State Tracking**: Each ViewModel maintains an `isRestored` flag in its `UiState`.
-2.  **Persistent Storage**: Scroll positions (index and offset) are debounced (500ms) and saved to **Jetpack DataStore** to prevent data loss on app restart.
-3.  **Keyed Invalidation**: The restoration flag for the feed is reset to `false` whenever filter parameters (NSFW, Sort, Type, etc.) change.
+2.  **Persistent Storage**: Scroll positions (index and offset) are debounced (500ms) and saved to **Jetpack DataStore**.
+3.  **Keyed Invalidation**: The restoration flag for the feed is reset to `false` whenever filter parameters change.
 4.  **Forced Positioning**: A `LaunchedEffect` in the UI monitors `images.isNotEmpty()`. If `isRestored` is `false`, it executes `gridState.scrollToItem(index, offset)` and calls `markRestored()` on the ViewModel.
 
 ## 3. UI Implementation Details
@@ -46,62 +46,65 @@ The application implements a robust dual-sidebar system that handles complex con
 
 - **Nesting**: The `ModalNavigationDrawer` for the Right Sidebar (RTL) is nested inside the `ModalNavigationDrawer` for the Left Sidebar (LTR).
 - **Dynamic Gesture Enabling**: To prevent the inner drawer from intercepting all edge swipes, the `gesturesEnabled` flag for both drawers is toggled dynamically.
-- **Edge Peeking**: A `pointerInput(PointerEventPass.Initial)` modifier on the content area peeks at touch events before the drawers consume them. It identifies if a swipe started near the left or right edge and updates a `gestureSide` state.
+- **Edge Peeking**: A `pointerInput(PointerEventPass.Initial)` modifier on the content area peeks at touch events. It identifies if a swipe started near the left or right edge and updates a `gestureSide` state.
 - **State-Based Priority**:
     - The Left Drawer's gestures are enabled only if it's already open OR if the touch started on the left edge while the Right Drawer is closed.
     - The Right Drawer's gestures are enabled only if it's already open OR if the touch started on the right edge while the Left Drawer is closed.
+
+### Hybrid Video Engine
+
+The application implements a high-performance media engine with advanced pooling and fallback logic:
+
+- **ExoPlayer Pooling**: `VideoPlayerManager` maintains a pool of `ExoPlayer` instances (default max 12).
+    - **Optimization**: The pool size is dynamically adjusted based on grid column count to balance memory usage and scrolling smoothness.
+    - **Codec Filtering**: A custom `DefaultRenderersFactory` filters out known problematic hardware decoders (e.g., certain QTI decoders for AVC) to prevent playback stalls.
+- **MPV Bridge**: `MpvPlayer` provides an alternative playback path using `libmpv` via JNI.
+    - **Ownership Logic**: Since `MPVLib` is a singleton wrapper, a `lastOwnerId` system ensures only the visible player instance controls the global MPV state.
+    - **Features**: Supports precise seeking, speed control, and hardware acceleration via Android's GPU context.
+- **Interactive UI**: Custom seekbars with live frame seeking and automatic playback pause during user interaction.
 
 ### Shared UI Components
 
 - **AppScaffold**: A high-level wrapper that manages the TopBar, BottomBar, and `AppFab`.
 - **ImageCard**: A sophisticated component that handles dynamic image resolution, heart animations, and reactive cache status indicators.
-    - **Reactive Cache Status**: Observes both database changes and download progress completion to instantly update the cloud icon (Yellow for pending/partial, Green for fully cached).
-    - **Optimized Assets**: Uses localized logic to resolve whether to show a remote URL or a local file from the `favorites/` directory.
-- **ImageGrid**: A regular grid implementation with shared transition support.
-- **SkeletonGrid**: A non-animated loading grid using static surface colors to minimize CPU/GPU overhead during data fetch.
-
-### Enhanced Media Playback (ExoPlayer)
-
-The application utilizes **Media3/ExoPlayer** for an immersive video experience:
-
-- **Interactive Seekbar**: A smooth, real-time seekbar with live frame seeking and automatic playback pause during user interaction.
-- **Interactive Controls**: Play/Pause, Mute/Unmute, and dynamic Scaling Modes (**Normal**, **Crop**, **Full**).
-- **Smart Mute**: Automatically detects audio tracks and disables the mute toggle for silent videos.
-- **Automated Looping**: All video content is configured to loop infinitely.
+    - **Reactive Cache Status**: Observes database changes and download progress completion to update cache indicators (Yellow for partial, Green for fully cached).
+    - **Optimized Assets**: Resolves whether to show a remote URL or a local file from the `favorites/` directory.
 
 ## 4. Data Layer and Resource Management
 
 ### Smart Image Resolution & Content Verification
 
-The networking layer is highly optimized for reliability and performance:
+The networking layer is optimized for reliability:
 
-- **Verification Interceptor**: `CivitaiThumbnailInterceptor` verifies the actual content of successful responses by peeking at magic bytes (PNG, JPEG, etc.). If the server returns a successful status (200) but invalid data (e.g., a JSON error or empty file), the interceptor automatically retries with alternative widths.
-- **Fallback Logic**: Retries failed requests with widths 450, 800, 1000, and 1500px. A high-efficiency "Video Preview" fallback (transcode=true) is attempted for videos before resorting to original video source.
-- **Timeout Alignment**: Network timeouts are aligned (8s for retries, 10s for global read) to ensure fallback logic triggers before connection drops.
-- **Anti-Bot Headers**: All Civitai requests include standard `User-Agent` and `Referer` headers to avoid CDN blocking.
+- **Verification Interceptor**: `CivitaiThumbnailInterceptor` verifies content by peeking at magic bytes. If invalid data is returned, it automatically retries with alternative widths (450, 800, 1000, 1500px).
+- **Fallback Chain**: Implements a progressive fallback system for thumbnails and video previews (using `transcode=true`).
+- **Anti-Bot Headers**: All requests include standard `User-Agent` and `Referer` headers.
 
-### Persistence & Gallery Synchronization
+### Duplicate Detection Logic
+
+- **Content Hashing**: Uses **SHA-256** to generate unique fingerprints for media files.
+- **Grouping**: Files with identical hashes are grouped together.
+- **Management**: Users can identify duplicate groups in both the `FavoritesRepository` (favorited resources) and `GalleryRepository` (downloaded files) and perform bulk deletion.
+
+### Persistence & Backup
 
 - **Room (v2)**: Manages `favorite_images` and `feed_cache` tables.
 - **DataStore**: Manages settings and persistent scroll positions.
+- **BackupRepository**: Uses **Moshi** to serialize/deserialize the full application state (Settings, Favorites, Cache) to a single JSON file for cross-device migration.
 
-### Local Resource Caching & Performance
+### Local Resource Caching
 
-The `FavoritesRepository` and `BaseViewModel` manage a dedicated `favorites/` directory:
-
-- **Concurrency Optimization**: Performs thumbnail and full-content downloads concurrently using coroutines to maximize throughput on fast connections.
-- **Restricted Threading**: Employs a dedicated dispatcher with `limitedParallelism` (tuned for Snapdragon 8 Gen 3) to balance background throughput with UI responsiveness.
-- **Video Frame Extraction**: Uses `MediaMetadataRetriever` to extract thumbnails from downloaded videos.
-- **Proactive Fetching**: `ensureFavoriteResources()` pre-downloads thumbnails and previews for all favorited items.
-- **Orphan Cleanup**: `clearUnusedResources()` removes cached files for unfavorited items.
+- **FavoritesRepository**: Manages a dedicated `favorites/` directory with automated `ensureFavoriteResources()` logic.
+- **Parallel Sync**: Downloads thumbnails and previews concurrently using `Dispatchers.IO.limitedParallelism` (tuned for high-end SoCs).
+- **Video Frame Extraction**: Uses `MediaMetadataRetriever` to extract thumbnails from local video files.
 
 ## 5. Build and Deployment
 
 The project includes a `build.sh` script that automates:
 
-- Gradle assembly of the Release APK
-- Code signing with appropriate keystore
-- Installation via `adb` to connected devices
+- Gradle assembly of the Release APK.
+- Code signing.
+- Installation via `adb`.
 
 ## 6. Technical Stack
 
@@ -111,7 +114,6 @@ The project includes a `build.sh` script that automates:
 - **Database**: Room (v2)
 - **Persistence**: Jetpack DataStore
 - **Image Loading**: Coil3 (including Video Frame support)
-- **Media Playback**: Media3 / ExoPlayer
-- **Coroutines**: Structured concurrency with ViewModel scopes and optimized dispatchers.
+- **Media Playback**: Media3 / ExoPlayer & MPV (libmpv)
 - **Minimum SDK**: Android 8.0 (API 26)
 - **Target SDK**: Android 14 (API 34)
