@@ -22,10 +22,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(project.findProperty("RELEASE_STORE_FILE") as String)
-            storePassword = project.findProperty("RELEASE_STORE_PASSWORD") as String
-            keyAlias = project.findProperty("RELEASE_KEY_ALIAS") as String
-            keyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as String
+            storeFile = file(providers.environmentVariable("RELEASE_STORE_FILE").orNull ?: "../../keystore.jks")
+            storePassword = providers.environmentVariable("DIBELLA_RELEASE_STORE_PASSWORD").orNull ?: "dumbai123"
+            keyAlias = providers.environmentVariable("RELEASE_KEY_ALIAS").orNull ?: "dumbai"
+            keyPassword = providers.environmentVariable("DIBELLA_RELEASE_KEY_PASSWORD").orNull ?: "dumbai123"
         }
     }
 
@@ -43,8 +43,9 @@ android {
     }
 
     lint {
-        checkReleaseBuilds = false
+        checkReleaseBuilds = true
         abortOnError = false
+        baseline = file("lint-baseline.xml")
     }
 
     compileOptions {
