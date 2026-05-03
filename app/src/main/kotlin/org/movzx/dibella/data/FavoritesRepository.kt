@@ -3,6 +3,7 @@ package org.movzx.dibella.data
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
+import java.io.Closeable
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Singleton
@@ -41,10 +42,11 @@ class FavoritesRepository(
     private val preferencesRepository: UserPreferencesRepository,
     okHttpClient: OkHttpClient,
     private val imageLoader: coil3.ImageLoader,
-) {
+) : Closeable {
     private val resourceChecksInProgress = ConcurrentHashMap.newKeySet<Long>()
     private val toggleMutexes = ConcurrentHashMap<Long, Mutex>()
-    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val repositoryJob = SupervisorJob()
+    private val repositoryScope = CoroutineScope(repositoryJob + Dispatchers.IO)
 
     @Volatile
     private var _okHttpClient: OkHttpClient = okHttpClient
@@ -121,19 +123,37 @@ class FavoritesRepository(
         return baseDir
     }
 
+    private fun ensureNomedia(dir: File) {
+        try {
+            if (!dir.exists()) dir.mkdirs()
+
+            val nomedia = File(dir, ".nomedia")
+
+            if (!nomedia.exists()) nomedia.createNewFile()
+        } catch (e: Exception) {
+            Logger.e("Dibella_IO", "Failed to create .nomedia in ${dir.path}: ${e.message}")
+        }
+    }
+
     private suspend fun getMediaDir(type: String, contentType: String): File {
         val base = getFavoritesDir()
         val mediaSub = if (type == TYPE_VIDEO) TYPE_VIDEO else TYPE_IMAGE
         val contentSub = if (contentType == "preview") TYPE_PREVIEWS else TYPE_THUMBNAILS
         val dir = File(File(base, mediaSub), contentSub)
 
-        if (!dir.exists()) dir.mkdirs()
+        ensureNomedia(dir)
 
         return dir
     }
 
     fun updateOkHttpClient(newClient: OkHttpClient) {
         _okHttpClient = newClient
+    }
+
+    override fun close() {
+        repositoryJob.cancel()
+
+        Logger.d("Dibella_Cache", "FavoritesRepository: CoroutineScope cancelled")
     }
 
     val allFavorites: Flow<List<CivitaiImage>> =
@@ -730,7 +750,7 @@ class FavoritesRepository(
                 val id = idStr.toLongOrNull()
 
                 if (id != null && !favoriteIds.contains(id)) {
-                    Logger.d("Dibella_IO", "Deleting orphaned file: ${file.name}")
+                    Logger.d("Dibella_IO", "Deleting orphaned file: ${file}")
 
                     file.delete()
                 }

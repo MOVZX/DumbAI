@@ -79,7 +79,7 @@ fun ImageCard(
     val favDir = remember(favoritesPath) { favoritesPath?.let { java.io.File(it) } }
 
     val imageData =
-        remember(image.url, favoriteInfo, retryCount, favDir) {
+        remember(image.url, favoriteInfo?.isSynced, retryCount, favDir) {
             org.movzx.dibella.util.resolveImageData(
                 context,
                 image,
@@ -258,8 +258,12 @@ fun ImageCard(
 
     val scale by
         animateFloatAsState(
-            targetValue = if (isPressed) 0.97f else 1f,
-            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+            targetValue = if (isPressed) 0.96f else 1f,
+            animationSpec =
+                spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow,
+                ),
             label = "CardScale",
         )
 
@@ -276,11 +280,7 @@ fun ImageCard(
     val entryProgress by
         animateFloatAsState(
             targetValue = if (isVisible) 1f else 0f,
-            animationSpec =
-                spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow,
-                ),
+            animationSpec = spring(dampingRatio = 0.8f, stiffness = 100f),
             label = "EntryProgress",
         )
 
@@ -310,10 +310,12 @@ fun ImageCard(
                         onLongClick()
                     },
                 ),
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.extraLarge,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color.White.copy(alpha = 0.08f)),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
             ),
     ) {
         var isError by remember { mutableStateOf(false) }
@@ -341,13 +343,11 @@ fun ImageCard(
                 )
             }
 
-            val thumbnailAlpha by
-                animateFloatAsState(
-                    targetValue =
-                        if (isVideoReady && !isScrolling && isVisibleInViewport) 0f else 1f,
-                    animationSpec = tween(durationMillis = 300),
-                    label = "thumbnailAlpha",
-                )
+            val thumbnailAlpha by remember(isVideoReady, isScrolling, isVisibleInViewport) {
+                derivedStateOf {
+                    if (isVideoReady && !isScrolling && isVisibleInViewport) 0f else 1f
+                }
+            }
 
             if (thumbnailAlpha > 0.01f) {
                 androidx.compose.animation.AnimatedContent(
@@ -576,29 +576,34 @@ fun ImageCard(
 
 @Composable
 fun HeartParticles(modifier: Modifier = Modifier, onFinished: () -> Unit) {
-    val particles = remember { List(8) { it } }
+    val particles = remember { List(12) { it } }
+    val sparkles = remember { List(3) { it } }
     val progress = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         progress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
+            animationSpec = tween(durationMillis = 700, easing = LinearOutSlowInEasing),
         )
 
         onFinished()
     }
 
+    val colorTertiary = colorResource(org.movzx.dibella.R.color.tertiary)
+    val colorTertiaryLight = colorResource(org.movzx.dibella.R.color.tertiary_light)
+
     Box(modifier = modifier) {
         particles.forEach { index ->
             val angle = index * (360f / particles.size)
-            val distance = 40.dp * progress.value
+            val distance = 50.dp * progress.value
             val alpha = 1f - progress.value
-            val scale = 0.5f + (1f - progress.value) * 0.5f
+            val scale = 0.4f + (1f - progress.value) * 0.6f
+            val color = if (index % 2 == 0) colorTertiary else colorTertiaryLight
 
             Icon(
                 imageVector = Icons.Filled.Favorite,
                 contentDescription = null,
-                tint = colorResource(org.movzx.dibella.R.color.error).copy(alpha = alpha),
+                tint = color.copy(alpha = alpha),
                 modifier =
                     Modifier.size(12.dp).graphicsLayer {
                         val rad = Math.toRadians(angle.toDouble())
@@ -608,6 +613,24 @@ fun HeartParticles(modifier: Modifier = Modifier, onFinished: () -> Unit) {
                         scaleX = scale
                         scaleY = scale
                     },
+            )
+        }
+
+        sparkles.forEach { index ->
+            val angle = (index * 120f) + 60f
+            val distance = 30.dp * progress.value
+            val alpha = (1f - progress.value) * 0.8f
+
+            Box(
+                modifier =
+                    Modifier.size(4.dp)
+                        .graphicsLayer {
+                            val rad = Math.toRadians(angle.toDouble())
+                            translationX = (Math.cos(rad) * distance.toPx()).toFloat()
+                            translationY = (Math.sin(rad) * distance.toPx()).toFloat()
+                            this.alpha = alpha
+                        }
+                        .background(Color.White, androidx.compose.foundation.shape.CircleShape)
             )
         }
     }

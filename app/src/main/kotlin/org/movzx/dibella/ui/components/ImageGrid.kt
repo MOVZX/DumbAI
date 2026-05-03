@@ -41,6 +41,7 @@ fun ImageGrid(
     onUpdateGridColumns: (Int) -> Unit = {},
     autoplayEnabled: Boolean = false,
     isPreviewOpen: Boolean = false,
+    isRefreshing: Boolean = false,
 ) {
     var pressedId by remember { mutableStateOf<Long?>(null) }
     val animatedItems = remember { mutableSetOf<Long>() }
@@ -61,11 +62,8 @@ fun ImageGrid(
 
                     val top = item.offset.y
                     val bottom = top + itemHeight
-                    val visibleTop = maxOf(0, top)
-                    val visibleBottom = minOf(viewportHeight, bottom)
-                    val visibleHeight = maxOf(0, visibleBottom - visibleTop)
 
-                    visibleHeight >= itemHeight * 0.3f
+                    bottom > 0 && top < viewportHeight
                 }
                 .mapNotNull { it.key as? Long }
                 .toSet()
@@ -175,8 +173,8 @@ fun ImageGrid(
             )
         }
 
-        if (isLoading)
-            items(columnCount) {
+        if (isLoading && !isRefreshing)
+            items(4) {
                 Box(
                     modifier =
                         Modifier.fillMaxWidth()

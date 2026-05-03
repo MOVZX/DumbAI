@@ -1,16 +1,20 @@
 package org.movzx.dibella.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import org.movzx.dibella.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,12 +84,58 @@ fun MainTopBar(
     onShowFilters: (() -> Unit)?,
     onShowSettings: () -> Unit,
 ) {
+    val rotationAnim = remember { Animatable(15f) }
+    val scaleAnim = remember { Animatable(0.8f) }
+
+    LaunchedEffect(Unit) {
+        launch {
+            rotationAnim.animateTo(
+                0f,
+                animationSpec =
+                    spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow,
+                    ),
+            )
+        }
+        launch {
+            scaleAnim.animateTo(
+                1f,
+                animationSpec =
+                    spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow,
+                    ),
+            )
+        }
+    }
+
     CenterAlignedTopAppBar(
         title = {
             androidx.compose.foundation.Image(
                 painter = painterResource(id = R.drawable.ic_app_logo),
                 contentDescription = stringResource(R.string.app_name),
-                modifier = Modifier.size(42.dp),
+                modifier =
+                    Modifier.size(42.dp)
+                        .drawBehind {
+                            drawCircle(
+                                androidx.compose.ui.graphics.Brush.radialGradient(
+                                    colors =
+                                        listOf(
+                                            androidx.compose.ui.graphics.Color.White.copy(
+                                                alpha = 0.15f
+                                            ),
+                                            androidx.compose.ui.graphics.Color.Transparent,
+                                        )
+                                ),
+                                radius = size.minDimension,
+                            )
+                        }
+                        .graphicsLayer {
+                            rotationZ = rotationAnim.value
+                            scaleX = scaleAnim.value
+                            scaleY = scaleAnim.value
+                        },
             )
         },
         navigationIcon = {

@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
@@ -14,12 +15,15 @@ import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -175,13 +179,31 @@ fun MainScreen(imageLoader: ImageLoader) {
     UiMessageEffect(favoritesViewModel.uiMessage)
     UiMessageEffect(galleryViewModel.uiMessage)
 
+    val leftParallax by
+        animateFloatAsState(
+            targetValue = if (leftDrawerState.targetValue == DrawerValue.Open) 40f else 0f,
+            animationSpec = spring(stiffness = Spring.StiffnessLow),
+            label = "leftParallax",
+        )
+
+    val rightParallax by
+        animateFloatAsState(
+            targetValue = if (rightDrawerState.targetValue == DrawerValue.Open) -40f else 0f,
+            animationSpec = spring(stiffness = Spring.StiffnessLow),
+            label = "rightParallax",
+        )
+
     CompositionLocalProvider(LocalVideoPlayerManager provides videoPlayerManager) {
+        val sidebarColor =
+            if (settingsState.amoledMode) androidx.compose.ui.graphics.Color.Black
+            else MaterialTheme.colorScheme.surface
+
         ModalNavigationDrawer(
             drawerState = leftDrawerState,
             drawerContent = {
                 ModalDrawerSheet(
                     modifier = Modifier.width(300.dp).fillMaxHeight(),
-                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    drawerContainerColor = sidebarColor,
                     drawerShape = androidx.compose.ui.graphics.RectangleShape,
                 ) {
                     if (currentRoute == "feed") {
@@ -190,6 +212,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                             pageLimit = feedUiState.pageLimit,
                             gridColumns = feedUiState.gridColumns,
                             type = "all",
+                            amoledMode = settingsState.amoledMode,
                             onDismiss = { scope.launch { leftDrawerState.close() } },
                             onUpdatePageLimit = { feedViewModel.updatePageLimit(it) },
                             onUpdateGridColumns = { feedViewModel.updateGridColumns(it) },
@@ -201,6 +224,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                             pageLimit = 100,
                             gridColumns = favoritesUiState.gridColumns,
                             type = favoritesUiState.type,
+                            amoledMode = settingsState.amoledMode,
                             onDismiss = { scope.launch { leftDrawerState.close() } },
                             onUpdatePageLimit = {},
                             onUpdateGridColumns = { favoritesViewModel.updateGridColumns(it) },
@@ -219,6 +243,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                             pageLimit = 100,
                             gridColumns = galleryUiState.gridColumns,
                             type = galleryUiState.type,
+                            amoledMode = settingsState.amoledMode,
                             onDismiss = { scope.launch { leftDrawerState.close() } },
                             onUpdatePageLimit = {},
                             onUpdateGridColumns = { galleryViewModel.updateGridColumns(it) },
@@ -252,6 +277,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     period = feedUiState.period,
                                     type = feedUiState.type,
                                     tagIds = feedUiState.tagIds,
+                                    amoledMode = settingsState.amoledMode,
                                     onDismiss = { scope.launch { rightDrawerState.close() } },
                                     onFilterChange = { n, s, p, t, tg ->
                                         feedViewModel.updateFilters(n, s, p, t, tg)
@@ -269,6 +295,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     alwaysEnableHD = settingsState.alwaysEnableHD,
                                     alwaysMuteVideo = settingsState.alwaysMuteVideo,
                                     feedVideoAutoplay = settingsState.feedVideoAutoplay,
+                                    amoledMode = settingsState.amoledMode,
                                     onDismiss = { scope.launch { rightDrawerState.close() } },
                                     onClearCache = { settingsViewModel.clearImageCache() },
                                     onSaveApiKey = { settingsViewModel.updateApiKey(it) },
@@ -305,13 +332,32 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     onFeedVideoAutoplay = {
                                         settingsViewModel.updateFeedVideoAutoplay(it)
                                     },
+                                    onToggleAmoled = { settingsViewModel.updateAmoledMode(it) },
                                 )
                             }
                         }
                     },
                 ) {
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                        Box(modifier = Modifier.fillMaxSize()) {
+                        Box(
+                            modifier =
+                                Modifier.fillMaxSize()
+                                    .graphicsLayer { translationX = leftParallax + rightParallax }
+                                    .background(
+                                        if (settingsState.amoledMode)
+                                            androidx.compose.ui.graphics.SolidColor(
+                                                androidx.compose.ui.graphics.Color.Black
+                                            )
+                                        else
+                                            Brush.radialGradient(
+                                                colors =
+                                                    listOf(
+                                                        colorResource(R.color.background_center),
+                                                        colorResource(R.color.background),
+                                                    )
+                                            )
+                                    )
+                        ) {
                             val startDestination = settingsState.lastRoute ?: return@Box
 
                             AppNavigation(
@@ -319,6 +365,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 startDestination = startDestination,
                                 imageLoader = imageLoader,
                                 feedVideoAutoplay = settingsState.feedVideoAutoplay,
+                                amoledMode = settingsState.amoledMode,
                                 favoritesPath = settingsState.effectiveFavoritesPath,
                                 feedGridState = feedGridState,
                                 favoritesGridState = favoritesGridState,
@@ -350,22 +397,18 @@ fun MainScreen(imageLoader: ImageLoader) {
                             AnimatedVisibility(
                                 visible = selectedImageIndex != null,
                                 enter =
-                                    fadeIn(animationSpec = tween(300)) +
+                                    fadeIn(animationSpec = tween(400)) +
                                         scaleIn(
-                                            initialScale = 0.85f,
+                                            initialScale = 0.9f,
                                             animationSpec =
-                                                spring(
-                                                    dampingRatio = Spring.DampingRatioMediumBouncy
-                                                ),
+                                                spring(dampingRatio = 0.8f, stiffness = 300f),
                                         ),
                                 exit =
-                                    fadeOut(animationSpec = tween(250)) +
+                                    fadeOut(animationSpec = tween(300)) +
                                         scaleOut(
-                                            targetScale = 0.85f,
+                                            targetScale = 0.9f,
                                             animationSpec =
-                                                spring(
-                                                    dampingRatio = Spring.DampingRatioMediumBouncy
-                                                ),
+                                                spring(dampingRatio = 0.8f, stiffness = 300f),
                                         ),
                             ) {
                                 val targetIndex = selectedImageIndex ?: 0
@@ -442,6 +485,7 @@ fun AppNavigation(
     startDestination: String,
     imageLoader: ImageLoader,
     feedVideoAutoplay: Boolean,
+    amoledMode: Boolean,
     favoritesPath: String?,
     feedGridState: LazyStaggeredGridState,
     favoritesGridState: LazyStaggeredGridState,
@@ -484,6 +528,7 @@ fun AppNavigation(
                 imageLoader = imageLoader,
                 gridState = feedGridState,
                 feedVideoAutoplay = feedVideoAutoplay,
+                amoledMode = amoledMode,
                 favoritesPath = favoritesPath,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
@@ -505,6 +550,7 @@ fun AppNavigation(
                 imageLoader = imageLoader,
                 gridState = favoritesGridState,
                 feedVideoAutoplay = feedVideoAutoplay,
+                amoledMode = amoledMode,
                 favoritesPath = favoritesPath,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
@@ -528,6 +574,7 @@ fun AppNavigation(
                 imageLoader = imageLoader,
                 gridState = galleryGridState,
                 feedVideoAutoplay = feedVideoAutoplay,
+                amoledMode = amoledMode,
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onOpenRightSidebar = onOpenRightSidebar,
                 onImageClick = onImageClick,

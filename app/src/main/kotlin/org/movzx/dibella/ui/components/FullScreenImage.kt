@@ -167,12 +167,25 @@ fun FullScreenImage(
         modifier =
             Modifier.fillMaxSize()
                 .background(
-                    androidx.compose.ui.res
-                        .colorResource(R.color.pure_black)
-                        .copy(
-                            alpha =
-                                (1f - (abs(offsetY) / (dismissThreshold * 1.5f))).coerceIn(0f, 1f)
-                        )
+                    androidx.compose.ui.graphics.Brush.radialGradient(
+                        colors =
+                            listOf(
+                                androidx.compose.ui.res
+                                    .colorResource(R.color.pure_black)
+                                    .copy(
+                                        alpha =
+                                            (0.85f - (abs(offsetY) / (dismissThreshold * 2f)))
+                                                .coerceIn(0f, 1f)
+                                    ),
+                                androidx.compose.ui.res
+                                    .colorResource(R.color.pure_black)
+                                    .copy(
+                                        alpha =
+                                            (1.0f - (abs(offsetY) / (dismissThreshold * 1.5f)))
+                                                .coerceIn(0f, 1f)
+                                    ),
+                            )
+                    )
                 )
                 .pointerInput(isZoomed) {
                     if (!isZoomed) {

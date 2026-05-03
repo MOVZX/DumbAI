@@ -90,7 +90,7 @@ object FileUtils {
 
     fun isRealMedia(file: File): Boolean {
         if (!file.exists() || file.length() < 12) {
-            Logger.w("Dibella_IO", "Media Check Failed: File too small or missing | ${file.name}")
+            Logger.w("Dibella_IO", "Media Check Failed: File too small or missing | ${file}")
 
             return false
         }
@@ -107,7 +107,7 @@ object FileUtils {
             if (bytes.isNotEmpty() && bytes[0] == '{'.code.toByte()) {
                 Logger.e(
                     "Dibella_Codec",
-                    "Media Validation Error: File is actually JSON/API error | ${file.name}",
+                    "Media Validation Error: File is actually JSON/API error | ${file}",
                 )
 
                 return false
@@ -118,7 +118,7 @@ object FileUtils {
             if (!hasExtension) {
                 Logger.e(
                     "Dibella_Codec",
-                    "Media Validation Error: Unknown or invalid file headers | ${file.name}",
+                    "Media Validation Error: Unknown or invalid file headers | ${file}",
                 )
             }
 
@@ -151,7 +151,7 @@ object FileUtils {
 
             Logger.v(
                 "Dibella_IO",
-                "Hash Calculated: ${file.name} | Duration: ${System.currentTimeMillis() - startTime}ms",
+                "Hash Calculated: ${file} | Duration: ${System.currentTimeMillis() - startTime}ms",
             )
 
             hash

@@ -113,6 +113,7 @@ constructor(
     fun batchUnfavorite() {
         viewModelScope.launch {
             val idsToUnfavorite = _uiState.value.selectedIds
+            val imagesSnapshot = _uiState.value.images
 
             Logger.d("Dibella_DB", "Batch Unfavorite Start: ${idsToUnfavorite.size} items")
 
@@ -120,7 +121,7 @@ constructor(
             var failCount = 0
 
             for (id in idsToUnfavorite) {
-                val image = _uiState.value.images.find { it.id == id }
+                val image = imagesSnapshot.find { it.id == id }
 
                 if (image != null) {
                     try {

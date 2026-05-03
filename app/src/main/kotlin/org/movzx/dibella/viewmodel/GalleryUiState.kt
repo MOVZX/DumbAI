@@ -5,6 +5,7 @@ import org.movzx.dibella.model.CivitaiImage
 data class GalleryUiState(
     override val images: List<CivitaiImage> = emptyList(),
     override val isLoading: Boolean = false,
+    override val isRefreshing: Boolean = false,
     val type: String = "all",
     val isSelectionMode: Boolean = false,
     val selectedIds: Set<Long> = emptySet(),

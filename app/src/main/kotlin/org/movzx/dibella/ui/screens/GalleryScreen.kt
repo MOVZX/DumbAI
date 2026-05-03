@@ -23,6 +23,7 @@ fun GalleryScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
     feedVideoAutoplay: Boolean,
+    amoledMode: Boolean,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
@@ -132,6 +133,7 @@ fun GalleryScreen(
         },
         gridState = gridState,
         isLoading = uiState.isLoading,
+        amoledMode = amoledMode,
     ) { padding ->
         ImageGrid(
             images =
@@ -171,6 +173,7 @@ fun GalleryScreen(
             onLongClick = { viewModel.toggleSelection(it) },
             autoplayEnabled = feedVideoAutoplay,
             isPreviewOpen = selectedImageIndex != null,
+            isRefreshing = uiState.isRefreshing,
         )
 
         if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)

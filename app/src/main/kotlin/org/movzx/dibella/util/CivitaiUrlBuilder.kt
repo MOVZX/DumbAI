@@ -2,7 +2,7 @@ package org.movzx.dibella.util
 
 object CivitaiUrlBuilder {
     private const val CDN_HOST = "image.civitai.com"
-    private val FALLBACK_WIDTHS = listOf(600, 800, 1200)
+    private val FALLBACK_WIDTHS = 800
     private val WIDTH_REGEX = Regex("/width=\\d+/")
     private const val URL_PREFIX = "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/"
 
@@ -68,11 +68,9 @@ object CivitaiUrlBuilder {
             if (preview != url) chain.add(preview)
         }
 
-        for (width in FALLBACK_WIDTHS) {
-            val newUrl = getThumbnailUrl(url, width)
+        val newUrl = getThumbnailUrl(url, FALLBACK_WIDTHS)
 
-            if (newUrl != url && !chain.contains(newUrl)) chain.add(newUrl)
-        }
+        if (newUrl != url && !chain.contains(newUrl)) chain.add(newUrl)
 
         if (isVideo && !url.contains("optimized=true")) {
             val transcode = url.replace(",optimized=true", "")

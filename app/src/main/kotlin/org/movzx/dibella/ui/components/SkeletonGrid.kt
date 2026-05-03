@@ -11,6 +11,15 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SkeletonGrid(columnCount: Int) {
+    val itemCount =
+        when (columnCount) {
+            1 -> 2
+            2 -> 8
+            3 -> 16
+            4 -> 30
+            else -> 20
+        }
+
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(columnCount),
         modifier = Modifier.fillMaxSize(),
@@ -19,7 +28,7 @@ fun SkeletonGrid(columnCount: Int) {
         verticalItemSpacing = 8.dp,
         userScrollEnabled = false,
     ) {
-        items(20) { index ->
+        items(itemCount) { index ->
             val aspectRatios = listOf(0.8f, 1.0f, 1.2f, 1.4f, 0.75f, 1.33f, 0.67f, 1.5f)
             val aspectRatio = aspectRatios[index % aspectRatios.size]
 

@@ -298,7 +298,7 @@ constructor(
 
                             Logger.d(
                                 "Dibella_IO",
-                                "[${image.id}] Download complete in ${System.currentTimeMillis() - startTime}ms | Path: ${file.name}",
+                                "[${image.id}] Download complete in ${System.currentTimeMillis() - startTime}ms | Path: ${file}",
                             )
 
                             result = Result.success(file.absolutePath)
@@ -382,7 +382,7 @@ constructor(
                     val file = File(image.url)
 
                     if (file.delete()) {
-                        Logger.v("Dibella_IO", "Deleted duplicate: ${file.name}")
+                        Logger.v("Dibella_IO", "Deleted duplicate: ${file}")
 
                         MediaScannerConnection.scanFile(context, arrayOf(image.url), null, null)
                         removedCount++

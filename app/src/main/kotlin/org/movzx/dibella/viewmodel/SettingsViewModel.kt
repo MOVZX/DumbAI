@@ -101,6 +101,12 @@ constructor(
                 _uiState.update { it.copy(feedVideoAutoplay = feedVideoAutoplay) }
             }
         }
+
+        viewModelScope.launch {
+            repository.amoledMode.collect { amoledMode ->
+                _uiState.update { it.copy(amoledMode = amoledMode) }
+            }
+        }
     }
 
     override fun downloadImage(image: org.movzx.dibella.model.CivitaiImage) {}
@@ -142,6 +148,10 @@ constructor(
 
     fun updateFeedVideoAutoplay(enabled: Boolean) {
         viewModelScope.launch { repository.updateFeedVideoAutoplay(enabled) }
+    }
+
+    fun updateAmoledMode(enabled: Boolean) {
+        viewModelScope.launch { repository.updateAmoledMode(enabled) }
     }
 
     fun clearImageCache() {

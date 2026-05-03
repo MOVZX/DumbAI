@@ -133,8 +133,12 @@
     <!-- Permissions -->
     <string name="perm_storage_title">Storage Permission</string>
     <string name="perm_storage_desc">Dibella needs access to your storage to scan for downloaded media.</string>
+    <string name="perm_manage_storage_desc">Android 11+ requires \'All Files Access\' to read and write media fies. Please grant this permission to ensure all your media files are accessible.</string>
+    <string name="btn_grant">Grant</string>
 
     <!-- Internal / Technical Constants -->
     <string name="backup_filename">dibella_backup.json</string>
     <string name="mime_json">application/json</string>
+    <string name="label_amoled_mode">AMOLED Pure Black</string>
+    <string name="section_appearance">Appearance</string>
 </resources>

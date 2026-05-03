@@ -159,6 +159,7 @@ constructor(
                 images = emptyList(),
                 hasMore = false,
                 isLoading = true,
+                isRefreshing = true,
                 scrollIndex = 0,
                 scrollOffset = 0,
                 isRestored = false,
@@ -199,7 +200,7 @@ constructor(
         loadingJob?.cancel()
 
         loadingJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, isRefreshing = isNew) }
 
             var success = false
             var attempt = 0
@@ -296,7 +297,7 @@ constructor(
                 }
             }
 
-            _uiState.update { it.copy(isLoading = false) }
+            _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
         }
     }
 

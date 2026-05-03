@@ -5,6 +5,7 @@ import org.movzx.dibella.model.CivitaiImage
 data class FeedUiState(
     override val images: List<CivitaiImage> = emptyList(),
     override val isLoading: Boolean = false,
+    override val isRefreshing: Boolean = false,
     val hasMore: Boolean = false,
     val nsfw: String = "None",
     val sort: String = "Most Reactions",

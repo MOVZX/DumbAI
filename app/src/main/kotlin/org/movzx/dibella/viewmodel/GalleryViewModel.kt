@@ -57,7 +57,7 @@ constructor(
     }
 
     private suspend fun performRefresh() {
-        _uiState.update { it.copy(isLoading = true) }
+        _uiState.update { it.copy(isLoading = true, isRefreshing = true) }
 
         val images = galleryRepository.scanDirectory(_uiState.value.downloadPath)
 
@@ -68,7 +68,7 @@ constructor(
                 else -> images
             }
 
-        _uiState.update { it.copy(images = filtered, isLoading = false) }
+        _uiState.update { it.copy(images = filtered, isLoading = false, isRefreshing = false) }
     }
 
     fun updateType(type: String) {
@@ -102,6 +102,7 @@ constructor(
     fun batchDelete() {
         viewModelScope.launch {
             val idsToDelete = _uiState.value.selectedIds
+            val imagesSnapshot = _uiState.value.images
 
             Logger.d("Dibella_IO", "Batch Delete: Initializing for ${idsToDelete.size} items")
 
@@ -109,7 +110,7 @@ constructor(
             var failCount = 0
 
             for (id in idsToDelete) {
-                val image = _uiState.value.images.find { it.id == id }
+                val image = imagesSnapshot.find { it.id == id }
 
                 if (image != null)
                     if (galleryRepository.deleteLocalFile(image)) successCount++ else failCount++

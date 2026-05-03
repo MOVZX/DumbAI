@@ -44,6 +44,7 @@ class UserPreferencesRepository(private val context: Context) {
         val ALWAYS_ENABLE_HD = booleanPreferencesKey("always_enable_hd")
         val ALWAYS_MUTE_VIDEO = booleanPreferencesKey("always_mute_video")
         val FEED_VIDEO_AUTOPLAY = booleanPreferencesKey("feed_video_autoplay")
+        val AMOLED_MODE = booleanPreferencesKey("amoled_mode")
     }
 
     val nsfw: Flow<String> =
@@ -167,6 +168,11 @@ class UserPreferencesRepository(private val context: Context) {
     val feedVideoAutoplay: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
             preferences[PreferencesKeys.FEED_VIDEO_AUTOPLAY] ?: false
+        }
+
+    val amoledMode: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AMOLED_MODE] ?: false
         }
 
     suspend fun getCurrentSettings(): AppSettingsBackup {
@@ -394,6 +400,12 @@ class UserPreferencesRepository(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.FEED_VIDEO_AUTOPLAY] = enabled
         }
+    }
+
+    suspend fun updateAmoledMode(enabled: Boolean) {
+        Logger.d("Dibella_Prefs", "updateAmoledMode: $enabled")
+
+        context.dataStore.edit { preferences -> preferences[PreferencesKeys.AMOLED_MODE] = enabled }
     }
 
     suspend fun getInterceptorSettings() =

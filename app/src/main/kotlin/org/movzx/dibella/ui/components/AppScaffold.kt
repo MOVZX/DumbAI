@@ -31,6 +31,7 @@ fun AppScaffold(
     bottomBar: @Composable () -> Unit,
     gridState: LazyStaggeredGridState,
     isLoading: Boolean = false,
+    amoledMode: Boolean = false,
     hasMore: Boolean = false,
     showRefresh: Boolean = false,
     onRefresh: () -> Unit = {},
@@ -51,7 +52,6 @@ fun AppScaffold(
         remember(isBarsVisible, hasMore, isLoading, showRefresh) {
             object : NestedScrollConnection {
                 override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                    // Reset pull offset if scrolling in opposite direction of current pull
                     if (available.y > 0 && pullOffset < 0) {
                         val consumed =
                             if (available.y + pullOffset > 0) -pullOffset else available.y
@@ -62,7 +62,7 @@ fun AppScaffold(
                     }
 
                     if (available.y < -15f && isBarsVisible) isBarsVisible = false
-                    else if (available.y > 40f && !isBarsVisible) isBarsVisible = true
+                    else if (available.y > 15f && !isBarsVisible) isBarsVisible = true
 
                     return Offset.Zero
                 }
@@ -156,7 +156,20 @@ fun AppScaffold(
 
         if (pullOffset != 0f && !isLoading) {
             val isTop = pullOffset > 0
-            val progress = (Math.abs(pullOffset) / pullThresholdPx).coerceIn(0f, 1.5f)
+            val rawProgress = (Math.abs(pullOffset) / pullThresholdPx).coerceIn(0f, 1.5f)
+            val bounceTransition = rememberInfiniteTransition(label = "refreshBounce")
+
+            val bounceOffset by
+                bounceTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 10f,
+                    animationSpec =
+                        infiniteRepeatable(
+                            animation = tween(600, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                    label = "bounce",
+                )
 
             Box(
                 modifier =
@@ -170,12 +183,24 @@ fun AppScaffold(
                                 else 0.dp,
                         )
                         .graphicsLayer {
-                            alpha = (progress / 1f).coerceIn(0f, 1f)
-                            scaleX = progress.coerceIn(0.5f, 1.2f)
-                            scaleY = progress.coerceIn(0.5f, 1.2f)
-                            translationY = animatedPullOffset * 0.5f
-                        }
+                            alpha = (rawProgress / 1f).coerceIn(0f, 1f)
+                            scaleX = rawProgress.coerceIn(0.5f, 1.2f)
+                            scaleY = rawProgress.coerceIn(0.5f, 1.2f)
+
+                            translationY =
+                                animatedPullOffset * 0.4f +
+                                    (if (isTop) bounceOffset else -bounceOffset)
+                        },
+                contentAlignment = Alignment.Center,
             ) {
+                CircularProgressIndicator(
+                    progress = { (rawProgress).coerceIn(0f, 1f) },
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(42.dp),
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                )
+
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
                     shape = androidx.compose.foundation.shape.CircleShape,
@@ -185,7 +210,7 @@ fun AppScaffold(
                         Icons.Default.KeyboardDoubleArrowDown,
                         contentDescription = null,
                         modifier =
-                            Modifier.padding(8.dp).size(24.dp).graphicsLayer {
+                            Modifier.padding(6.dp).size(20.dp).graphicsLayer {
                                 rotationZ = if (isTop) 0f else 180f
                             },
                         tint = MaterialTheme.colorScheme.primary,
@@ -194,7 +219,9 @@ fun AppScaffold(
             }
         }
 
-        val barColor = MaterialTheme.colorScheme.surface
+        val barColor =
+            if (amoledMode) androidx.compose.ui.graphics.Color.Black
+            else MaterialTheme.colorScheme.surface
 
         Box(
             modifier =
@@ -266,6 +293,20 @@ fun AppScaffold(
 
 @Composable
 fun EmptyState(viewMode: String) {
+    val infiniteTransition = rememberInfiniteTransition(label = "emptyState")
+
+    val floatOffset by
+        infiniteTransition.animateFloat(
+            initialValue = -10f,
+            targetValue = 10f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(2000, easing = EaseInOutSine),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+            label = "float",
+        )
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -282,16 +323,27 @@ fun EmptyState(viewMode: String) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.size(64.dp).graphicsLayer { translationY = floatOffset },
+            tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.outline,
+            style =
+                MaterialTheme.typography.titleMedium.copy(
+                    brush =
+                        androidx.compose.ui.graphics.Brush.linearGradient(
+                            colors =
+                                listOf(
+                                    MaterialTheme.colorScheme.onSurface,
+                                    MaterialTheme.colorScheme.outline,
+                                )
+                        )
+                ),
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 48.dp).graphicsLayer { alpha = 0.8f },
         )
     }
 }

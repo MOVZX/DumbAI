@@ -5,6 +5,7 @@ import org.movzx.dibella.model.CivitaiImage
 interface BaseUiState {
     val images: List<CivitaiImage>
     val isLoading: Boolean
+    val isRefreshing: Boolean
     val gridColumns: Int
     val scrollIndex: Int
     val scrollOffset: Int

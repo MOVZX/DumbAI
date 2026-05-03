@@ -20,6 +20,7 @@ fun FeedScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
     feedVideoAutoplay: Boolean,
+    amoledMode: Boolean,
     favoritesPath: String?,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
@@ -92,6 +93,7 @@ fun FeedScreen(
         },
         gridState = gridState,
         isLoading = uiState.isLoading,
+        amoledMode = amoledMode,
         hasMore = uiState.hasMore,
         showRefresh = true,
         onRefresh = { viewModel.refresh() },
@@ -126,6 +128,7 @@ fun FeedScreen(
             onUpdateGridColumns = { viewModel.updateGridColumns(it) },
             autoplayEnabled = feedVideoAutoplay,
             isPreviewOpen = selectedImageIndex != null,
+            isRefreshing = uiState.isRefreshing,
         )
 
         if (uiState.isLoading && uiState.images.isEmpty())

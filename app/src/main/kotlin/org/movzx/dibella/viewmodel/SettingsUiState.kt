@@ -12,4 +12,5 @@ data class SettingsUiState(
     val alwaysEnableHD: Boolean = false,
     val alwaysMuteVideo: Boolean = false,
     val feedVideoAutoplay: Boolean = false,
+    val amoledMode: Boolean = false,
 )

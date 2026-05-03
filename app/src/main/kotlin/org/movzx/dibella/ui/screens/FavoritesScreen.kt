@@ -22,6 +22,7 @@ fun FavoritesScreen(
     imageLoader: ImageLoader,
     gridState: LazyStaggeredGridState,
     feedVideoAutoplay: Boolean,
+    amoledMode: Boolean,
     favoritesPath: String?,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
@@ -133,6 +134,7 @@ fun FavoritesScreen(
         },
         gridState = gridState,
         isLoading = uiState.isLoading,
+        amoledMode = amoledMode,
     ) { padding ->
         ImageGrid(
             images =
@@ -173,6 +175,7 @@ fun FavoritesScreen(
             onLongClick = { viewModel.toggleSelection(it) },
             autoplayEnabled = feedVideoAutoplay,
             isPreviewOpen = selectedImageIndex != null,
+            isRefreshing = uiState.isRefreshing,
         )
 
         if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)

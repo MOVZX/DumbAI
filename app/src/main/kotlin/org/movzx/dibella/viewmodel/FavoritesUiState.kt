@@ -5,6 +5,7 @@ import org.movzx.dibella.model.CivitaiImage
 data class FavoritesUiState(
     override val images: List<CivitaiImage> = emptyList(),
     override val isLoading: Boolean = false,
+    override val isRefreshing: Boolean = false,
     val favoriteIds: Set<Long> = emptySet(),
     val type: String = "all",
     val isSelectionMode: Boolean = false,

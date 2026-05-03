@@ -24,8 +24,10 @@ fun DisplaySidebar(
     onUpdatePageLimit: (Int) -> Unit,
     onUpdateGridColumns: (Int) -> Unit,
     onUpdateType: (String) -> Unit,
-    onScanDuplicates: () -> Unit = {},
+    onScanDuplicates: (() -> Unit)? = null,
+    amoledMode: Boolean = false,
 ) {
+
     val context = LocalContext.current
     val pageLimits = remember(context) { context.resources.getIntArray(R.array.page_limits) }
 
@@ -139,7 +141,7 @@ fun DisplaySidebar(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
-                        onClick = onScanDuplicates,
+                        onClick = { onScanDuplicates?.invoke() },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
                         colors =

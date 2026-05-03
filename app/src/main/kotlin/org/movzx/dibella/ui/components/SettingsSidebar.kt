@@ -41,6 +41,8 @@ fun SettingsSidebar(
     onAlwaysEnableHD: (Boolean) -> Unit,
     onAlwaysMuteVideo: (Boolean) -> Unit,
     onFeedVideoAutoplay: (Boolean) -> Unit,
+    amoledMode: Boolean = false,
+    onToggleAmoled: (Boolean) -> Unit = {},
 ) {
     var key by remember(apiKey) { mutableStateOf(apiKey) }
     var path by remember(downloadPath) { mutableStateOf(downloadPath ?: "") }
@@ -60,11 +62,31 @@ fun SettingsSidebar(
         )
     }
 
-    BaseSidebar(title = stringResource(R.string.settings), onDismiss = onDismiss) {
+    BaseSidebar(
+        title = stringResource(R.string.settings),
+        onDismiss = onDismiss,
+        amoledMode = amoledMode,
+    ) {
         Column(
             modifier = Modifier.fillMaxSize().scrollbar(scrollState).verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            SidebarSection(title = stringResource(R.string.section_appearance)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.label_amoled_mode),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Switch(checked = amoledMode, onCheckedChange = onToggleAmoled)
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+
             SidebarSection(title = stringResource(R.string.section_player)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -122,6 +144,7 @@ fun SettingsSidebar(
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+
             SidebarSection(title = stringResource(R.string.section_api)) {
                 OutlinedTextField(
                     value = key,

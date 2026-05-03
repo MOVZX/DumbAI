@@ -25,6 +25,7 @@ fun FilterSidebar(
     onDismiss: () -> Unit,
     onFilterChange: (String, String, String, String, String?) -> Unit,
     onResetFilters: () -> Unit,
+    amoledMode: Boolean = false,
 ) {
     val context = LocalContext.current
 

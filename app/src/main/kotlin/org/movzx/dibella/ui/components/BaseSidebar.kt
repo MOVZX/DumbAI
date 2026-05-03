@@ -13,12 +13,15 @@ fun BaseSidebar(
     title: String,
     onDismiss: () -> Unit,
     footer: @Composable ColumnScope.() -> Unit = {},
+    amoledMode: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ModalDrawerSheet(
         modifier =
             Modifier.width(320.dp).fillMaxHeight().windowInsetsPadding(WindowInsets.safeDrawing),
-        drawerContainerColor = MaterialTheme.colorScheme.surface,
+        drawerContainerColor =
+            if (amoledMode) androidx.compose.ui.graphics.Color.Black
+            else MaterialTheme.colorScheme.surface,
         drawerShape = RectangleShape,
     ) {
         Column(
