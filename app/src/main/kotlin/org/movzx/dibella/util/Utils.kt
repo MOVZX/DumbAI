@@ -108,7 +108,7 @@ private fun getEffectiveFavoritesDir(favoritesDir: File?): File {
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
                 "Dibella",
             ),
-            ".favorite",
+            "Favorites",
         )
 }
 

@@ -134,7 +134,7 @@ class UserPreferencesRepository(private val context: Context) {
                             "Dibella",
                         )
 
-                File(galleryDir, ".favorite").absolutePath
+                File(galleryDir, "Favorites").absolutePath
             }
         }
 
