@@ -258,7 +258,15 @@ private fun ExoVideoPlayer(
                         onReady()
                     }
                 }
+
             exoPlayer.addListener(listener)
+
+            if (exoPlayer.isPlaying) {
+                isReady = true
+
+                onReady()
+            }
+
             onDispose { exoPlayer.removeListener(listener) }
         }
 
