@@ -126,7 +126,7 @@ fun MainScreen(imageLoader: ImageLoader) {
     var fullScreenViewMode by remember { mutableStateOf("feed") }
     var backPressedTime by remember { mutableLongStateOf(0L) }
     val exitConfirmMsg = stringResource(R.string.msg_exit_confirm)
-    val rightGesturesEnabled = selectedImageIndex == null && currentRoute != "gallery"
+    val rightGesturesEnabled = selectedImageIndex == null
 
     LaunchedEffect(settingsViewModel.exitEvent) {
         settingsViewModel.exitEvent.collect {
