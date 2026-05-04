@@ -237,7 +237,10 @@ class FavoritesRepository(
         return try {
             retriever.setDataSource(videoFile.absolutePath)
 
-            val bitmap = retriever.getFrameAtTime(0)
+            val timeInUs = 3 * 1000000L
+
+            val bitmap =
+                retriever.getFrameAtTime(timeInUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
 
             if (bitmap != null) {
                 outputFile.outputStream().use { out ->
@@ -451,61 +454,26 @@ class FavoritesRepository(
 
                 if (existingThumb == null) {
                     var thumbResolved = false
-                    val finalJpgFile = File(thumbDir, "$thumbBaseName.jpg")
 
-                    if (image.type == TYPE_VIDEO && videoFound) {
-                        val videoFile =
-                            FileUtils.VIDEO_EXTENSIONS.map { extension ->
-                                    File(previewDir, "${image.id}.$extension")
-                                }
-                                .firstOrNull { it.exists() }
-
-                        if (videoFile != null) {
-                            Logger.d(
-                                "Dibella_Codec",
-                                "│ [${image.id}] Extracting thumbnail from local video preview",
-                            )
-
-                            if (extractVideoFrame(videoFile, finalJpgFile)) {
-                                updated = true
-                                thumbResolved = true
-                                thumbFound = true
-                                thumbProgress = 1f
-
-                                updateTotalProgress()
-                            }
-                        }
-                    }
-
-                    if (!thumbResolved) {
-                        val thumbUrl =
-                            if (image.type == TYPE_VIDEO) getVideoThumbnailUrl(image.url)
-                            else getThumbnailUrl(image.url, 450)
-
-                        Logger.d(
-                            "Dibella_Cache",
-                            "│ [${image.id}] Thumbnail missing -> Initiating download",
+                    val tempFile =
+                        File(
+                            context.cacheDir,
+                            "temp_thumb_${image.id}_${System.currentTimeMillis()}",
                         )
 
-                        val tempFile =
-                            File(
-                                context.cacheDir,
-                                "temp_thumb_${image.id}_${System.currentTimeMillis()}",
-                            )
-
+                    if (image.type == TYPE_VIDEO) {
                         var downloadSuccess =
-                            downloadFile(thumbUrl, tempFile, extractFrame = true) { p ->
+                            downloadFile(
+                                getVideoThumbnailUrl(image.url),
+                                tempFile,
+                                extractFrame = true,
+                            ) { p ->
                                 thumbProgress = p
 
                                 updateTotalProgress()
                             }
 
-                        if (image.type == TYPE_VIDEO && !downloadSuccess) {
-                            Logger.w(
-                                "Dibella_Net",
-                                "│ [${image.id}] Static thumbnail fallback -> Video Preview",
-                            )
-
+                        if (!downloadSuccess) {
                             downloadSuccess =
                                 downloadFile(
                                     getVideoPreviewUrl(image.url),
@@ -518,12 +486,47 @@ class FavoritesRepository(
                                 }
                         }
 
+                        if (!downloadSuccess) {
+                            downloadSuccess =
+                                downloadFile(image.url, tempFile, extractFrame = true) { p ->
+                                    thumbProgress = p
+
+                                    updateTotalProgress()
+                                }
+                        }
+
                         if (downloadSuccess) {
                             val bytes = tempFile.inputStream().use { it.readNBytes(64) }
                             val ext = FileUtils.getExtensionFromBytes(bytes) ?: "jpg"
                             val actualFinalFile = File(thumbDir, "$thumbBaseName.$ext")
 
                             if (finalizeFile(tempFile, actualFinalFile) != null) {
+                                thumbResolved = true
+                                thumbFound = true
+                                updated = true
+                            }
+                        } else {
+                            if (tempFile.exists()) tempFile.delete()
+                        }
+                    } else {
+                        val downloadSuccess =
+                            downloadFile(
+                                getThumbnailUrl(image.url, 450),
+                                tempFile,
+                                extractFrame = true,
+                            ) { p ->
+                                thumbProgress = p
+
+                                updateTotalProgress()
+                            }
+
+                        if (downloadSuccess) {
+                            val bytes = tempFile.inputStream().use { it.readNBytes(64) }
+                            val ext = FileUtils.getExtensionFromBytes(bytes) ?: "jpg"
+                            val actualFinalFile = File(thumbDir, "$thumbBaseName.$ext")
+
+                            if (finalizeFile(tempFile, actualFinalFile) != null) {
+                                thumbResolved = true
                                 thumbFound = true
                                 updated = true
                             }
@@ -532,8 +535,6 @@ class FavoritesRepository(
                         }
                     }
                 } else {
-                    Logger.v("Dibella_Cache", "│ [${image.id}] Thumbnail verified locally")
-
                     thumbFound = true
                     thumbProgress = 1f
 
