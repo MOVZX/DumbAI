@@ -57,11 +57,12 @@ The application implements a high-performance media engine with advanced pooling
 
 - **ExoPlayer Pooling**: `VideoPlayerManager` maintains a pool of `ExoPlayer` instances (default max 12).
     - **Optimization**: The pool size is dynamically adjusted based on grid column count to balance memory usage and scrolling smoothness.
-    - **Codec Filtering**: A custom `DefaultRenderersFactory` filters out known problematic hardware decoders (e.g., certain QTI decoders for AVC) to prevent playback stalls.
+    - **Codec Filtering**: A custom `DefaultRenderersFactory` filters out known problematic hardware decoders (e.g., `c2.qti.avc.decoder`, `c2.qti.avc.decoder.low_latency`) to prevent playback stalls.
 - **MPV Bridge**: `MpvPlayer` provides an alternative playback path using `libmpv` via JNI.
     - **Ownership Logic**: Since `MPVLib` is a singleton wrapper, a `lastOwnerId` system ensures only the visible player instance controls the global MPV state.
     - **Features**: Supports precise seeking, speed control, and hardware acceleration via Android's GPU context.
 - **Interactive UI**: Custom seekbars with live frame seeking and automatic playback pause during user interaction.
+- **Zoom and Pan**: Pinch-to-zoom and pan gestures on video players, with double-tap to reset.
 
 ### Shared UI Components
 
@@ -89,7 +90,7 @@ The networking layer is optimized for reliability:
 ### Persistence & Backup
 
 - **Room (v2)**: Manages `favorite_images` and `feed_cache` tables.
-- **DataStore**: Manages settings and persistent scroll positions.
+- **DataStore**: Manages settings and persistent scroll positions (index/offset per content type).
 - **BackupRepository**: Uses **Moshi** to serialize/deserialize the full application state (Settings, Favorites, Cache) to a single JSON file for cross-device migration.
 
 ### Local Resource Caching
@@ -114,6 +115,6 @@ The project includes a `build.sh` script that automates:
 - **Database**: Room (v2)
 - **Persistence**: Jetpack DataStore
 - **Image Loading**: Coil3 (including Video Frame support)
-- **Media Playback**: Media3 / ExoPlayer & MPV (libmpv)
-- **Minimum SDK**: Android 8.0 (API 26)
-- **Target SDK**: Android 14 (API 34)
+- **Media Playback**: Media3 / ExoPlayer & MPV (libmpv via JNI)
+- **Minimum SDK**: Android 11 (API 30)
+- **Target SDK**: Android 16 (API 36)

@@ -28,8 +28,9 @@ The data layer is highly modular and utilizes specialized repositories:
 
 - **GalleryRepository**: Manages local media scanning and public download operations.
 - **FavoritesRepository**: Handles local caching of media resources _(thumbnails and previews)_ to ensure offline availability for favorited content. It features parallel resource synchronization for maximum throughput.
-- **UserPreferencesRepository**: Leverages **Jetpack DataStore** for persistent storage of application settings and navigation states.
+- **UserPreferencesRepository**: Leverages **Jetpack DataStore** for persistent storage of application settings, filters, and navigation states.
 - **BackupRepository**: Provides robust JSON-based import and export capabilities for user data.
+- **Room Database**: Manages `favorite_images` and `feed_cache` tables for offline persistence.
 
 ## Key Features
 
@@ -93,13 +94,15 @@ The networking layer uses custom **OkHttp Interceptors** to handle:
 
 ## Project Structure
 
-- `api/`: Retrofit interfaces and network interceptors.
-- `data/`: Repositories, Room DAOs, and DataStore implementations.
-- `model/`: Immutable data classes and API response models.
-- `ui/screens/`: Navigation destinations and screen-level composables.
-- `ui/components/`: Shared UI elements and specialized media players.
-- `util/`: Extension functions and logic utilities.
-- `viewmodel/`: ViewModels inheriting from the centralized BaseViewModel and their corresponding UI states.
+- `api/`: Retrofit interfaces (`CivitaiApi`) and OkHttp interceptors (`CivitaiInterceptor`, `CivitaiThumbnailInterceptor`).
+- `data/`: Repositories (`FavoritesRepository`, `GalleryRepository`, `UserPreferencesRepository`, `BackupRepository`), Room DAOs (`FavoriteImageDao`, `FeedCacheDao`), and DataStore implementations.
+- `model/`: Immutable data classes (`CivitaiImage`, `FavoriteImage`, `FeedItemCache`, `AppBackup`).
+- `ui/screens/`: Navigation destinations (`MainScreen`, `FeedScreen`, `FavoritesScreen`, `GalleryScreen`).
+- `ui/components/`: Shared UI elements (`VideoPlayer`, `MpvPlayer`, `ImageCard`, `ImageGrid`, sidebars, theme).
+- `util/`: Extension functions and logic utilities (`CivitaiUrlBuilder`, `FileUtils`, `Logger`, `Utils`).
+- `viewmodel/`: ViewModels inheriting from `BaseViewModel` (`FeedViewModel`, `FavoritesViewModel`, `GalleryViewModel`, `SettingsViewModel`) and their corresponding UI states.
+- `di/`: Hilt dependency injection module (`AppModule`).
+- `jniLibs/arm64-v8a/`: Native libmpv library for video playback fallback.
 
 ## Build and Installation
 
