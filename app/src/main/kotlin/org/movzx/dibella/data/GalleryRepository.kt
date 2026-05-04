@@ -336,7 +336,8 @@ constructor(
             val files =
                 rootDir.listFiles()?.filter {
                     it.isFile &&
-                        (it.extension.lowercase() in FileUtils.IMAGE_EXTENSIONS + FileUtils.VIDEO_EXTENSIONS)
+                        (it.extension.lowercase() in
+                            FileUtils.IMAGE_EXTENSIONS + FileUtils.VIDEO_EXTENSIONS)
                 } ?: return@withContext emptyList()
 
             Logger.d("Dibella_IO", "Checking duplicates in ${rootDir.name} (${files.size} files)")

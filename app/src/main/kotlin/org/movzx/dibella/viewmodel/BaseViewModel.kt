@@ -3,7 +3,6 @@ package org.movzx.dibella.viewmodel
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -21,8 +20,7 @@ abstract class BaseViewModel(
     protected val galleryRepository: GalleryRepository,
 ) : ViewModel() {
     companion object {
-        @Volatile
-        var isImporting: Boolean = false
+        @Volatile var isImporting: Boolean = false
     }
 
     private val _uiMessage = MutableSharedFlow<Int>()
