@@ -141,4 +141,15 @@
     <string name="mime_json">application/json</string>
     <string name="label_amoled_mode">AMOLED Pure Black</string>
     <string name="section_appearance">Appearance</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">Discover AI Art</string>
+    <string name="onboarding_desc_1">Browse thousands of AI-generated images and videos from Civitai\'s creative community.</string>
+    <string name="onboarding_title_2">Save Your Favorites</string>
+    <string name="onboarding_desc_2">Build your personal collection by saving images you love. Access them anytime, even offline.</string>
+    <string name="onboarding_title_3">Download &amp; Organize</string>
+    <string name="onboarding_desc_3">Download media to your device and organize your gallery with powerful management tools.</string>
+    <string name="btn_skip">Skip</string>
+    <string name="btn_next">Next</string>
+    <string name="btn_get_started">Get Started</string>
 </resources>

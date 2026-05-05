@@ -75,6 +75,12 @@ fun DisplaySidebar(
                                 selected = currentPageLimit == limit,
                                 onClick = { currentPageLimit = limit },
                                 label = { Text(limit.toString()) },
+                                colors =
+                                    FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = colorResource(R.color.primary),
+                                        selectedLabelColor =
+                                            androidx.compose.ui.graphics.Color.White,
+                                    ),
                             )
                         }
                     }
@@ -94,18 +100,33 @@ fun DisplaySidebar(
                             selected = currentType == "all",
                             onClick = { currentType = "all" },
                             label = { Text(stringResource(R.string.opt_all)) },
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = colorResource(R.color.primary),
+                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                ),
                         )
 
                         FilterChip(
                             selected = currentType == "image",
                             onClick = { currentType = "image" },
                             label = { Text(stringResource(R.string.opt_image)) },
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = colorResource(R.color.primary),
+                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                ),
                         )
 
                         FilterChip(
                             selected = currentType == "video",
                             onClick = { currentType = "video" },
                             label = { Text(stringResource(R.string.opt_video)) },
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = colorResource(R.color.primary),
+                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                ),
                         )
                     }
 
@@ -129,6 +150,11 @@ fun DisplaySidebar(
                                     else stringResource(R.string.opt_columns, cols)
                                 )
                             },
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = colorResource(R.color.primary),
+                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                ),
                         )
                     }
                 }

@@ -307,6 +307,30 @@ fun EmptyState(viewMode: String) {
             label = "float",
         )
 
+    val rotation by
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(3000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "rotation",
+        )
+
+    val pulse by
+        infiniteTransition.animateFloat(
+            initialValue = 0.6f,
+            targetValue = 0.9f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(2000, easing = EaseInOutSine),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+            label = "pulse",
+        )
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -323,8 +347,12 @@ fun EmptyState(viewMode: String) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(64.dp).graphicsLayer { translationY = floatOffset },
-            tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+            modifier =
+                Modifier.size(64.dp).graphicsLayer {
+                    translationY = floatOffset
+                    rotationZ = rotation
+                },
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = pulse),
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -337,13 +365,14 @@ fun EmptyState(viewMode: String) {
                         androidx.compose.ui.graphics.Brush.linearGradient(
                             colors =
                                 listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.secondary,
                                     MaterialTheme.colorScheme.onSurface,
-                                    MaterialTheme.colorScheme.outline,
                                 )
                         )
                 ),
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 48.dp).graphicsLayer { alpha = 0.8f },
+            modifier = Modifier.padding(horizontal = 48.dp).graphicsLayer { alpha = 0.9f },
         )
     }
 }

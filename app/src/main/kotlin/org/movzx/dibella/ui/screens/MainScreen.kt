@@ -126,7 +126,6 @@ fun MainScreen(imageLoader: ImageLoader) {
     var fullScreenViewMode by remember { mutableStateOf("feed") }
     var backPressedTime by remember { mutableLongStateOf(0L) }
     val exitConfirmMsg = stringResource(R.string.msg_exit_confirm)
-    val rightGesturesEnabled = selectedImageIndex == null
 
     LaunchedEffect(settingsViewModel.exitEvent) {
         settingsViewModel.exitEvent.collect {
@@ -200,6 +199,7 @@ fun MainScreen(imageLoader: ImageLoader) {
 
         ModalNavigationDrawer(
             drawerState = leftDrawerState,
+            gesturesEnabled = false,
             drawerContent = {
                 ModalDrawerSheet(
                     modifier = Modifier.width(300.dp).fillMaxHeight(),
@@ -262,7 +262,7 @@ fun MainScreen(imageLoader: ImageLoader) {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 ModalNavigationDrawer(
                     drawerState = rightDrawerState,
-                    gesturesEnabled = rightGesturesEnabled,
+                    gesturesEnabled = false,
                     drawerContent = {
                         CompositionLocalProvider(
                             LocalLayoutDirection provides LayoutDirection.Ltr
@@ -358,6 +358,80 @@ fun MainScreen(imageLoader: ImageLoader) {
                                             )
                                     )
                         ) {
+                            if (!settingsState.amoledMode) {
+                                val glowTransition =
+                                    rememberInfiniteTransition(label = "ambientGlow")
+
+                                val glowOffset by
+                                    glowTransition.animateFloat(
+                                        initialValue = 0f,
+                                        targetValue = 1f,
+                                        animationSpec =
+                                            infiniteRepeatable(
+                                                animation = tween(8000, easing = LinearEasing),
+                                                repeatMode = RepeatMode.Restart,
+                                            ),
+                                        label = "glowOffset",
+                                    )
+
+                                val glowAlpha by
+                                    glowTransition.animateFloat(
+                                        initialValue = 0.03f,
+                                        targetValue = 0.08f,
+                                        animationSpec =
+                                            infiniteRepeatable(
+                                                animation = tween(6000, easing = LinearEasing),
+                                                repeatMode = RepeatMode.Reverse,
+                                            ),
+                                        label = "glowAlpha",
+                                    )
+
+                                val glowX by
+                                    glowTransition.animateFloat(
+                                        initialValue = 0.3f,
+                                        targetValue = 0.7f,
+                                        animationSpec =
+                                            infiniteRepeatable(
+                                                animation = tween(10000, easing = LinearEasing),
+                                                repeatMode = RepeatMode.Reverse,
+                                            ),
+                                        label = "glowX",
+                                    )
+
+                                val glowY by
+                                    glowTransition.animateFloat(
+                                        initialValue = 0.3f,
+                                        targetValue = 0.7f,
+                                        animationSpec =
+                                            infiniteRepeatable(
+                                                animation = tween(12000, easing = LinearEasing),
+                                                repeatMode = RepeatMode.Reverse,
+                                            ),
+                                        label = "glowY",
+                                    )
+
+                                val glowColors =
+                                    listOf(
+                                        colorResource(R.color.primary).copy(alpha = glowAlpha),
+                                        colorResource(R.color.secondary)
+                                            .copy(alpha = glowAlpha * 0.5f),
+                                        androidx.compose.ui.graphics.Color.Transparent,
+                                    )
+
+                                androidx.compose.foundation.Canvas(
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    val size = size.minDimension
+                                    val x = glowX * size
+                                    val y = glowY * size
+
+                                    drawCircle(
+                                        brush = Brush.radialGradient(colors = glowColors),
+                                        radius = size * 0.4f,
+                                        center = androidx.compose.ui.geometry.Offset(x, y),
+                                    )
+                                }
+                            }
                             val startDestination = settingsState.lastRoute ?: return@Box
 
                             AppNavigation(

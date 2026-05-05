@@ -34,6 +34,7 @@ fun BaseSidebar(
                 title,
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 24.dp),
+                color = MaterialTheme.colorScheme.primary,
             )
 
             Column(modifier = Modifier.weight(1f), content = content)

@@ -1,6 +1,7 @@
 package org.movzx.dibella.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Collections
@@ -11,8 +12,13 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -28,9 +34,31 @@ fun MainBottomBar(
     galleryCount: Int = 0,
 ) {
     NavigationBar(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        containerColor = Color.Transparent,
         tonalElevation = 0.dp,
         windowInsets = WindowInsets(0, 0, 0, 0),
+        modifier =
+            Modifier.shadow(
+                    8.dp,
+                    androidx.compose.foundation.shape.RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 16.dp,
+                    ),
+                )
+                .background(
+                    Brush.verticalGradient(
+                        colors =
+                            listOf(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                            )
+                    ),
+                    shape =
+                        androidx.compose.foundation.shape.RoundedCornerShape(
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                        ),
+                ),
     ) {
         BottomNavItem(
             selected = currentRoute == "feed",
@@ -38,7 +66,7 @@ fun MainBottomBar(
             icon = Icons.Default.Home,
             selectedIcon = Icons.Filled.Home,
             label = stringResource(R.string.nav_feed),
-            badgeCount = feedCount,
+            count = feedCount,
             selectedColor = MaterialTheme.colorScheme.primary,
         )
 
@@ -48,8 +76,8 @@ fun MainBottomBar(
             icon = Icons.Outlined.FavoriteBorder,
             selectedIcon = Icons.Filled.Favorite,
             label = stringResource(R.string.nav_favorites),
-            badgeCount = favoritesCount,
-            selectedColor = colorResource(R.color.error),
+            count = favoritesCount,
+            selectedColor = colorResource(R.color.tertiary),
         )
 
         BottomNavItem(
@@ -58,7 +86,7 @@ fun MainBottomBar(
             icon = Icons.Outlined.Collections,
             selectedIcon = Icons.Filled.Collections,
             label = stringResource(R.string.nav_gallery),
-            badgeCount = galleryCount,
+            count = galleryCount,
             selectedColor = colorResource(R.color.success),
         )
     }
@@ -71,7 +99,7 @@ private fun RowScope.BottomNavItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     selectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    badgeCount: Int,
+    count: Int,
     selectedColor: androidx.compose.ui.graphics.Color,
 ) {
     val scale by
@@ -85,88 +113,73 @@ private fun RowScope.BottomNavItem(
             label = "scale",
         )
 
-    val transition = rememberInfiniteTransition(label = "badgePulse")
-    val pulseScale by
-        transition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1.2f,
+    val rotation by
+        animateFloatAsState(
+            targetValue = if (selected) 5f else 0f,
             animationSpec =
-                infiniteRepeatable(
-                    animation = tween(1200, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse,
+                spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium,
                 ),
-            label = "pulse",
+            label = "rotation",
         )
 
     NavigationBarItem(
         selected = selected,
         onClick = { if (!selected) onClick() },
         icon = {
-            Box(
-                modifier = Modifier.size(32.dp),
-                contentAlignment = androidx.compose.ui.Alignment.Center,
-            ) {
+            Box(modifier = Modifier.size(32.dp), contentAlignment = Alignment.Center) {
                 if (selected) {
                     androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                         drawCircle(
                             brush =
-                                androidx.compose.ui.graphics.Brush.radialGradient(
+                                Brush.radialGradient(
                                     colors =
-                                        listOf(
-                                            selectedColor.copy(alpha = 0.15f),
-                                            androidx.compose.ui.graphics.Color.Transparent,
-                                        )
+                                        listOf(selectedColor.copy(alpha = 0.2f), Color.Transparent)
                                 ),
                             radius = size.minDimension / 1.2f,
                         )
                     }
                 }
 
-                BadgedBox(
-                    badge = {
-                        if (badgeCount > 0) {
-                            Surface(
-                                color = selectedColor,
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
-                                modifier =
-                                    Modifier.scale(if (selected) pulseScale else 1f)
-                                        .padding(horizontal = 2.dp)
-                                        .widthIn(min = 40.dp),
-                            ) {
-                                Text(
-                                    text = badgeCount.toString(),
-                                    style =
-                                        MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 8.sp,
-                                            color = androidx.compose.ui.graphics.Color.White,
-                                            textAlign =
-                                                androidx.compose.ui.text.style.TextAlign.Center,
+                Icon(
+                    imageVector = if (selected) selectedIcon else icon,
+                    contentDescription = label,
+                    modifier = Modifier.scale(scale).graphicsLayer { rotationZ = rotation },
+                    tint =
+                        if (selected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        label = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color =
+                        if (selected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (count > 0) {
+                    Text(
+                        text = formatCount(count),
+                        style =
+                            MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 8.sp,
+                                color =
+                                    if (selected) selectedColor.copy(alpha = 0.7f)
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = 0.5f
                                         ),
-                                    modifier = Modifier.padding(horizontal = 1.dp, vertical = 1.dp),
-                                )
-                            }
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = if (selected) selectedIcon else icon,
-                        contentDescription = label,
-                        modifier = Modifier.scale(scale),
-                        tint =
-                            if (selected) selectedColor
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                     )
                 }
             }
         },
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (selected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        alwaysShowLabel = false,
+        alwaysShowLabel = true,
         colors =
             NavigationBarItemDefaults.colors(
                 selectedIconColor = selectedColor,
@@ -176,4 +189,12 @@ private fun RowScope.BottomNavItem(
                 indicatorColor = selectedColor.copy(alpha = 0.1f),
             ),
     )
+}
+
+private fun formatCount(count: Int): String {
+    return when {
+        count >= 1_000_000 -> String.format("%.1fm", count / 1_000_000.0)
+        count >= 1_000 -> String.format("%.1fk", count / 1_000.0)
+        else -> count.toString()
+    }
 }

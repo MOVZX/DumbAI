@@ -11,12 +11,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 
 data class SpeedDialItem(
-    val icon: ImageVector,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val label: String,
     val onClick: () -> Unit,
     val containerColor: Color? = null,
@@ -25,7 +25,7 @@ data class SpeedDialItem(
 
 @Composable
 fun SpeedDialFab(
-    mainIcon: ImageVector = Icons.Default.Add,
+    mainIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Add,
     items: List<SpeedDialItem>,
     modifier: Modifier = Modifier,
 ) {
@@ -37,6 +37,17 @@ fun SpeedDialFab(
             targetValue = if (expanded) 45f else 0f,
             animationSpec = spring(stiffness = Spring.StiffnessLow),
             label = "Rotation",
+        )
+
+    val scale by
+        animateFloatAsState(
+            targetValue = if (expanded) 1.1f else 1f,
+            animationSpec =
+                spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow,
+                ),
+            label = "Scale",
         )
 
     Column(
@@ -86,10 +97,8 @@ fun SpeedDialFab(
                             expanded = false
                             item.onClick()
                         },
-                        containerColor =
-                            item.containerColor ?: MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor =
-                            item.contentColor ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                        containerColor = item.containerColor ?: MaterialTheme.colorScheme.primary,
+                        contentColor = item.contentColor ?: Color.White,
                         modifier = Modifier.size(36.dp),
                     ) {
                         Icon(
@@ -107,9 +116,18 @@ fun SpeedDialFab(
                 view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
                 expanded = !expanded
             },
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.rotate(rotation).size(44.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = Color.White,
+            elevation =
+                FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 8.dp,
+                    pressedElevation = 14.dp,
+                ),
+            modifier =
+                Modifier.rotate(rotation).size(44.dp).graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                },
         ) {
             Icon(
                 imageVector = mainIcon,

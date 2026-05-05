@@ -15,10 +15,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import coil3.ImageLoader
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.launch
+import org.movzx.dibella.data.UserPreferencesRepository
+import org.movzx.dibella.ui.components.SplashScreen
 import org.movzx.dibella.ui.screens.MainScreen
+import org.movzx.dibella.ui.screens.OnboardingScreen
 import org.movzx.dibella.ui.theme.DibellaTheme
 
 enum class RightSidebarType {
@@ -29,6 +34,7 @@ enum class RightSidebarType {
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject lateinit var imageLoader: ImageLoader
+    private lateinit var preferencesRepository: UserPreferencesRepository
 
     private val permissionsToRequest = buildList {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -61,12 +67,16 @@ class MainActivity : ComponentActivity() {
         }
 
     private val _permissionsGranted = mutableStateOf(false)
+    private val _showSplash = mutableStateOf(true)
+    private val _showOnboarding = mutableStateOf(false)
 
     val permissionsGranted: State<Boolean>
         get() = _permissionsGranted
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        preferencesRepository = UserPreferencesRepository(this)
 
         val allGranted = permissionsToRequest.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
@@ -75,10 +85,31 @@ class MainActivity : ComponentActivity() {
         if (allGranted) _permissionsGranted.value = true
         else permissionLauncher.launch(permissionsToRequest.toTypedArray())
 
+        lifecycleScope.launch {
+            preferencesRepository.onboardingCompleted.collect { completed ->
+                if (!completed) _showOnboarding.value = true
+            }
+        }
+
         setContent {
             DibellaTheme {
-                if (_permissionsGranted.value) MainScreen(imageLoader)
-                else
+                if (_permissionsGranted.value) {
+                    if (_showOnboarding.value) {
+                        OnboardingScreen(
+                            onSkip = { _showOnboarding.value = false },
+                            onFinish = {
+                                lifecycleScope.launch {
+                                    preferencesRepository.updateOnboardingCompleted(true)
+                                    _showOnboarding.value = false
+                                }
+                            },
+                        )
+                    } else if (_showSplash.value) {
+                        SplashScreen(onSplashFinished = { _showSplash.value = false })
+                    } else {
+                        MainScreen(imageLoader)
+                    }
+                } else
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }

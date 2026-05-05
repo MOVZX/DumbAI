@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.movzx.dibella.R
@@ -116,6 +117,11 @@ fun FilterSidebar(
                                     else stringResource(R.string.opt_image)
                                 )
                             },
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = colorResource(R.color.primary),
+                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                ),
                         )
                     }
                 }
@@ -139,6 +145,11 @@ fun FilterSidebar(
                                     }
                                 )
                             },
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = colorResource(R.color.primary),
+                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                ),
                         )
                     }
                 }
@@ -162,6 +173,11 @@ fun FilterSidebar(
                                     }
                                 )
                             },
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = colorResource(R.color.primary),
+                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                ),
                         )
                     }
                 }
@@ -176,6 +192,11 @@ fun FilterSidebar(
                         selected = currentTagIds == null,
                         onClick = { currentTagIds = null },
                         label = { Text(stringResource(R.string.opt_all)) },
+                        colors =
+                            FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = colorResource(R.color.primary),
+                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                            ),
                     )
 
                     tagOptions.forEach { tag ->
@@ -193,6 +214,12 @@ fun FilterSidebar(
                                         if (newList.isEmpty()) null else newList.joinToString(",")
                                 },
                                 label = { Text(tag.name) },
+                                colors =
+                                    FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = colorResource(R.color.primary),
+                                        selectedLabelColor =
+                                            androidx.compose.ui.graphics.Color.White,
+                                    ),
                             )
                         }
                     }
@@ -229,6 +256,12 @@ fun FilterSidebar(
                                             else newList.joinToString(",")
                                     },
                                     label = { Text(tag.name) },
+                                    colors =
+                                        FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = colorResource(R.color.primary),
+                                            selectedLabelColor =
+                                                androidx.compose.ui.graphics.Color.White,
+                                        ),
                                 )
                             }
                         }
@@ -253,6 +286,11 @@ fun FilterSidebar(
                                     }
                                 )
                             },
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = colorResource(R.color.primary),
+                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                ),
                         )
                     }
                 }

@@ -20,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -170,15 +171,13 @@ fun FullScreenImage(
                     androidx.compose.ui.graphics.Brush.radialGradient(
                         colors =
                             listOf(
-                                androidx.compose.ui.res
-                                    .colorResource(R.color.pure_black)
+                                colorResource(R.color.background)
                                     .copy(
                                         alpha =
                                             (0.85f - (abs(offsetY) / (dismissThreshold * 2f)))
                                                 .coerceIn(0f, 1f)
                                     ),
-                                androidx.compose.ui.res
-                                    .colorResource(R.color.pure_black)
+                                colorResource(R.color.pure_black)
                                     .copy(
                                         alpha =
                                             (1.0f - (abs(offsetY) / (dismissThreshold * 1.5f)))
@@ -407,10 +406,7 @@ fun FullScreenImage(
             Box(modifier = Modifier.fillMaxWidth()) {
                 if (currentImage?.type == "video" && currentFps > 0) {
                     Surface(
-                        color =
-                            androidx.compose.ui.res
-                                .colorResource(R.color.pure_black)
-                                .copy(alpha = 0.5f),
+                        color = colorResource(R.color.surface),
                         shape = MaterialTheme.shapes.small,
                         modifier = Modifier.align(Alignment.CenterStart),
                     ) {
@@ -472,17 +468,21 @@ fun FullScreenImage(
                     ),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
+            val bottomGradient =
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors =
+                        listOf(
+                            Color.Transparent,
+                            colorResource(R.color.pure_black).copy(alpha = 0.7f),
+                        )
+                )
+
             Column(
                 modifier =
                     Modifier.fillMaxWidth()
                         .padding(16.dp)
                         .navigationBarsPadding()
-                        .background(
-                            androidx.compose.ui.res
-                                .colorResource(R.color.pure_black)
-                                .copy(alpha = 0.5f),
-                            MaterialTheme.shapes.large,
-                        )
+                        .background(bottomGradient, MaterialTheme.shapes.large)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

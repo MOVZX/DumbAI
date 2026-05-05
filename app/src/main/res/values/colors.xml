@@ -1,30 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-    <color name="primary">#60A5FA</color>
-    <color name="primary_gradient_end">#3B82F6</color>
+    <!-- Primary: Warm Coral -->
+    <color name="primary">#FF6B6B</color>
+    <color name="primary_variant">#FF8E8E</color>
     <color name="onPrimary">#FFFFFF</color>
-    <color name="primaryContainer">#1E3A8A</color>
-    <color name="onPrimaryContainer">#DBEAFE</color>
-    <color name="secondary">#64748B</color>
+    <color name="primaryContainer">#FFE5E5</color>
+    <color name="onPrimaryContainer">#5C1A1A</color>
+
+    <!-- Secondary: Electric Purple -->
+    <color name="secondary">#8B5CF6</color>
+    <color name="secondary_variant">#A78BFA</color>
     <color name="onSecondary">#FFFFFF</color>
-    <color name="secondaryContainer">#334155</color>
-    <color name="onSecondaryContainer">#F1F5F9</color>
+    <color name="secondaryContainer">#EDE9FE</color>
+    <color name="onSecondaryContainer">#3B1D6B</color>
+
+    <!-- Accent: Golden Hour -->
+    <color name="accent">#F59E0B</color>
+    <color name="accent_variant">#FBBF24</color>
+    <color name="onAccent">#FFFFFF</color>
+    <color name="accentContainer">#FEF3C7</color>
+    <color name="onAccentContainer">#78350F</color>
+
+    <!-- Tertiary: Rose (for favorites) -->
     <color name="tertiary">#F43F5E</color>
     <color name="tertiary_light">#FB7185</color>
     <color name="onTertiary">#FFFFFF</color>
     <color name="tertiaryContainer">#7F1D1D</color>
     <color name="onTertiaryContainer">#FEE2E2</color>
-    <color name="background">#060608</color>
-    <color name="background_center">#0D0D10</color>
+
+    <!-- Background: Rich Dark -->
+    <color name="background">#0A0A0F</color>
+    <color name="background_center">#111118</color>
     <color name="onBackground">#F4F4F5</color>
-    <color name="surface">#121214</color>
+    <color name="surface">#141418</color>
     <color name="onSurface">#F4F4F5</color>
-    <color name="surfaceVariant">#1E1E22</color>
-    <color name="onSurfaceVariant">#D4D4D8</color>
-    <color name="outline">#71717A</color>
-    <color name="success">#4CAF50</color>
-    <color name="error">#F43F5E</color>
+    <color name="surfaceVariant">#1E1E24</color>
+    <color name="onSurfaceVariant">#A1A1AA</color>
+    <color name="outline">#3F3F46</color>
+    <color name="outlineVariant">#27272A</color>
+
+    <!-- Utility -->
+    <color name="success">#10B981</color>
+    <color name="error">#EF4444</color>
     <color name="pure_black">#000000</color>
     <color name="pure_white">#FFFFFF</color>
 </resources>

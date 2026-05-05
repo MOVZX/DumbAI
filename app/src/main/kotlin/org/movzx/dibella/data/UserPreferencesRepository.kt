@@ -48,6 +48,7 @@ class UserPreferencesRepository(private val context: Context) {
         val ALWAYS_MUTE_VIDEO = booleanPreferencesKey("always_mute_video")
         val FEED_VIDEO_AUTOPLAY = booleanPreferencesKey("feed_video_autoplay")
         val AMOLED_MODE = booleanPreferencesKey("amoled_mode")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 
     val nsfw: Flow<String> =
@@ -176,6 +177,11 @@ class UserPreferencesRepository(private val context: Context) {
     val amoledMode: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
             preferences[PreferencesKeys.AMOLED_MODE] ?: false
+        }
+
+    val onboardingCompleted: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.ONBOARDING_COMPLETED] ?: false
         }
 
     data class InterceptorSettings(val apiKey: String, val debugEnabled: Boolean)
@@ -420,5 +426,13 @@ class UserPreferencesRepository(private val context: Context) {
         Logger.d("Dibella_Prefs", "updateAmoledMode: $enabled")
 
         context.dataStore.edit { preferences -> preferences[PreferencesKeys.AMOLED_MODE] = enabled }
+    }
+
+    suspend fun updateOnboardingCompleted(completed: Boolean) {
+        Logger.d("Dibella_Prefs", "updateOnboardingCompleted: $completed")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ONBOARDING_COMPLETED] = completed
+        }
     }
 }

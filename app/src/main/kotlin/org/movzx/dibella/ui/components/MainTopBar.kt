@@ -112,6 +112,13 @@ fun MainTopBar(
 
     CenterAlignedTopAppBar(
         title = {
+            val logoColors =
+                listOf(
+                    colorResource(R.color.primary).copy(alpha = 0.3f),
+                    colorResource(R.color.secondary).copy(alpha = 0.15f),
+                    androidx.compose.ui.graphics.Color.Transparent,
+                )
+
             androidx.compose.foundation.Image(
                 painter = painterResource(id = R.drawable.ic_app_logo),
                 contentDescription = stringResource(R.string.app_name),
@@ -120,13 +127,7 @@ fun MainTopBar(
                         .drawBehind {
                             drawCircle(
                                 androidx.compose.ui.graphics.Brush.radialGradient(
-                                    colors =
-                                        listOf(
-                                            androidx.compose.ui.graphics.Color.White.copy(
-                                                alpha = 0.15f
-                                            ),
-                                            androidx.compose.ui.graphics.Color.Transparent,
-                                        )
+                                    colors = logoColors
                                 ),
                                 radius = size.minDimension,
                             )

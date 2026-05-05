@@ -284,6 +284,8 @@ fun ImageCard(
             label = "EntryProgress",
         )
 
+    var showGradientBorder by remember { mutableStateOf(false) }
+
     Card(
         modifier =
             Modifier.fillMaxWidth()
@@ -311,11 +313,15 @@ fun ImageCard(
                     },
                 ),
         shape = MaterialTheme.shapes.extraLarge,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color.White.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border =
+            androidx.compose.foundation.BorderStroke(
+                1.5.dp,
+                if (showGradientBorder) MaterialTheme.colorScheme.primary else Color.Transparent,
+            ),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             ),
     ) {
         var isError by remember { mutableStateOf(false) }
@@ -409,10 +415,26 @@ fun ImageCard(
                                 colors =
                                     listOf(
                                         androidx.compose.ui.graphics.Color.Transparent,
-                                        androidx.compose.ui.res
-                                            .colorResource(org.movzx.dibella.R.color.pure_black)
-                                            .copy(alpha = 0.6f),
+                                        colorResource(org.movzx.dibella.R.color.pure_black)
+                                            .copy(alpha = 0.5f),
                                     )
+                            )
+                        )
+            )
+
+            Box(
+                modifier =
+                    Modifier.fillMaxSize()
+                        .align(Alignment.Center)
+                        .background(
+                            Brush.radialGradient(
+                                colors =
+                                    listOf(
+                                        Color.Transparent,
+                                        colorResource(org.movzx.dibella.R.color.pure_black)
+                                            .copy(alpha = 0.3f),
+                                    ),
+                                radius = 200f,
                             )
                         )
             )
@@ -434,9 +456,13 @@ fun ImageCard(
                         Modifier.padding(8.dp)
                             .align(Alignment.TopEnd)
                             .background(
-                                androidx.compose.ui.res
-                                    .colorResource(org.movzx.dibella.R.color.pure_black)
-                                    .copy(alpha = 0.4f),
+                                Brush.linearGradient(
+                                    colors =
+                                        listOf(
+                                            colorResource(org.movzx.dibella.R.color.primary),
+                                            colorResource(org.movzx.dibella.R.color.secondary),
+                                        )
+                                ),
                                 MaterialTheme.shapes.small,
                             )
                             .padding(horizontal = 6.dp, vertical = 2.dp)

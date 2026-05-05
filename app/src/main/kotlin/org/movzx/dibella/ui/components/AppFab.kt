@@ -1,5 +1,6 @@
 package org.movzx.dibella.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.material.icons.Icons
@@ -8,6 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -20,8 +24,20 @@ fun AppFab(
     hasMore: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
+    val view = androidx.compose.ui.platform.LocalView.current
     val showScrollToTop by remember { derivedStateOf { gridState.firstVisibleItemIndex > 0 } }
     val showScrollToBottom by remember { derivedStateOf { gridState.canScrollForward } }
+
+    val fabScale by
+        animateFloatAsState(
+            targetValue = 1f,
+            animationSpec =
+                spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow,
+                ),
+            label = "fabScale",
+        )
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -30,10 +46,22 @@ fun AppFab(
     ) {
         if (showScrollToTop) {
             FloatingActionButton(
-                onClick = { scope.launch { gridState.animateScrollToItem(0) } },
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(48.dp),
+                onClick = {
+                    view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+                    scope.launch { gridState.animateScrollToItem(0) }
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White,
+                elevation =
+                    FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 10.dp,
+                    ),
+                modifier =
+                    Modifier.size(48.dp).graphicsLayer {
+                        scaleX = fabScale
+                        scaleY = fabScale
+                    },
             ) {
                 Icon(
                     Icons.Default.ArrowUpward,
@@ -46,13 +74,23 @@ fun AppFab(
         if (showScrollToBottom) {
             FloatingActionButton(
                 onClick = {
+                    view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
                     scope.launch {
                         gridState.animateScrollToItem(gridState.layoutInfo.totalItemsCount - 1)
                     }
                 },
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(48.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White,
+                elevation =
+                    FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 10.dp,
+                    ),
+                modifier =
+                    Modifier.size(48.dp).graphicsLayer {
+                        scaleX = fabScale
+                        scaleY = fabScale
+                    },
             ) {
                 Icon(
                     Icons.Default.ArrowDownward,
