@@ -1,5 +1,7 @@
 package org.movzx.dibella.util
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import java.io.File
 import java.io.FileInputStream
 import kotlinx.coroutines.*
@@ -11,6 +13,49 @@ object FileUtils {
     val VIDEO_EXTENSIONS = listOf("mp4", "webm")
     private val JPEG_HEADER = "FFD8FF".decodeHex()
     private val WEBP_HEADER = "52494646".decodeHex()
+
+    fun saveBitmapAsWebP(bitmap: Bitmap, outputFile: File, quality: Int): Boolean {
+        return try {
+            outputFile.outputStream().use { out ->
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, quality, out)
+                } else {
+                    @Suppress("DEPRECATION")
+                    bitmap.compress(Bitmap.CompressFormat.WEBP, quality, out)
+                }
+            }
+
+            true
+        } catch (e: Exception) {
+            Logger.e("Dibella_Codec", "Failed to save bitmap as WebP: ${e.message}")
+
+            false
+        }
+    }
+
+    fun convertFileToWebP(inputFile: File, outputFile: File, quality: Int): Boolean {
+        return try {
+            val bitmap = BitmapFactory.decodeFile(inputFile.absolutePath)
+
+            if (bitmap != null) {
+                val success = saveBitmapAsWebP(bitmap, outputFile, quality)
+
+                bitmap.recycle()
+                success
+            } else {
+                Logger.e(
+                    "Dibella_Codec",
+                    "Failed to decode bitmap for WebP conversion: ${inputFile.name}",
+                )
+
+                false
+            }
+        } catch (e: Exception) {
+            Logger.e("Dibella_Codec", "WebP conversion failed for ${inputFile.name}: ${e.message}")
+
+            false
+        }
+    }
 
     fun detectExtension(contentType: String?, source: BufferedSource, url: String): String {
         try {
@@ -72,6 +117,7 @@ object FileUtils {
             hex.startsWith("52494646") && hex.contains("57454250") -> "webp"
             hex.contains("66747970") -> "mp4"
             hex.startsWith("1A45DFA3") && hex.contains("7765626D") -> "webm"
+            hex.startsWith("1A45DFA3") -> "mkv"
             else -> null
         }
     }

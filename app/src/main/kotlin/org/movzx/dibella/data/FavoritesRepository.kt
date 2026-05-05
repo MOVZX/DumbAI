@@ -1,7 +1,6 @@
 package org.movzx.dibella.data
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import java.io.Closeable
 import java.io.File
@@ -230,7 +229,7 @@ class FavoritesRepository(
         }
     }
 
-    private fun extractVideoFrame(videoFile: File, outputFile: File): Boolean {
+    private fun extractVideoFrame(videoFile: File, outputFile: File, quality: Int = 50): Boolean {
         val retriever = MediaMetadataRetriever()
         val startTime = System.currentTimeMillis()
 
@@ -243,16 +242,18 @@ class FavoritesRepository(
                 retriever.getFrameAtTime(timeInUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
 
             if (bitmap != null) {
-                outputFile.outputStream().use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                val success = FileUtils.saveBitmapAsWebP(bitmap, outputFile, quality)
+
+                bitmap.recycle()
+
+                if (success) {
+                    Logger.d(
+                        "Dibella_Codec",
+                        "[${videoFile.name}] Frame extracted as WebP ($quality%) in ${System.currentTimeMillis() - startTime}ms",
+                    )
                 }
 
-                Logger.d(
-                    "Dibella_Codec",
-                    "[${videoFile.name}] Frame extracted in ${System.currentTimeMillis() - startTime}ms",
-                )
-
-                true
+                success
             } else {
                 Logger.e("Dibella_Codec", "[${videoFile.name}] Extraction failed: null bitmap")
 
@@ -276,6 +277,7 @@ class FavoritesRepository(
 
     private fun finalizeFile(tempFile: File, finalFile: File): String? {
         if (!tempFile.exists()) return null
+        if (finalFile.exists()) finalFile.delete()
 
         return if (tempFile.renameTo(finalFile)) {
             finalFile.absolutePath
@@ -418,7 +420,7 @@ class FavoritesRepository(
                                 "temp_full_${image.id}_${System.currentTimeMillis()}",
                             )
                         if (
-                            downloadFile(image.url, tempFile) { p ->
+                            downloadFile(image.url, tempFile, webpQuality = 75) { p ->
                                 contentProgress = p
 
                                 updateTotalProgress()
@@ -467,6 +469,7 @@ class FavoritesRepository(
                                 getVideoThumbnailUrl(image.url),
                                 tempFile,
                                 extractFrame = true,
+                                webpQuality = 50,
                             ) { p ->
                                 thumbProgress = p
 
@@ -479,6 +482,7 @@ class FavoritesRepository(
                                     getVideoPreviewUrl(image.url),
                                     tempFile,
                                     extractFrame = true,
+                                    webpQuality = 50,
                                 ) { p ->
                                     thumbProgress = p
 
@@ -488,7 +492,12 @@ class FavoritesRepository(
 
                         if (!downloadSuccess) {
                             downloadSuccess =
-                                downloadFile(image.url, tempFile, extractFrame = true) { p ->
+                                downloadFile(
+                                    image.url,
+                                    tempFile,
+                                    extractFrame = true,
+                                    webpQuality = 50,
+                                ) { p ->
                                     thumbProgress = p
 
                                     updateTotalProgress()
@@ -514,6 +523,7 @@ class FavoritesRepository(
                                 getThumbnailUrl(image.url, 450),
                                 tempFile,
                                 extractFrame = true,
+                                webpQuality = 50,
                             ) { p ->
                                 thumbProgress = p
 
@@ -600,11 +610,15 @@ class FavoritesRepository(
         url: String,
         destination: File,
         extractFrame: Boolean = false,
+        webpQuality: Int? = null,
         onProgress: (Float) -> Unit = {},
     ): Boolean {
         val startTime = System.currentTimeMillis()
-        val tempFile =
+
+        val downloadTempFile =
             File(context.cacheDir, "temp_${System.currentTimeMillis()}_${destination.name}")
+
+        val intermediateFiles = mutableListOf<File>()
 
         return try {
             val request = Request.Builder().url(url).build()
@@ -620,7 +634,7 @@ class FavoritesRepository(
                     )
 
                     body.byteStream().use { input ->
-                        tempFile.outputStream().use { output ->
+                        downloadTempFile.outputStream().use { output ->
                             val buffer = ByteArray(8192)
                             var read: Int
                             var total = 0L
@@ -635,50 +649,65 @@ class FavoritesRepository(
                         }
                     }
 
-                    if (tempFile.exists() && tempFile.length() > 10) {
+                    if (downloadTempFile.exists() && downloadTempFile.length() > 10) {
+                        var currentFile = downloadTempFile
+                        var alreadyOptimized = false
+
+                        if (extractFrame) {
+                            val bytes = currentFile.inputStream().use { it.readNBytes(64) }
+                            val ext = FileUtils.getExtensionFromBytes(bytes)
+
+                            if (ext == "mp4" || ext == "webm") {
+                                Logger.d(
+                                    "Dibella_Codec",
+                                    "│ [${destination.name}] Video detected for thumbnail, extracting frame",
+                                )
+
+                                val frameFile =
+                                    File(
+                                        context.cacheDir,
+                                        "frame_${System.currentTimeMillis()}_${destination.name}",
+                                    )
+
+                                intermediateFiles.add(frameFile)
+
+                                if (extractVideoFrame(currentFile, frameFile, webpQuality ?: 50)) {
+                                    currentFile = frameFile
+                                    alreadyOptimized = true
+                                }
+                            }
+                        }
+
+                        if (webpQuality != null && !alreadyOptimized) {
+                            val bytes = currentFile.inputStream().use { it.readNBytes(64) }
+                            val ext = FileUtils.getExtensionFromBytes(bytes)
+
+                            if (ext != null && FileUtils.IMAGE_EXTENSIONS.contains(ext)) {
+                                Logger.d(
+                                    "Dibella_Codec",
+                                    "│ [${destination.name}] Converting to WebP (quality: $webpQuality%)",
+                                )
+
+                                val webpFile =
+                                    File(
+                                        context.cacheDir,
+                                        "webp_${System.currentTimeMillis()}_${destination.name}",
+                                    )
+
+                                intermediateFiles.add(webpFile)
+
+                                if (
+                                    FileUtils.convertFileToWebP(currentFile, webpFile, webpQuality)
+                                ) {
+                                    currentFile = webpFile
+                                }
+                            }
+                        }
+
                         if (destination.exists()) destination.delete()
 
-                        val finalSourceFile =
-                            if (extractFrame) {
-                                val bytes = tempFile.inputStream().use { it.readNBytes(64) }
-                                val ext = FileUtils.getExtensionFromBytes(bytes)
-
-                                if (ext == "mp4" || ext == "webm" || ext == "mkv") {
-                                    Logger.d(
-                                        "Dibella_Codec",
-                                        "│ [${destination.name}] Video detected for thumbnail, extracting frame",
-                                    )
-
-                                    val frameFile =
-                                        File(
-                                            context.cacheDir,
-                                            "frame_${System.currentTimeMillis()}_${destination.name}.jpg",
-                                        )
-
-                                    if (extractVideoFrame(tempFile, frameFile)) {
-                                        tempFile.delete()
-                                        frameFile
-                                    } else {
-                                        tempFile
-                                    }
-                                } else {
-                                    tempFile
-                                }
-                            } else {
-                                if (!FileUtils.isRealMedia(tempFile)) {
-                                    Logger.e(
-                                        "Dibella_Codec",
-                                        "[${destination.name}] Validation Failed: Invalid media headers",
-                                    )
-
-                                    return false
-                                }
-
-                                tempFile
-                            }
-
                         val success =
-                            if (finalSourceFile.renameTo(destination)) {
+                            if (currentFile.renameTo(destination)) {
                                 true
                             } else {
                                 Logger.d(
@@ -686,9 +715,7 @@ class FavoritesRepository(
                                     "[${destination.name}] Rename Failed (likely cross-mount), attempting copy",
                                 )
 
-                                copyFile(finalSourceFile, destination).also {
-                                    if (it) finalSourceFile.delete()
-                                }
+                                copyFile(currentFile, destination)
                             }
 
                         if (success) {
@@ -697,11 +724,7 @@ class FavoritesRepository(
                                 "[${destination.name}] Download saved in ${System.currentTimeMillis() - startTime}ms",
                             )
                             true
-                        } else {
-                            if (finalSourceFile.exists()) finalSourceFile.delete()
-
-                            false
-                        }
+                        } else false
                     } else false
                 } else {
                     Logger.e("Dibella_Net", "GET ${response.code} | URL: $url")
@@ -713,7 +736,9 @@ class FavoritesRepository(
             Logger.e("Dibella_Net", "Download Exception: ${e.message}")
             false
         } finally {
-            if (tempFile.exists()) tempFile.delete()
+            if (downloadTempFile.exists()) downloadTempFile.delete()
+
+            intermediateFiles.forEach { if (it.exists()) it.delete() }
         }
     }
 
