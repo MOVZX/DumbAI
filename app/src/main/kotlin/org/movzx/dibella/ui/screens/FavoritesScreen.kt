@@ -72,18 +72,6 @@ fun FavoritesScreen(
 
     var showBatchConfirmDialog by remember { mutableStateOf(false) }
 
-    AppBackHandler(
-        enabled = selectedImageIndex == null,
-        isSelectionMode = uiState.isSelectionMode,
-        clearSelection = { viewModel.clearSelection() },
-        leftDrawerState = leftDrawerState,
-        rightDrawerState = rightDrawerState,
-        scope = scope,
-        backPressedTime = backPressedTime,
-        onUpdateBackPressedTime = onUpdateBackPressedTime,
-        exitConfirmMsg = exitConfirmMsg,
-    )
-
     if (showBatchConfirmDialog) {
         ConfirmationDialog(
             title = stringResource(R.string.dialog_batch_unfavorite_title),

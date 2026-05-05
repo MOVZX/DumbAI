@@ -199,7 +199,7 @@ fun MainScreen(imageLoader: ImageLoader) {
 
         ModalNavigationDrawer(
             drawerState = leftDrawerState,
-            gesturesEnabled = false,
+            gesturesEnabled = true,
             drawerContent = {
                 ModalDrawerSheet(
                     modifier = Modifier.width(300.dp).fillMaxHeight(),
@@ -262,7 +262,7 @@ fun MainScreen(imageLoader: ImageLoader) {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 ModalNavigationDrawer(
                     drawerState = rightDrawerState,
-                    gesturesEnabled = false,
+                    gesturesEnabled = true,
                     drawerContent = {
                         CompositionLocalProvider(
                             LocalLayoutDirection provides LayoutDirection.Ltr
@@ -463,6 +463,18 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 rightDrawerState = rightDrawerState,
                                 scope = scope,
                                 selectedImageIndex = selectedImageIndex,
+                                backPressedTime = backPressedTime,
+                                onUpdateBackPressedTime = { backPressedTime = it },
+                                exitConfirmMsg = exitConfirmMsg,
+                            )
+
+                            AppBackHandler(
+                                enabled = true,
+                                isSelectionMode = false,
+                                clearSelection = {},
+                                leftDrawerState = leftDrawerState,
+                                rightDrawerState = rightDrawerState,
+                                scope = scope,
                                 backPressedTime = backPressedTime,
                                 onUpdateBackPressedTime = { backPressedTime = it },
                                 exitConfirmMsg = exitConfirmMsg,
