@@ -22,20 +22,7 @@ class CivitaiThumbnailInterceptor : Interceptor {
     private fun cacheable(response: Response): Response {
         if (!response.isSuccessful) return response
 
-        val requestUrl = response.request.url.toString()
-
-        val maxAge =
-            when {
-                requestUrl.contains("anim=false") ||
-                    (!requestUrl.contains("transcode=true") &&
-                        requestUrl.contains("/original=false/")) -> 7 * 86400
-                requestUrl.contains("/original=true/") ||
-                    (requestUrl.contains("original=true") &&
-                        !requestUrl.contains("transcode=true")) -> 1 * 86400
-                else -> 3 * 86400
-            }
-
-        return response.newBuilder().header("Cache-Control", "public, max-age=$maxAge").build()
+        return response.newBuilder().header("Cache-Control", "public, max-age=3600").build()
     }
 
     private fun Response?.closeQuietly() {

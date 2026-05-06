@@ -1,10 +1,9 @@
 package org.movzx.dibella.util
 
 object CivitaiUrlBuilder {
-    private const val CDN_HOST = "image.civitai.com"
-    private val FALLBACK_WIDTHS = 800
-    private val WIDTH_REGEX = Regex("/width=\\d+/")
     private const val URL_PREFIX = "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/"
+    private val WIDTH_REGEX = Regex("/width=\\d+/")
+
     var backendEnabled: Boolean = false
     var backendUrl: String = ""
     var backendApiKey: String = ""
@@ -18,6 +17,13 @@ object CivitaiUrlBuilder {
         return if (parts.isNotEmpty()) parts[0] else relative
     }
 
+    fun isCivitaiMediaUrl(url: String): Boolean {
+        val lowerUrl = url.lowercase()
+
+        return (lowerUrl.contains("image.civitai.com") ||
+            lowerUrl.contains("image-b2.civitai.com")) && !lowerUrl.contains("/api/")
+    }
+
     fun expandUrl(compressed: String, type: String?): String {
         if (compressed.startsWith("http")) return compressed
 
@@ -25,85 +31,88 @@ object CivitaiUrlBuilder {
         val ext = if (type == "video") "mp4" else "jpg"
         val originalUrl = "$URL_PREFIX$uuid/original=true/$uuid.$ext"
 
-        return mapToBackend(originalUrl) ?: originalUrl
+        if (backendEnabled && backendUrl.isNotBlank()) {
+            val mediaType = if (type == "video") "video" else "image"
+
+            return toBackendUrl(mediaType, "original", uuid)
+        }
+
+        return originalUrl
     }
 
-    fun isCivitaiMediaUrl(url: String): Boolean {
-        val lowerUrl = url.lowercase()
-        return (lowerUrl.contains("image.civitai.com") ||
-            lowerUrl.contains("image-b2.civitai.com")) && !lowerUrl.contains("/api/")
-    }
-
-    fun mapToBackend(
-        url: String,
-        bEnabled: Boolean = backendEnabled,
-        bUrl: String = backendUrl,
-    ): String? {
-        if (!bEnabled || bUrl.isBlank() || !isCivitaiMediaUrl(url)) return null
+    fun extractCivitaiUuid(url: String): String? {
+        if (!isCivitaiMediaUrl(url)) return null
 
         val baseUrl = getBaseUrl(url)
-        val uuid = baseUrl.substringAfterLast("/")
 
-        if (uuid.isBlank() || uuid == baseUrl) return null
+        return if (baseUrl != url) baseUrl.substringAfterLast("/") else null
+    }
 
-        val isVideo =
-            url.contains("anim=false") ||
-                url.contains("transcode=true") ||
-                url.lowercase().contains(".mp4") ||
-                url.lowercase().contains(".webm") ||
-                url.lowercase().contains(".mov")
-
-        val type = if (isVideo) "video" else "image"
-
-        val quality =
-            when {
-                url.contains("original=true") -> "original"
-                isVideo && !url.contains("transcode=true") && !url.contains("anim=false") ->
-                    "original"
-                url.contains("width=320") -> "thumbnail"
-                url.contains("anim=false") -> "thumbnail"
-                else -> "preview"
-            }
-
-        return "${bUrl.removeSuffix("/")}/api/v1/$type/$quality/$uuid"
+    fun toBackendUrl(type: String, quality: String, uuid: String): String {
+        return "${backendUrl.removeSuffix("/")}/api/v1/$type/$quality/$uuid"
     }
 
     fun getThumbnailUrl(url: String, width: Int): String {
-        val modified = modifyUrl(url, "width=$width")
+        if (!isCivitaiMediaUrl(url)) return url
 
-        return mapToBackend(modified) ?: modified
+        if (backendEnabled && backendUrl.isNotBlank()) {
+            val uuid = extractCivitaiUuid(url) ?: return url
+
+            return toBackendUrl("image", "thumbnail", uuid)
+        }
+
+        return modifyUrl(url, "width=$width")
     }
 
     fun getVideoThumbnailUrl(url: String): String {
         if (!isCivitaiMediaUrl(url)) return url
 
-        val baseUrl = getBaseUrl(url)
-        val modified = "$baseUrl/anim=false,transcode=true,width=450,original=false,optimized=true"
+        if (backendEnabled && backendUrl.isNotBlank()) {
+            val uuid = extractCivitaiUuid(url) ?: return url
 
-        return mapToBackend(modified) ?: modified
+            return toBackendUrl("video", "thumbnail", uuid)
+        }
+
+        val baseUrl = getBaseUrl(url)
+
+        return "$baseUrl/anim=false,transcode=true,width=450,original=false,optimized=true"
     }
 
     fun getVideoPreviewUrl(url: String): String {
         if (!isCivitaiMediaUrl(url)) return url
 
-        val baseUrl = getBaseUrl(url)
-        val modified = "$baseUrl/transcode=true,width=450,optimized=true"
+        if (backendEnabled && backendUrl.isNotBlank()) {
+            val uuid = extractCivitaiUuid(url) ?: return url
 
-        return mapToBackend(modified) ?: modified
+            return toBackendUrl("video", "preview", uuid)
+        }
+
+        val baseUrl = getBaseUrl(url)
+
+        return "$baseUrl/transcode=true,width=450,optimized=true"
     }
 
     fun getVideoOriginalUrl(url: String): String {
-        if (backendEnabled && backendUrl.isNotBlank() && isCivitaiMediaUrl(url)) {
-            val baseUrl = getBaseUrl(url)
-            val uuid = baseUrl.substringAfterLast("/")
+        if (!isCivitaiMediaUrl(url)) return url
 
-            if (uuid.isNotBlank())
-                return "${backendUrl.removeSuffix("/")}/api/v1/video/original/$uuid"
+        if (backendEnabled && backendUrl.isNotBlank()) {
+            val uuid = extractCivitaiUuid(url) ?: return url
+
+            return toBackendUrl("video", "original", uuid)
         }
+
         return getOriginalUrl(url)
     }
 
-    fun getOriginalUrl(url: String): String {
+    fun getImageOriginalUrl(url: String): String {
+        if (!isCivitaiMediaUrl(url)) return url
+
+        if (backendEnabled && backendUrl.isNotBlank()) {
+            val uuid = extractCivitaiUuid(url) ?: return url
+
+            return toBackendUrl("image", "original", uuid)
+        }
+
         val original =
             when {
                 url.contains(WIDTH_REGEX) -> url.replace(WIDTH_REGEX, "/original=true/")
@@ -118,7 +127,7 @@ object CivitaiUrlBuilder {
                 }
             }
 
-        return mapToBackend(original) ?: original
+        return original
     }
 
     fun getFallbackChain(url: String): List<String> {
@@ -127,13 +136,12 @@ object CivitaiUrlBuilder {
 
         if (isVideo && url.contains("anim=false")) {
             val preview = url.replace("anim=false,", "").replace(",anim=false", "")
-
             if (preview != url) chain.add(preview)
         }
 
-        val newUrl = getThumbnailUrl(url, FALLBACK_WIDTHS)
+        val thumbnail = getThumbnailUrl(url, 800)
 
-        if (newUrl != url && !chain.contains(newUrl)) chain.add(newUrl)
+        if (thumbnail != url && !chain.contains(thumbnail)) chain.add(thumbnail)
 
         if (isVideo && !url.contains("optimized=true")) {
             val transcode = url.replace(",optimized=true", "")
@@ -141,18 +149,14 @@ object CivitaiUrlBuilder {
             if (transcode != url && !chain.contains(transcode)) chain.add(transcode)
         }
 
-        val original = getOriginalUrl(url)
+        val original = getImageOriginalUrl(url)
 
         if (original != url && !chain.contains(original)) chain.add(original)
-
-        val lastResort = getOriginalUrl(url).replace("/original=true", "/width=450")
-
-        if (lastResort != url && !chain.contains(lastResort)) chain.add(lastResort)
 
         return chain
     }
 
-    private fun getBaseUrl(url: String): String {
+    fun getBaseUrl(url: String): String {
         return when {
             url.contains("/original=true/") -> url.substringBefore("/original=true/")
             url.contains("/original=false/") -> url.substringBefore("/original=false/")
@@ -162,7 +166,7 @@ object CivitaiUrlBuilder {
         }.removeSuffix("/")
     }
 
-    private fun modifyUrl(url: String, variant: String): String {
+    fun modifyUrl(url: String, variant: String): String {
         return when {
             url.contains("/original=true/") -> url.replace("/original=true/", "/$variant/")
             url.contains("/original=false/") -> url.replace("/original=false/", "/$variant/")

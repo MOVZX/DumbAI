@@ -5,6 +5,7 @@ import javax.inject.Singleton
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.movzx.dibella.data.UserPreferencesRepository
+import org.movzx.dibella.util.CivitaiUrlBuilder
 import org.movzx.dibella.util.Logger
 
 @Singleton
@@ -26,14 +27,22 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
         val isApi = isCivitai && path.contains("/api/")
 
         if (isCivitai && backendEnabled && !isApi) {
-            val redirectedUrl =
-                org.movzx.dibella.util.CivitaiUrlBuilder.mapToBackend(
-                    url = request.url.toString(),
-                    bEnabled = backendEnabled,
-                    bUrl = backendUrl,
-                )
+            val url = request.url.toString()
+            val uuid = CivitaiUrlBuilder.extractCivitaiUuid(url)
 
-            if (redirectedUrl != null) {
+            if (uuid != null) {
+                val isVideo = url.contains("anim=false") || url.contains("transcode=true")
+                val type = if (isVideo) "video" else "image"
+
+                val quality = when {
+                    url.contains("original=true") -> "original"
+                    url.contains("anim=false") -> "thumbnail"
+                    url.contains("width=320") -> "thumbnail"
+                    else -> "preview"
+                }
+
+                val redirectedUrl = CivitaiUrlBuilder.toBackendUrl(type, quality, uuid)
+
                 Logger.d("Dibella_Net", "Redirecting to backend: $redirectedUrl")
 
                 request = request.newBuilder().url(redirectedUrl).build()
