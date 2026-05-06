@@ -49,10 +49,26 @@ class UserPreferencesRepository(private val context: Context) {
         val FEED_VIDEO_AUTOPLAY = booleanPreferencesKey("feed_video_autoplay")
         val AMOLED_MODE = booleanPreferencesKey("amoled_mode")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        val BACKEND_ENABLED = booleanPreferencesKey("backend_enabled")
+        val BACKEND_URL = stringPreferencesKey("backend_url")
+        val BACKEND_API_KEY = stringPreferencesKey("backend_api_key")
     }
 
     val nsfw: Flow<String> =
         context.dataStore.data.map { preferences -> preferences[PreferencesKeys.NSFW] ?: "None" }
+
+    val backendEnabled: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.BACKEND_ENABLED] ?: false
+        }
+
+    val backendUrl: Flow<String> =
+        context.dataStore.data.map { preferences -> preferences[PreferencesKeys.BACKEND_URL] ?: "" }
+
+    val backendApiKey: Flow<String> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.BACKEND_API_KEY] ?: ""
+        }
 
     val lastRoute: Flow<String> =
         context.dataStore.data.map { preferences ->
@@ -184,14 +200,33 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.ONBOARDING_COMPLETED] ?: false
         }
 
-    data class InterceptorSettings(val apiKey: String, val debugEnabled: Boolean)
+    data class InterceptorSettings(
+        val apiKey: String,
+        val debugEnabled: Boolean,
+        val backendEnabled: Boolean,
+        val backendUrl: String,
+        val backendApiKey: String,
+    )
 
-    private val _interceptorSettings = MutableStateFlow(InterceptorSettings("", false))
+    private val _interceptorSettings =
+        MutableStateFlow(InterceptorSettings("", false, false, "", ""))
     val interceptorSettings: StateFlow<InterceptorSettings> = _interceptorSettings.asStateFlow()
 
     init {
-        combine(apiKey, debugEnabled) { key, debug -> InterceptorSettings(key, debug) }
-            .onEach { settings -> _interceptorSettings.value = settings }
+        combine(apiKey, debugEnabled, backendEnabled, backendUrl, backendApiKey) {
+                key,
+                debug,
+                bEnabled,
+                bUrl,
+                bKey ->
+                InterceptorSettings(key, debug, bEnabled, bUrl, bKey)
+            }
+            .onEach { settings ->
+                _interceptorSettings.value = settings
+                org.movzx.dibella.util.CivitaiUrlBuilder.backendEnabled = settings.backendEnabled
+                org.movzx.dibella.util.CivitaiUrlBuilder.backendUrl = settings.backendUrl
+                org.movzx.dibella.util.CivitaiUrlBuilder.backendApiKey = settings.backendApiKey
+            }
             .launchIn(scope)
     }
 
@@ -212,6 +247,9 @@ class UserPreferencesRepository(private val context: Context) {
             alwaysEnableHD = prefs[PreferencesKeys.ALWAYS_ENABLE_HD] ?: false,
             alwaysMuteVideo = prefs[PreferencesKeys.ALWAYS_MUTE_VIDEO] ?: false,
             feedVideoAutoplay = prefs[PreferencesKeys.FEED_VIDEO_AUTOPLAY] ?: false,
+            backendEnabled = prefs[PreferencesKeys.BACKEND_ENABLED] ?: false,
+            backendUrl = prefs[PreferencesKeys.BACKEND_URL] ?: "",
+            backendApiKey = prefs[PreferencesKeys.BACKEND_API_KEY] ?: "",
             feedScrollIndexImage = prefs[PreferencesKeys.FEED_SCROLL_INDEX_IMAGE] ?: 0,
             feedScrollOffsetImage = prefs[PreferencesKeys.FEED_SCROLL_OFFSET_IMAGE] ?: 0,
             feedScrollIndexVideo = prefs[PreferencesKeys.FEED_SCROLL_INDEX_VIDEO] ?: 0,
@@ -245,6 +283,9 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.ALWAYS_ENABLE_HD] = settings.alwaysEnableHD
             preferences[PreferencesKeys.ALWAYS_MUTE_VIDEO] = settings.alwaysMuteVideo
             preferences[PreferencesKeys.FEED_VIDEO_AUTOPLAY] = settings.feedVideoAutoplay
+            preferences[PreferencesKeys.BACKEND_ENABLED] = settings.backendEnabled
+            preferences[PreferencesKeys.BACKEND_URL] = settings.backendUrl
+            preferences[PreferencesKeys.BACKEND_API_KEY] = settings.backendApiKey
             preferences[PreferencesKeys.FEED_SCROLL_INDEX_IMAGE] = settings.feedScrollIndexImage
             preferences[PreferencesKeys.FEED_SCROLL_OFFSET_IMAGE] = settings.feedScrollOffsetImage
             preferences[PreferencesKeys.FEED_SCROLL_INDEX_VIDEO] = settings.feedScrollIndexVideo
@@ -362,6 +403,26 @@ class UserPreferencesRepository(private val context: Context) {
         Logger.d("Dibella_Prefs", "updateApiKey: ${if (key.isBlank()) "cleared" else "set"}")
 
         context.dataStore.edit { preferences -> preferences[PreferencesKeys.API_KEY] = key }
+    }
+
+    suspend fun updateBackendEnabled(enabled: Boolean) {
+        Logger.d("Dibella_Prefs", "updateBackendEnabled: $enabled")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BACKEND_ENABLED] = enabled
+        }
+    }
+
+    suspend fun updateBackendUrl(url: String) {
+        Logger.d("Dibella_Prefs", "updateBackendUrl: $url")
+
+        context.dataStore.edit { preferences -> preferences[PreferencesKeys.BACKEND_URL] = url }
+    }
+
+    suspend fun updateBackendApiKey(key: String) {
+        Logger.d("Dibella_Prefs", "updateBackendApiKey: ${if (key.isBlank()) "cleared" else "set"}")
+
+        context.dataStore.edit { preferences -> preferences[PreferencesKeys.BACKEND_API_KEY] = key }
     }
 
     suspend fun updateDebugEnabled(enabled: Boolean) {

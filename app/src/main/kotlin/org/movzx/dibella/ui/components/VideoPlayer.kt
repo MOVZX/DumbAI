@@ -159,7 +159,37 @@ private fun ExoVideoPlayer(
 ) {
     val context = LocalContext.current
     val manager = LocalVideoPlayerManager.current
+    val config = LocalBackendConfig.current
     val currentIsPlaying by rememberUpdatedState(isPlaying)
+
+    val dataSourceFactory =
+        remember(url, config) {
+            val backendUrl = config.url
+            val backendApiKey = config.apiKey
+
+            val backendDomain =
+                try {
+                    java.net.URL(backendUrl).host
+                } catch (e: Exception) {
+                    ""
+                }
+
+            val isBackend = backendDomain.isNotBlank() && url.contains(backendDomain)
+
+            val httpFactory =
+                androidx.media3.datasource.DefaultHttpDataSource.Factory().apply {
+                    setUserAgent(
+                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+                    )
+
+                    if (isBackend && backendApiKey.isNotBlank())
+                        setDefaultRequestProperties(
+                            mapOf("Authorization" to "Bearer $backendApiKey")
+                        )
+                }
+
+            androidx.media3.datasource.DefaultDataSource.Factory(context, httpFactory)
+        }
 
     val dedicatedPlayer =
         remember(usePool) {
@@ -188,9 +218,14 @@ private fun ExoVideoPlayer(
                         }
                     }
 
-                ExoPlayer.Builder(context, renderersFactory).build().apply {
-                    repeatMode = Player.REPEAT_MODE_ONE
-                }
+                ExoPlayer.Builder(context, renderersFactory)
+                    .setMediaSourceFactory(
+                        androidx.media3.exoplayer.source.DefaultMediaSourceFactory(
+                            dataSourceFactory
+                        )
+                    )
+                    .build()
+                    .apply { repeatMode = Player.REPEAT_MODE_ONE }
             } else null
         }
 
@@ -204,14 +239,18 @@ private fun ExoVideoPlayer(
         var acquiredPlayer: ExoPlayer? = null
 
         if (usePool && manager != null) {
-            acquiredPlayer = manager.acquirePlayer()
+            acquiredPlayer = manager.acquirePlayer(dataSourceFactory)
 
             if (acquiredPlayer != null) {
                 val uri =
                     if (url.startsWith("/")) android.net.Uri.fromFile(java.io.File(url))
                     else android.net.Uri.parse(url)
 
-                acquiredPlayer.setMediaItem(MediaItem.fromUri(uri))
+                acquiredPlayer.setMediaSource(
+                    androidx.media3.exoplayer.source
+                        .DefaultMediaSourceFactory(dataSourceFactory)
+                        .createMediaSource(MediaItem.fromUri(uri))
+                )
                 acquiredPlayer.prepare()
 
                 pooledPlayer = acquiredPlayer
@@ -279,7 +318,11 @@ private fun ExoVideoPlayer(
                     if (url.startsWith("/")) android.net.Uri.fromFile(java.io.File(url))
                     else android.net.Uri.parse(url)
 
-                dedicatedPlayer.setMediaItem(MediaItem.fromUri(uri))
+                dedicatedPlayer.setMediaSource(
+                    androidx.media3.exoplayer.source
+                        .DefaultMediaSourceFactory(dataSourceFactory)
+                        .createMediaSource(MediaItem.fromUri(uri))
+                )
 
                 if (currentPos > 0) dedicatedPlayer.seekTo(currentPos)
 

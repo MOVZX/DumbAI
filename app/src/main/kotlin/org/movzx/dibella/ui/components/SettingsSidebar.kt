@@ -27,9 +27,14 @@ fun SettingsSidebar(
     alwaysEnableHD: Boolean,
     alwaysMuteVideo: Boolean,
     feedVideoAutoplay: Boolean,
+    backendEnabled: Boolean,
+    backendUrl: String,
+    backendApiKey: String,
     onDismiss: () -> Unit,
     onClearCache: () -> Unit,
     onSaveApiKey: (String) -> Unit,
+    onSaveBackendUrl: (String) -> Unit,
+    onSaveBackendApiKey: (String) -> Unit,
     onUpdateDownloadPath: (String?) -> Unit,
     onUpdateFavoritesPath: (String?) -> Unit,
     onPickDirectory: () -> Unit,
@@ -37,6 +42,7 @@ fun SettingsSidebar(
     onExport: () -> Unit,
     onImport: () -> Unit,
     onToggleDebug: (Boolean) -> Unit,
+    onToggleBackend: (Boolean) -> Unit,
     onHidePlayerControls: (Boolean) -> Unit,
     onAlwaysEnableHD: (Boolean) -> Unit,
     onAlwaysMuteVideo: (Boolean) -> Unit,
@@ -45,6 +51,8 @@ fun SettingsSidebar(
     onToggleAmoled: (Boolean) -> Unit = {},
 ) {
     var key by remember(apiKey) { mutableStateOf(apiKey) }
+    var bUrl by remember(backendUrl) { mutableStateOf(backendUrl) }
+    var bKey by remember(backendApiKey) { mutableStateOf(backendApiKey) }
     var path by remember(downloadPath) { mutableStateOf(downloadPath ?: "") }
     var favPath by remember(favoritesPath) { mutableStateOf(favoritesPath ?: "") }
     val scrollState = rememberScrollState()
@@ -294,6 +302,60 @@ fun SettingsSidebar(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
+            SidebarSection(title = stringResource(R.string.section_backend)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.label_backend_enabled),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Switch(checked = backendEnabled, onCheckedChange = onToggleBackend)
+                }
+
+                OutlinedTextField(
+                    value = bKey,
+                    onValueChange = { bKey = it },
+                    label = { Text(stringResource(R.string.label_backend_api_key)) },
+                    placeholder = { Text(stringResource(R.string.placeholder_backend_api_key)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    enabled = backendEnabled,
+                )
+
+                Button(
+                    onClick = { onSaveBackendApiKey(bKey) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    enabled = backendEnabled,
+                ) {
+                    Text(stringResource(R.string.btn_save_backend_api_key))
+                }
+
+                OutlinedTextField(
+                    value = bUrl,
+                    onValueChange = { bUrl = it },
+                    label = { Text(stringResource(R.string.label_backend_url)) },
+                    placeholder = { Text(stringResource(R.string.placeholder_backend_url)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    enabled = backendEnabled,
+                )
+
+                Button(
+                    onClick = { onSaveBackendUrl(bUrl) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    enabled = backendEnabled,
+                ) {
+                    Text(stringResource(R.string.btn_save_backend_url))
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+
             SidebarSection(title = stringResource(R.string.section_developer)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -304,6 +366,7 @@ fun SettingsSidebar(
                         stringResource(R.string.label_debug_logging),
                         style = MaterialTheme.typography.bodyLarge,
                     )
+
                     Switch(checked = debugEnabled, onCheckedChange = onToggleDebug)
                 }
             }

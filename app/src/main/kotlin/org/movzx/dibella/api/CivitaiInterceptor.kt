@@ -14,13 +14,51 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
     override fun intercept(chain: Interceptor.Chain): Response {
         val settings = repository.interceptorSettings.value
         val apiKey = settings.apiKey
-        val debugEnabled = settings.debugEnabled
+        val backendEnabled = settings.backendEnabled
+        val backendUrl = settings.backendUrl
+        val backendApiKey = settings.backendApiKey
+
         val original = chain.request()
-        val requestBuilder = original.newBuilder()
-        val host = original.url.host
-        val path = original.url.encodedPath
+        var request = original
+        val host = request.url.host
+        val path = request.url.encodedPath
         val isCivitai = host.contains("civitai.com")
         val isApi = isCivitai && path.contains("/api/")
+
+        if (isCivitai && backendEnabled && !isApi) {
+            val redirectedUrl =
+                org.movzx.dibella.util.CivitaiUrlBuilder.mapToBackend(
+                    url = request.url.toString(),
+                    bEnabled = backendEnabled,
+                    bUrl = backendUrl,
+                )
+
+            if (redirectedUrl != null) {
+                Logger.d("Dibella_Net", "Redirecting to backend: $redirectedUrl")
+
+                request = request.newBuilder().url(redirectedUrl).build()
+            }
+        }
+
+        val isBackend =
+            backendEnabled &&
+                backendUrl.isNotBlank() &&
+                request.url.toString().startsWith(backendUrl.removeSuffix("/"))
+
+        var activeChain = chain
+
+        if (isBackend) {
+            activeChain =
+                chain
+                    .withConnectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .withReadTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        }
+
+        val requestBuilder = request.newBuilder()
+
+        if (isBackend && backendApiKey.isNotBlank()) {
+            requestBuilder.header("Authorization", "Bearer $backendApiKey")
+        }
 
         if (isCivitai) {
             requestBuilder.header(
@@ -32,18 +70,16 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
                 requestBuilder.header("Authorization", "Bearer $apiKey")
         }
 
-        val request = requestBuilder.build()
+        request = requestBuilder.build()
 
-        if (debugEnabled) Logger.d("Dibella_Net", "Request: ${request.method} ${request.url}")
+        Logger.d("Dibella_Net", "Request: ${request.method} ${request.url}")
 
-        val response = chain.proceed(request)
+        val response = activeChain.proceed(request)
 
-        if (debugEnabled) {
-            Logger.d(
-                "Dibella_Net",
-                "Response: ${response.code} ${response.message} for ${response.request.url}",
-            )
-        }
+        Logger.d(
+            "Dibella_Net",
+            "Response: ${response.code} ${response.message} for ${response.request.url}",
+        )
 
         return response
     }

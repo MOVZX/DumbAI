@@ -231,7 +231,7 @@ fun getVideoPreviewUrl(url: String): String {
 }
 
 fun getVideoOriginalUrl(url: String): String {
-    return CivitaiUrlBuilder.getOriginalUrl(url)
+    return CivitaiUrlBuilder.getVideoOriginalUrl(url)
 }
 
 fun getOriginalUrl(url: String): String {
@@ -239,7 +239,7 @@ fun getOriginalUrl(url: String): String {
 }
 
 fun modifyCivitaiUrl(url: String, variant: String): String {
-    return if (CivitaiUrlBuilder.isCivitaiUrl(url)) {
+    return if (CivitaiUrlBuilder.isCivitaiMediaUrl(url)) {
         if (variant.startsWith("width="))
             CivitaiUrlBuilder.getThumbnailUrl(url, variant.substringAfter("=").toIntOrNull() ?: 450)
         else CivitaiUrlBuilder.getOriginalUrl(url)

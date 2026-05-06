@@ -25,6 +25,15 @@
     <string name="section_backup">Backup &amp; Restore</string>
     <string name="section_player">Video Player</string>
     <string name="section_developer">Developer Options</string>
+    <string name="section_backend">Remote Proxy Configuration</string>
+    <string name="label_backend_enabled">Enable Remote Proxy</string>
+    <string name="label_backend_url">Proxy Server URL</string>
+    <string name="label_backend_api_key">Proxy API Key</string>
+    <string name="placeholder_backend_api_key">Enter backend API key</string>
+    <string name="btn_save_backend_api_key">Save API Key</string>
+    <string name="placeholder_backend_url">http://192.168.1.10:5000</string>
+    <string name="btn_save_backend_url">Save Proxy URL</string>
+    <string name="msg_backend_url_saved">Proxy URL updated</string>
     <string name="section_cache">Storage &amp; Cache</string>
     <string name="section_app_config">App Configuration</string>
 

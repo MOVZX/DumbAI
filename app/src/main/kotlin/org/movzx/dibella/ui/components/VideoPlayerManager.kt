@@ -40,7 +40,9 @@ class VideoPlayerManager(private val context: Context) {
     }
 
     @Synchronized
-    fun acquirePlayer(): ExoPlayer? {
+    fun acquirePlayer(
+        dataSourceFactory: androidx.media3.datasource.DataSource.Factory
+    ): ExoPlayer? {
         if (activePlayers.size >= maxPoolSize) {
             org.movzx.dibella.util.Logger.d(
                 "VideoPlayerManager",
@@ -50,7 +52,7 @@ class VideoPlayerManager(private val context: Context) {
             return null
         }
 
-        val player = if (pool.isNotEmpty()) pool.removeAt(0) else createPlayer()
+        val player = if (pool.isNotEmpty()) pool.removeAt(0) else createPlayer(dataSourceFactory)
 
         activePlayers.add(player)
 
@@ -82,7 +84,9 @@ class VideoPlayerManager(private val context: Context) {
         }
     }
 
-    private fun createPlayer(): ExoPlayer {
+    private fun createPlayer(
+        dataSourceFactory: androidx.media3.datasource.DataSource.Factory
+    ): ExoPlayer {
         val renderersFactory =
             DefaultRenderersFactory(context).apply {
                 setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
@@ -105,9 +109,12 @@ class VideoPlayerManager(private val context: Context) {
                 }
             }
 
-        return ExoPlayer.Builder(context, renderersFactory).build().apply {
-            repeatMode = Player.REPEAT_MODE_ONE
-        }
+        return ExoPlayer.Builder(context, renderersFactory)
+            .setMediaSourceFactory(
+                androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSourceFactory)
+            )
+            .build()
+            .apply { repeatMode = Player.REPEAT_MODE_ONE }
     }
 
     @Synchronized

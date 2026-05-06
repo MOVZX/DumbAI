@@ -40,6 +40,9 @@ constructor(
                         repository.favoritesPath,
                         repository.effectiveFavoritesPath,
                         repository.debugEnabled,
+                        repository.backendEnabled,
+                        repository.backendUrl,
+                        repository.backendApiKey,
                         repository.lastRoute,
                     )
                 ) { values ->
@@ -48,7 +51,10 @@ constructor(
                     val favoritesPath = values[2] as? String
                     val effectiveFavoritesPath = values[3] as String
                     val debugEnabled = values[4] as Boolean
-                    val lastRoute = values[5] as? String
+                    val backendEnabled = values[5] as Boolean
+                    val backendUrl = values[6] as String
+                    val backendApiKey = values[7] as String
+                    val lastRoute = values[8] as? String
 
                     SettingsUiState(
                         apiKey = apiKey,
@@ -56,6 +62,9 @@ constructor(
                         favoritesPath = favoritesPath,
                         effectiveFavoritesPath = effectiveFavoritesPath,
                         debugEnabled = debugEnabled,
+                        backendEnabled = backendEnabled,
+                        backendUrl = backendUrl,
+                        backendApiKey = backendApiKey,
                         lastRoute = lastRoute,
                     )
                 }
@@ -67,6 +76,9 @@ constructor(
                             favoritesPath = newState.favoritesPath,
                             effectiveFavoritesPath = newState.effectiveFavoritesPath,
                             debugEnabled = newState.debugEnabled,
+                            backendEnabled = newState.backendEnabled,
+                            backendUrl = newState.backendUrl,
+                            backendApiKey = newState.backendApiKey,
                             lastRoute = newState.lastRoute,
                         )
                     }
@@ -132,6 +144,18 @@ constructor(
 
     fun updateDebugEnabled(enabled: Boolean) {
         viewModelScope.launch { repository.updateDebugEnabled(enabled) }
+    }
+
+    fun updateBackendEnabled(enabled: Boolean) {
+        viewModelScope.launch { repository.updateBackendEnabled(enabled) }
+    }
+
+    fun updateBackendUrl(url: String) {
+        viewModelScope.launch { repository.updateBackendUrl(url) }
+    }
+
+    fun updateBackendApiKey(key: String) {
+        viewModelScope.launch { repository.updateBackendApiKey(key) }
     }
 
     fun updateHidePlayerControls(enabled: Boolean) {

@@ -192,7 +192,11 @@ fun MainScreen(imageLoader: ImageLoader) {
             label = "rightParallax",
         )
 
-    CompositionLocalProvider(LocalVideoPlayerManager provides videoPlayerManager) {
+    CompositionLocalProvider(
+        LocalVideoPlayerManager provides videoPlayerManager,
+        LocalBackendConfig provides
+            BackendConfig(url = settingsState.backendUrl, apiKey = settingsState.backendApiKey),
+    ) {
         val sidebarColor =
             if (settingsState.amoledMode) androidx.compose.ui.graphics.Color.Black
             else MaterialTheme.colorScheme.surface
@@ -295,10 +299,17 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     alwaysEnableHD = settingsState.alwaysEnableHD,
                                     alwaysMuteVideo = settingsState.alwaysMuteVideo,
                                     feedVideoAutoplay = settingsState.feedVideoAutoplay,
+                                    backendEnabled = settingsState.backendEnabled,
+                                    backendUrl = settingsState.backendUrl,
+                                    backendApiKey = settingsState.backendApiKey,
                                     amoledMode = settingsState.amoledMode,
                                     onDismiss = { scope.launch { rightDrawerState.close() } },
                                     onClearCache = { settingsViewModel.clearImageCache() },
                                     onSaveApiKey = { settingsViewModel.updateApiKey(it) },
+                                    onSaveBackendUrl = { settingsViewModel.updateBackendUrl(it) },
+                                    onSaveBackendApiKey = {
+                                        settingsViewModel.updateBackendApiKey(it)
+                                    },
                                     onUpdateDownloadPath = {
                                         settingsViewModel.updateDownloadPath(it)
                                     },
@@ -320,6 +331,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         )
                                     },
                                     onToggleDebug = { settingsViewModel.updateDebugEnabled(it) },
+                                    onToggleBackend = {
+                                        settingsViewModel.updateBackendEnabled(it)
+                                    },
                                     onHidePlayerControls = {
                                         settingsViewModel.updateHidePlayerControls(it)
                                     },

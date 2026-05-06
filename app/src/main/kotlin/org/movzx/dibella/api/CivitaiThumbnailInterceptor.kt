@@ -70,7 +70,7 @@ class CivitaiThumbnailInterceptor : Interceptor {
         val request = chain.request()
         val url = request.url.toString()
 
-        if (!CivitaiUrlBuilder.isCivitaiUrl(url)) return chain.proceed(request)
+        if (!CivitaiUrlBuilder.isCivitaiMediaUrl(url)) return chain.proceed(request)
 
         var response = chain.proceed(request)
 
