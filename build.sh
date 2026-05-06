@@ -34,7 +34,6 @@ fi
 
 APK_DIR="app/build/outputs/apk"
 APK_FILE="$APK_DIR/debug/app-debug.apk"
-SIGNED_APK_FILE="$APK_DIR/release/app-release-signed.apk"
 
 echo "------------------------------------------------"
 echo "Build complete!"
@@ -51,15 +50,13 @@ if [ "$DO_INSTALL" = true ]; then
         fi
     else
         # Signed Release APK
-        if [ -f "$APK_FILE" ]; then
-            cp "$APK_FILE" "$SIGNED_APK_FILE"
-        fi
+        APK_FILE="$APK_DIR/release/app-release.apk"
 
-        if [ -f "$SIGNED_APK_FILE" ]; then
-            echo "Installing $SIGNED_APK_FILE to device..."
-            adb install -r "$SIGNED_APK_FILE"
+        if [ -f "$APK_FILE" ]; then
+            echo "Installing $APK_FILE to device..."
+            adb install -r "$APK_FILE"
         else
-            echo "Error: Signed APK not found at $SIGNED_APK_FILE"
+            echo "Error: Signed APK not found at $APK_FILE"
             exit 1
         fi
     fi
