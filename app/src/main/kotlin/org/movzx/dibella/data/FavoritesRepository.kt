@@ -23,6 +23,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FavoriteImage
+import org.movzx.dibella.util.CivitaiUrlBuilder
 import org.movzx.dibella.util.FileUtils
 import org.movzx.dibella.util.Logger
 import org.movzx.dibella.util.getThumbnailUrl
@@ -464,11 +465,14 @@ class FavoritesRepository(
                         )
 
                     if (image.type == TYPE_VIDEO) {
+                        val skipExtraction = CivitaiUrlBuilder.backendEnabled
+
                         var downloadSuccess =
                             downloadFile(
                                 getVideoThumbnailUrl(image.url),
                                 tempFile,
                                 extractFrame = true,
+                                skipExtraction = skipExtraction,
                                 webpQuality = 50,
                             ) { p ->
                                 thumbProgress = p
@@ -482,6 +486,7 @@ class FavoritesRepository(
                                     getVideoPreviewUrl(image.url),
                                     tempFile,
                                     extractFrame = true,
+                                    skipExtraction = skipExtraction,
                                     webpQuality = 50,
                                 ) { p ->
                                     thumbProgress = p
@@ -496,6 +501,7 @@ class FavoritesRepository(
                                     image.url,
                                     tempFile,
                                     extractFrame = true,
+                                    skipExtraction = skipExtraction,
                                     webpQuality = 50,
                                 ) { p ->
                                     thumbProgress = p
@@ -610,6 +616,7 @@ class FavoritesRepository(
         url: String,
         destination: File,
         extractFrame: Boolean = false,
+        skipExtraction: Boolean = false,
         webpQuality: Int? = null,
         onProgress: (Float) -> Unit = {},
     ): Boolean {
@@ -653,7 +660,7 @@ class FavoritesRepository(
                         var currentFile = downloadTempFile
                         var alreadyOptimized = false
 
-                        if (extractFrame) {
+                        if (extractFrame && !skipExtraction) {
                             val bytes = currentFile.inputStream().use { it.readNBytes(64) }
                             val ext = FileUtils.getExtensionFromBytes(bytes)
 
@@ -678,7 +685,7 @@ class FavoritesRepository(
                             }
                         }
 
-                        if (webpQuality != null && !alreadyOptimized) {
+                        if (webpQuality != null && !alreadyOptimized && !skipExtraction) {
                             val bytes = currentFile.inputStream().use { it.readNBytes(64) }
                             val ext = FileUtils.getExtensionFromBytes(bytes)
 

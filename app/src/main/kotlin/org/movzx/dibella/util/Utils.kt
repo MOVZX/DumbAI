@@ -196,6 +196,22 @@ fun resolveImageData(
     val extensions =
         if (isVideo && useVideoPath) FileUtils.VIDEO_EXTENSIONS else FileUtils.IMAGE_EXTENSIONS
 
+    if (CivitaiUrlBuilder.backendEnabled && CivitaiUrlBuilder.backendUrl.isNotBlank()) {
+        if (image.url.startsWith("http")) {
+            val remoteUrl =
+                if (isVideo)
+                    if (useVideoPath) getVideoPreviewUrl(image.url)
+                    else getVideoThumbnailUrl(image.url)
+                else getThumbnailUrl(image.url, thumbnailWidth)
+
+            Logger.d("Dibella_Res", "ID: ${image.id} | Backend Proxy | Remote | URL: $remoteUrl")
+
+            return remoteUrl
+        }
+
+        return image.url
+    }
+
     if (dir.exists()) {
         for (ext in extensions) {
             val file = File(File(File(dir, mediaSub), contentSub), "$baseName.$ext")
