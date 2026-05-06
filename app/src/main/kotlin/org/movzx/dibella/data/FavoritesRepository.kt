@@ -472,7 +472,7 @@ class FavoritesRepository(
                                 getVideoThumbnailUrl(image.url),
                                 tempFile,
                                 extractFrame = true,
-                                skipExtraction = skipExtraction,
+                                skipExtraction = false,
                                 webpQuality = 50,
                             ) { p ->
                                 thumbProgress = p
@@ -486,7 +486,7 @@ class FavoritesRepository(
                                     getVideoPreviewUrl(image.url),
                                     tempFile,
                                     extractFrame = true,
-                                    skipExtraction = skipExtraction,
+                                    skipExtraction = false,
                                     webpQuality = 50,
                                 ) { p ->
                                     thumbProgress = p
@@ -660,7 +660,7 @@ class FavoritesRepository(
                         var currentFile = downloadTempFile
                         var alreadyOptimized = false
 
-                        if (extractFrame && !skipExtraction) {
+                        if (extractFrame) {
                             val bytes = currentFile.inputStream().use { it.readNBytes(64) }
                             val ext = FileUtils.getExtensionFromBytes(bytes)
 
