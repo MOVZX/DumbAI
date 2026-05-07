@@ -34,7 +34,7 @@ enum class RightSidebarType {
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject lateinit var imageLoader: ImageLoader
-    private lateinit var preferencesRepository: UserPreferencesRepository
+    @Inject lateinit var preferencesRepository: UserPreferencesRepository
 
     private val permissionsToRequest = buildList {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -75,8 +75,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        preferencesRepository = UserPreferencesRepository(this)
 
         val allGranted = permissionsToRequest.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED

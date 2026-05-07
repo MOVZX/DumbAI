@@ -5,17 +5,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.movzx.dibella.R
-import org.movzx.dibella.api.CivitaiApi
 import org.movzx.dibella.data.FavoritesRepository
-import org.movzx.dibella.data.FeedCacheDao
+import org.movzx.dibella.data.FeedRepository
 import org.movzx.dibella.data.GalleryRepository
 import org.movzx.dibella.data.UserPreferencesRepository
 import org.movzx.dibella.model.CivitaiImage
-import org.movzx.dibella.model.FeedItemCache
 import org.movzx.dibella.util.Logger
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -26,8 +23,7 @@ constructor(
     repository: UserPreferencesRepository,
     favoritesRepository: FavoritesRepository,
     galleryRepository: GalleryRepository,
-    private val civitaiApi: CivitaiApi,
-    private val feedCacheDao: FeedCacheDao,
+    private val feedRepository: FeedRepository,
 ) : BaseViewModel(repository, favoritesRepository, galleryRepository) {
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
@@ -117,10 +113,8 @@ constructor(
 
             imageCursor = repository.nextCursor("image").first()
             videoCursor = repository.nextCursor("video").first()
-            val cachedImages = feedCacheDao.getFeed("image").map { it.toCivitaiImage() }
-            val cachedVideos = feedCacheDao.getFeed("video").map { it.toCivitaiImage() }
-            imageFeed = cachedImages
-            videoFeed = cachedVideos
+            imageFeed = feedRepository.getCachedFeed("image")
+            videoFeed = feedRepository.getCachedFeed("video")
             val initialImages = if (currentType == "video") videoFeed else imageFeed
 
             _uiState.update {
@@ -177,7 +171,7 @@ constructor(
         }
 
         viewModelScope.launch {
-            feedCacheDao.clearFeed(currentType)
+            feedRepository.clearCache(currentType)
             repository.updateScrollPosition(currentType, 0, 0)
             repository.updateNextCursor(currentType, null)
             loadImages(isNew = true)
@@ -202,102 +196,53 @@ constructor(
         loadingJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, isRefreshing = isNew) }
 
-            var success = false
-            var attempt = 0
             val targetType = _uiState.value.type
 
             val targetCursor =
                 if (isNew) null else (if (targetType == "video") videoCursor else imageCursor)
 
-            while (!success) {
-                try {
-                    Logger.d(
-                        "Dibella_Net",
-                        "API Request (isNew: $isNew) | Type: $targetType, Limit: ${_uiState.value.pageLimit}, Cursor: $targetCursor",
+            try {
+                val (newItems, nextCursor) =
+                    feedRepository.fetchImages(
+                        type = targetType,
+                        nsfw = _uiState.value.nsfw,
+                        sort = _uiState.value.sort,
+                        period = _uiState.value.period,
+                        tagIds = _uiState.value.tagIds,
+                        limit = _uiState.value.pageLimit,
+                        cursor = targetCursor,
+                        isNew = isNew,
                     )
 
-                    val response =
-                        civitaiApi.getImages(
-                            limit = _uiState.value.pageLimit,
-                            nsfw = _uiState.value.nsfw,
-                            sort = _uiState.value.sort,
-                            period = _uiState.value.period,
-                            type = targetType,
-                            tags = _uiState.value.tagIds,
-                            cursor = targetCursor,
-                        )
+                if (_uiState.value.type != targetType) return@launch
 
-                    if (_uiState.value.type != targetType) break
-
-                    val items =
-                        if (isNew) {
-                            response.items.distinctBy { it.id }
-                        } else {
-                            val currentList = if (targetType == "video") videoFeed else imageFeed
-
-                            (currentList + response.items).distinctBy { it.id }
-                        }
-
-                    val cursor = response.metadata.nextCursor?.substringBefore('|')
-
-                    Logger.d(
-                        "Dibella_Net",
-                        "API Success | Received ${response.items.size} items, Next Cursor: $cursor",
-                    )
-
-                    if (targetType == "video") {
-                        videoFeed = items
-                        videoCursor = cursor
+                val finalItems =
+                    if (isNew) {
+                        newItems
                     } else {
-                        imageFeed = items
-                        imageCursor = cursor
+                        val currentList = if (targetType == "video") videoFeed else imageFeed
+
+                        (currentList + newItems).distinctBy { it.id }
                     }
 
-                    if (_uiState.value.type == targetType)
-                        _uiState.update { it.copy(images = items, hasMore = cursor != null) }
-
-                    repository.updateNextCursor(targetType, cursor)
-
-                    val cacheItems = items.mapIndexed { index, image ->
-                        FeedItemCache.fromCivitaiImage(image, targetType, index)
-                    }
-
-                    feedCacheDao.replaceFeed(targetType, cacheItems)
-
-                    success = true
-                } catch (e: Exception) {
-                    if (e is kotlinx.coroutines.CancellationException) throw e
-
-                    attempt++
-
-                    Logger.e("Dibella_Net", "API Error (Attempt $attempt): ${e.message}")
-
-                    val currentCursor = if (targetType == "video") videoCursor else imageCursor
-                    val newCursor = currentCursor?.toLongOrNull()?.let { (it + 1).toString() }
-
-                    if (newCursor != null) {
-                        if (targetType == "video") videoCursor = newCursor
-                        else imageCursor = newCursor
-
-                        repository.updateNextCursor(targetType, newCursor)
-
-                        Logger.d(
-                            "Dibella_Cache",
-                            "Cursor incremented from $currentCursor to $newCursor due to API error",
-                        )
-                    }
-
-                    if (attempt >= 3) {
-                        sendMessage(R.string.msg_load_failed)
-
-                        break
-                    }
-
-                    delay((2000L * attempt).coerceAtMost(10000L))
+                if (targetType == "video") {
+                    videoFeed = finalItems
+                    videoCursor = nextCursor
+                } else {
+                    imageFeed = finalItems
+                    imageCursor = nextCursor
                 }
-            }
 
-            _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
+                if (_uiState.value.type == targetType)
+                    _uiState.update { it.copy(images = finalItems, hasMore = nextCursor != null) }
+
+                repository.updateNextCursor(targetType, nextCursor)
+            } catch (e: Exception) {
+                if (e !is kotlinx.coroutines.CancellationException)
+                    sendMessage(R.string.msg_load_failed)
+            } finally {
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
+            }
         }
     }
 

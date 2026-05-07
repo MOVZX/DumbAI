@@ -3,7 +3,7 @@ package org.movzx.dibella.util
 object CivitaiUrlBuilder {
     private const val URL_PREFIX = "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/"
     private val WIDTH_REGEX = Regex("/width=\\d+/")
-
+    private val uuidCache = java.util.concurrent.ConcurrentHashMap<String, String>()
     var backendEnabled: Boolean = false
     var backendUrl: String = ""
     var backendApiKey: String = ""
@@ -17,6 +17,22 @@ object CivitaiUrlBuilder {
         return if (parts.isNotEmpty()) parts[0] else relative
     }
 
+    fun extractVariant(url: String): String? {
+        if (!url.startsWith(URL_PREFIX)) return null
+
+        val relative = url.substring(URL_PREFIX.length)
+        val segments = relative.split("/")
+
+        if (segments.size < 2) return null
+
+        return when {
+            segments[1].startsWith("original=true") -> "original"
+            segments[1].startsWith("original=false") -> "thumbnail"
+            segments[1].startsWith("width=") -> "thumbnail"
+            else -> null
+        }
+    }
+
     fun isCivitaiMediaUrl(url: String): Boolean {
         val lowerUrl = url.lowercase()
 
@@ -24,28 +40,36 @@ object CivitaiUrlBuilder {
             lowerUrl.contains("image-b2.civitai.com")) && !lowerUrl.contains("/api/")
     }
 
-    fun expandUrl(compressed: String, type: String?): String {
+    fun expandUrl(compressed: String, type: String?, variant: String? = null): String {
         if (compressed.startsWith("http")) return compressed
 
         val uuid = compressed
         val ext = if (type == "video") "mp4" else "jpg"
-        val originalUrl = "$URL_PREFIX$uuid/original=true/$uuid.$ext"
+        val base = "$URL_PREFIX$uuid"
 
-        if (backendEnabled && backendUrl.isNotBlank()) {
-            val mediaType = if (type == "video") "video" else "image"
+        val url =
+            when (variant) {
+                "original" -> "$base/original=true/$uuid.$ext"
+                "thumbnail" -> "$base/original=false/$uuid.jpg"
+                else -> "$base/original=true/$uuid.$ext"
+            }
 
-            return toBackendUrl(mediaType, "original", uuid)
-        }
-
-        return originalUrl
+        return url
     }
 
     fun extractCivitaiUuid(url: String): String? {
         if (!isCivitaiMediaUrl(url)) return null
 
-        val baseUrl = getBaseUrl(url)
+        val cached = uuidCache[url]
 
-        return if (baseUrl != url) baseUrl.substringAfterLast("/") else null
+        if (cached != null) return cached
+
+        val baseUrl = getBaseUrl(url)
+        val uuid = if (baseUrl != url) baseUrl.substringAfterLast("/") else null
+
+        if (uuid != null) uuidCache[url] = uuid
+
+        return uuid
     }
 
     fun toBackendUrl(type: String, quality: String, uuid: String): String {
@@ -157,29 +181,52 @@ object CivitaiUrlBuilder {
     }
 
     fun getBaseUrl(url: String): String {
-        return when {
-            url.contains("/original=true/") -> url.substringBefore("/original=true/")
-            url.contains("/original=false/") -> url.substringBefore("/original=false/")
-            url.contains(WIDTH_REGEX) ->
-                url.substringBefore(url.split("/").find { it.startsWith("width=") } ?: "")
-            else -> url.substringBeforeLast("/")
-        }.removeSuffix("/")
+        val parsed = parseCivitaiUrl(url)
+
+        return parsed?.baseUrl ?: url.substringBeforeLast("/")
     }
 
     fun modifyUrl(url: String, variant: String): String {
-        return when {
-            url.contains("/original=true/") -> url.replace("/original=true/", "/$variant/")
-            url.contains("/original=false/") -> url.replace("/original=false/", "/$variant/")
-            url.contains(WIDTH_REGEX) -> url.replace(WIDTH_REGEX, "/$variant/")
-            else -> {
-                val lastSlashIndex = url.lastIndexOf('/')
+        val parsed = parseCivitaiUrl(url)
 
-                if (lastSlashIndex != -1) {
-                    val prefix = url.substring(0, lastSlashIndex)
-                    val fileName = url.substring(lastSlashIndex + 1)
-                    if (fileName.contains(".")) "$prefix/$variant/$fileName" else "$url/$variant/"
-                } else url
-            }
-        }
+        return if (parsed != null) {
+            val fileName = parsed.fileName ?: ""
+
+            if (fileName.isNotEmpty()) "$parsed.baseUrl/$variant/$fileName"
+            else "$parsed.baseUrl/$variant/"
+        } else url
     }
+
+    private fun parseCivitaiUrl(url: String): ParseResult? {
+        if (!isCivitaiMediaUrl(url)) return null
+
+        val originalVariant =
+            when {
+                url.contains("/original=true/") -> "original"
+                url.contains("/original=false/") -> "thumbnail"
+                url.contains(WIDTH_REGEX) -> "thumbnail"
+                else -> null
+            }
+
+        val baseUrl =
+            when {
+                url.contains("/original=true/") -> url.substringBefore("/original=true/")
+                url.contains("/original=false/") -> url.substringBefore("/original=false/")
+                url.contains(WIDTH_REGEX) -> {
+                    val widthPart = url.split("/").find { it.startsWith("width=") } ?: ""
+                    url.substringBefore(widthPart)
+                }
+                else -> url.substringBeforeLast("/")
+            }
+
+        val fileName = url.substringAfterLast("/")
+
+        return ParseResult(baseUrl.removeSuffix("/"), fileName, originalVariant)
+    }
+
+    private data class ParseResult(
+        val baseUrl: String,
+        val fileName: String,
+        val originalVariant: String?,
+    )
 }

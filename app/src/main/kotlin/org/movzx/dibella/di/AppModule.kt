@@ -124,6 +124,7 @@ object AppModule {
         preferencesRepository: UserPreferencesRepository,
         okHttpClient: OkHttpClient,
         imageLoader: coil3.ImageLoader,
+        mediaProcessor: org.movzx.dibella.util.MediaProcessor,
     ): FavoritesRepository {
         return FavoritesRepository(
             context,
@@ -131,6 +132,7 @@ object AppModule {
             preferencesRepository,
             okHttpClient,
             imageLoader,
+            mediaProcessor,
         )
     }
 }

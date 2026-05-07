@@ -171,53 +171,54 @@ suspend fun hasFullCache(
         return@withContext found
     }
 
-fun resolveImageData(
+suspend fun resolveImageData(
     context: Context,
     image: CivitaiImage,
     favoriteInfo: FavoriteImage?,
     thumbnailWidth: Int = 320,
     useVideoPath: Boolean = false,
     favoritesDir: File? = null,
-): String {
-    val dir = getEffectiveFavoritesDir(favoritesDir)
-    val isVideo = image.type == TYPE_VIDEO
-    val mediaSub = if (isVideo) TYPE_VIDEO else TYPE_IMAGE
-    val isFull = useVideoPath || thumbnailWidth > 400
-    val contentSub = if (isFull) TYPE_PREVIEWS else TYPE_THUMBNAILS
+): String =
+    withContext(Dispatchers.IO) {
+        val dir = getEffectiveFavoritesDir(favoritesDir)
+        val isVideo = image.type == TYPE_VIDEO
+        val mediaSub = if (isVideo) TYPE_VIDEO else TYPE_IMAGE
+        val isFull = useVideoPath || thumbnailWidth > 400
+        val contentSub = if (isFull) TYPE_PREVIEWS else TYPE_THUMBNAILS
 
-    val baseName =
-        when {
-            isVideo && useVideoPath -> "${image.id}"
-            isVideo && !useVideoPath -> "${image.id}_thumb"
-            !isVideo && isFull -> "${image.id}_full"
-            else -> "${image.id}"
+        val baseName =
+            when {
+                isVideo && useVideoPath -> "${image.id}"
+                isVideo && !useVideoPath -> "${image.id}_thumb"
+                !isVideo && isFull -> "${image.id}_full"
+                else -> "${image.id}"
+            }
+
+        val extensions =
+            if (isVideo && useVideoPath) FileUtils.VIDEO_EXTENSIONS else FileUtils.IMAGE_EXTENSIONS
+
+        if (dir.exists()) {
+            for (ext in extensions) {
+                val file = File(File(File(dir, mediaSub), contentSub), "$baseName.$ext")
+
+                if (file.exists() && file.length() > 100) return@withContext file.absolutePath
+            }
         }
 
-    val extensions =
-        if (isVideo && useVideoPath) FileUtils.VIDEO_EXTENSIONS else FileUtils.IMAGE_EXTENSIONS
+        if (image.url.startsWith("http")) {
+            val remoteUrl =
+                if (isVideo)
+                    if (useVideoPath) getVideoPreviewUrl(image.url)
+                    else getVideoThumbnailUrl(image.url)
+                else getThumbnailUrl(image.url, thumbnailWidth)
 
-    if (dir.exists()) {
-        for (ext in extensions) {
-            val file = File(File(File(dir, mediaSub), contentSub), "$baseName.$ext")
+            Logger.d("Dibella_Res", "ID: ${image.id} | Remote | URL: $remoteUrl")
 
-            if (file.exists() && file.length() > 100) return file.absolutePath
+            return@withContext remoteUrl
         }
+
+        image.url
     }
-
-    // Use remote URL (backend or Civitai)
-    if (image.url.startsWith("http")) {
-        val remoteUrl =
-            if (isVideo)
-                if (useVideoPath) getVideoPreviewUrl(image.url) else getVideoThumbnailUrl(image.url)
-            else getThumbnailUrl(image.url, thumbnailWidth)
-
-        Logger.d("Dibella_Res", "ID: ${image.id} | Remote | URL: $remoteUrl")
-
-        return remoteUrl
-    }
-
-    return image.url
-}
 
 fun getThumbnailUrl(url: String, width: Int): String {
     return CivitaiUrlBuilder.getThumbnailUrl(url, width)

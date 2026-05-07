@@ -39,6 +39,7 @@ data class FavoriteImageBackup(
     val nsfw: Boolean?,
     val type: String?,
     val timestamp: Long,
+    val variant: String? = null,
 )
 
 @JsonClass(generateAdapter = true)

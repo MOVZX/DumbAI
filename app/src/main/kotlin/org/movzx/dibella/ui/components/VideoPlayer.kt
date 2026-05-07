@@ -45,6 +45,7 @@ fun VideoPlayer(
     onZoomChange: (Boolean) -> Unit = {},
     onTap: () -> Unit = {},
     onLongPress: () -> Unit = {},
+    zoomEnabled: Boolean = true,
     seekPosition: Long? = null,
     onSeekConsumed: () -> Unit = {},
     usePool: Boolean = true,
@@ -60,43 +61,49 @@ fun VideoPlayer(
         modifier =
             modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { onTap() },
-                        onLongPress = { onLongPress() },
-                        onDoubleTap = {
-                            if (scale > 1f) {
-                                scale = 1f
-                                offset = Offset.Zero
-                            } else {
-                                scale = 3f
-                            }
-
-                            onZoomChange(scale > 1f)
-                        },
-                    )
-                }
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        awaitFirstDown(requireUnconsumed = false)
-                        do {
-                            val event = awaitPointerEvent()
-                            val pointers = event.changes
-
-                            if (pointers.size > 1 || scale > 1f) {
-                                val zoom = event.calculateZoom()
-                                val pan = event.calculatePan()
-
-                                if (zoom != 1f || pan != Offset.Zero) {
-                                    scale = (scale * zoom).coerceIn(1f, 5f)
-                                    offset = if (scale > 1f) offset + pan else Offset.Zero
-
-                                    onZoomChange(scale > 1f)
+                .pointerInput(zoomEnabled) {
+                    if (zoomEnabled) {
+                        detectTapGestures(
+                            onTap = { onTap() },
+                            onLongPress = { onLongPress() },
+                            onDoubleTap = {
+                                if (scale > 1f) {
+                                    scale = 1f
+                                    offset = Offset.Zero
+                                } else {
+                                    scale = 3f
                                 }
 
-                                pointers.forEach { if (it.positionChanged()) it.consume() }
-                            }
-                        } while (pointers.any { it.pressed })
+                                onZoomChange(scale > 1f)
+                            },
+                        )
+                    } else {
+                        detectTapGestures(onTap = { onTap() }, onLongPress = { onLongPress() })
+                    }
+                }
+                .pointerInput(zoomEnabled) {
+                    if (zoomEnabled) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            do {
+                                val event = awaitPointerEvent()
+                                val pointers = event.changes
+
+                                if (pointers.size > 1 || scale > 1f) {
+                                    val zoom = event.calculateZoom()
+                                    val pan = event.calculatePan()
+
+                                    if (zoom != 1f || pan != Offset.Zero) {
+                                        scale = (scale * zoom).coerceIn(1f, 5f)
+                                        offset = if (scale > 1f) offset + pan else Offset.Zero
+
+                                        onZoomChange(scale > 1f)
+                                    }
+
+                                    pointers.forEach { if (it.positionChanged()) it.consume() }
+                                }
+                            } while (pointers.any { it.pressed })
+                        }
                     }
                 }
                 .graphicsLayer {

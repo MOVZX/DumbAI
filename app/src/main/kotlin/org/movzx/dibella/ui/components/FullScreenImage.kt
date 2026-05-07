@@ -252,26 +252,28 @@ fun FullScreenImage(
                     val context = androidx.compose.ui.platform.LocalContext.current
                     val favDir = remember(favoritesPath) { favoritesPath?.let { java.io.File(it) } }
 
-                    val thumbnailData =
-                        remember(image.url, favoriteInfo, favDir) {
-                            org.movzx.dibella.util.resolveImageData(
-                                context,
-                                image,
-                                favoriteInfo,
-                                favoritesDir = favDir,
-                            )
+                    val thumbnailData by
+                        produceState(initialValue = image.url, image.url, favoriteInfo, favDir) {
+                            value =
+                                org.movzx.dibella.util.resolveImageData(
+                                    context,
+                                    image,
+                                    favoriteInfo,
+                                    favoritesDir = favDir,
+                                )
                         }
 
-                    val previewData =
-                        remember(image.url, favoriteInfo, favDir) {
-                            org.movzx.dibella.util.resolveImageData(
-                                context = context,
-                                image = image,
-                                favoriteInfo = favoriteInfo,
-                                thumbnailWidth = 450,
-                                useVideoPath = true,
-                                favoritesDir = favDir,
-                            )
+                    val previewData by
+                        produceState(initialValue = image.url, image.url, favoriteInfo, favDir) {
+                            value =
+                                org.movzx.dibella.util.resolveImageData(
+                                    context = context,
+                                    image = image,
+                                    favoriteInfo = favoriteInfo,
+                                    thumbnailWidth = 450,
+                                    useVideoPath = true,
+                                    favoritesDir = favDir,
+                                )
                         }
 
                     val thumbnailRequest =

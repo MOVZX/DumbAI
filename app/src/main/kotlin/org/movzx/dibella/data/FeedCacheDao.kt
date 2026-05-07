@@ -22,4 +22,9 @@ interface FeedCacheDao {
         clearFeed(feedType)
         insertFeed(items)
     }
+
+    @Transaction
+    suspend fun insertOrUpdateFeed(items: List<FeedItemCache>) {
+        insertFeed(items)
+    }
 }

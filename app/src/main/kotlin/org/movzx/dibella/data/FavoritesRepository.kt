@@ -1,7 +1,6 @@
 package org.movzx.dibella.data
 
 import android.content.Context
-import android.media.MediaMetadataRetriever
 import java.io.Closeable
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -43,6 +42,7 @@ class FavoritesRepository(
     private val preferencesRepository: UserPreferencesRepository,
     okHttpClient: OkHttpClient,
     private val imageLoader: coil3.ImageLoader,
+    private val mediaProcessor: org.movzx.dibella.util.MediaProcessor,
 ) : Closeable {
     private val resourceChecksInProgress = ConcurrentHashMap.newKeySet<Long>()
     private val resourceCheckTimestamps = ConcurrentHashMap<Long, Long>()
@@ -227,52 +227,6 @@ class FavoritesRepository(
             Logger.d("Dibella_IO", "Evicted from Coil cache: $url")
         } catch (e: Exception) {
             Logger.w("Dibella_IO", "Failed to evict from Coil cache: ${e.message}")
-        }
-    }
-
-    private fun extractVideoFrame(videoFile: File, outputFile: File, quality: Int = 50): Boolean {
-        val retriever = MediaMetadataRetriever()
-        val startTime = System.currentTimeMillis()
-
-        return try {
-            retriever.setDataSource(videoFile.absolutePath)
-
-            val timeInUs = 3 * 1000000L
-
-            val bitmap =
-                retriever.getFrameAtTime(timeInUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-
-            if (bitmap != null) {
-                val success = FileUtils.saveBitmapAsWebP(bitmap, outputFile, quality)
-
-                bitmap.recycle()
-
-                if (success) {
-                    Logger.d(
-                        "Dibella_Codec",
-                        "[${videoFile.name}] Frame extracted as WebP ($quality%) in ${System.currentTimeMillis() - startTime}ms",
-                    )
-                }
-
-                success
-            } else {
-                Logger.e("Dibella_Codec", "[${videoFile.name}] Extraction failed: null bitmap")
-
-                false
-            }
-        } catch (e: Exception) {
-            Logger.e("Dibella_Codec", "[${videoFile.name}] Extraction Exception: ${e.message}")
-
-            false
-        } finally {
-            try {
-                retriever.release()
-            } catch (e: Exception) {
-                Logger.w(
-                    "Dibella_Codec",
-                    "[${videoFile.name}] Failed to release MediaMetadataRetriever: ${e.message}",
-                )
-            }
         }
     }
 
@@ -678,7 +632,13 @@ class FavoritesRepository(
 
                                 intermediateFiles.add(frameFile)
 
-                                if (extractVideoFrame(currentFile, frameFile, webpQuality ?: 50)) {
+                                if (
+                                    mediaProcessor.extractVideoFrame(
+                                        currentFile,
+                                        frameFile,
+                                        webpQuality ?: 50,
+                                    )
+                                ) {
                                     currentFile = frameFile
                                     alreadyOptimized = true
                                 }
@@ -704,7 +664,7 @@ class FavoritesRepository(
                                 intermediateFiles.add(webpFile)
 
                                 if (
-                                    FileUtils.convertFileToWebP(currentFile, webpFile, webpQuality)
+                                    mediaProcessor.convertToWebP(currentFile, webpFile, webpQuality)
                                 ) {
                                     currentFile = webpFile
                                 }
@@ -734,13 +694,30 @@ class FavoritesRepository(
                         } else false
                     } else false
                 } else {
-                    Logger.e("Dibella_Net", "GET ${response.code} | URL: $url")
+                    val isBackendUrl =
+                        CivitaiUrlBuilder.backendEnabled &&
+                            url.startsWith(CivitaiUrlBuilder.backendUrl.removeSuffix("/"))
+
+                    Logger.e(
+                        "Dibella_Net",
+                        if (isBackendUrl)
+                            "Backend GET ${response.code} | URL: $url | Status: ${response.message}"
+                        else "GET ${response.code} | URL: $url",
+                    )
 
                     false
                 }
             }
         } catch (e: Exception) {
-            Logger.e("Dibella_Net", "Download Exception: ${e.message}")
+            val isBackendUrl =
+                CivitaiUrlBuilder.backendEnabled &&
+                    url.startsWith(CivitaiUrlBuilder.backendUrl.removeSuffix("/"))
+
+            Logger.e(
+                "Dibella_Net",
+                if (isBackendUrl) "Backend Download Exception: ${e.message} | URL: $url"
+                else "Download Exception: ${e.message} | URL: $url",
+            )
             false
         } finally {
             if (downloadTempFile.exists()) downloadTempFile.delete()

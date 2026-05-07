@@ -78,14 +78,21 @@ fun ImageCard(
     var isRetrying by remember { mutableStateOf(false) }
     val favDir = remember(favoritesPath) { favoritesPath?.let { java.io.File(it) } }
 
-    val imageData =
-        remember(image.url, favoriteInfo?.isSynced, retryCount, favDir) {
-            org.movzx.dibella.util.resolveImageData(
-                context,
-                image,
-                favoriteInfo,
-                favoritesDir = favDir,
-            )
+    val imageData by
+        produceState(
+            initialValue = image.url,
+            image.url,
+            favoriteInfo?.isSynced,
+            retryCount,
+            favDir,
+        ) {
+            value =
+                org.movzx.dibella.util.resolveImageData(
+                    context,
+                    image,
+                    favoriteInfo,
+                    favoritesDir = favDir,
+                )
         }
 
     val imageRequest =
@@ -118,17 +125,25 @@ fun ImageCard(
         }
     }
 
-    val videoData =
-        remember(image.url, favoriteInfo, autoplayEnabled, isLongPressPreviewActive, favDir) {
-            if ((autoplayEnabled || isLongPressPreviewActive) && image.type == "video") {
-                org.movzx.dibella.util.resolveImageData(
-                    context,
-                    image,
-                    favoriteInfo,
-                    useVideoPath = true,
-                    favoritesDir = favDir,
-                )
-            } else null
+    val videoData by
+        produceState<String?>(
+            initialValue = null,
+            image.url,
+            favoriteInfo,
+            autoplayEnabled,
+            isLongPressPreviewActive,
+            favDir,
+        ) {
+            value =
+                if ((autoplayEnabled || isLongPressPreviewActive) && image.type == "video") {
+                    org.movzx.dibella.util.resolveImageData(
+                        context,
+                        image,
+                        favoriteInfo,
+                        useVideoPath = true,
+                        favoritesDir = favDir,
+                    )
+                } else null
         }
 
     var hasEnsuredResources by remember(image.id) { mutableStateOf(false) }
@@ -332,9 +347,15 @@ fun ImageCard(
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            if (videoData != null && isVisibleInViewport && isAutoplayDebounced && !videoError) {
+            val currentVideoData = videoData
+            if (
+                currentVideoData != null &&
+                    isVisibleInViewport &&
+                    isAutoplayDebounced &&
+                    !videoError
+            ) {
                 VideoPlayer(
-                    url = videoData,
+                    url = currentVideoData,
                     isPlaying = isVisibleInViewport && !isScrolling,
                     isMuted = true,
                     scaleMode = ScaleMode.CROP,
@@ -345,6 +366,7 @@ fun ImageCard(
                     onPlaybackError = { videoError = true },
                     onTap = { if (isSelectionMode) onToggleSelection() else onClick(image) },
                     onLongPress = onLongClick,
+                    zoomEnabled = false,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

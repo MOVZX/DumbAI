@@ -34,18 +34,21 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
                 val isVideo = url.contains("anim=false") || url.contains("transcode=true")
                 val type = if (isVideo) "video" else "image"
 
-                val quality = when {
-                    url.contains("original=true") -> "original"
-                    url.contains("anim=false") -> "thumbnail"
-                    url.contains("width=320") -> "thumbnail"
-                    else -> "preview"
-                }
+                val quality =
+                    when {
+                        url.contains("original=true") -> "original"
+                        url.contains("anim=false") -> "thumbnail"
+                        url.contains("width=320") -> "thumbnail"
+                        else -> "preview"
+                    }
 
                 val redirectedUrl = CivitaiUrlBuilder.toBackendUrl(type, quality, uuid)
 
                 Logger.d("Dibella_Net", "Redirecting to backend: $redirectedUrl")
 
                 request = request.newBuilder().url(redirectedUrl).build()
+            } else {
+                Logger.d("Dibella_Net", "Civitai URL without UUID, no redirect: $url")
             }
         }
 
@@ -85,9 +88,16 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
 
         val response = activeChain.proceed(request)
 
+        val isBackendResponse =
+            response.request.url
+                .toString()
+                .startsWith(CivitaiUrlBuilder.backendUrl.removeSuffix("/"))
+
         Logger.d(
             "Dibella_Net",
-            "Response: ${response.code} ${response.message} for ${response.request.url}",
+            if (isBackendResponse)
+                "Backend Response: ${response.code} ${response.message} for ${response.request.url}"
+            else "Response: ${response.code} ${response.message} for ${response.request.url}",
         )
 
         return response

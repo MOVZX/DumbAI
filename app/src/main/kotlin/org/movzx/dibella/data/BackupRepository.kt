@@ -35,6 +35,7 @@ constructor(
                             nsfw = fav.nsfw,
                             type = fav.type,
                             timestamp = fav.timestamp,
+                            variant = CivitaiUrlBuilder.extractVariant(fav.url),
                         )
                     }
 
@@ -93,7 +94,8 @@ constructor(
                         backup.favorites.map { back ->
                             FavoriteImage(
                                 id = back.id,
-                                url = CivitaiUrlBuilder.expandUrl(back.url, back.type),
+                                url =
+                                    CivitaiUrlBuilder.expandUrl(back.url, back.type, back.variant),
                                 width = null,
                                 height = null,
                                 nsfw = back.nsfw,

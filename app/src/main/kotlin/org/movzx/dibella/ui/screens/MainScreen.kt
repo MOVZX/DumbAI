@@ -149,6 +149,8 @@ fun MainScreen(imageLoader: ImageLoader) {
             }
         }
 
+    DisposableEffect(Unit) { onDispose { videoPlayerManager.releaseAll() } }
+
     val favDirPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             uri?.let {
