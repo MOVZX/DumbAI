@@ -1,7 +1,6 @@
 package org.movzx.dibella.util
 
 import android.content.Context
-import android.os.Environment
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
@@ -101,15 +100,8 @@ fun Modifier.gridScrollbar(
     }
 }
 
-private fun getEffectiveFavoritesDir(favoritesDir: File?): File {
-    return favoritesDir
-        ?: File(
-            File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-                "Dibella",
-            ),
-            "Favorites",
-        )
+private fun getEffectiveFavoritesDir(context: Context, favoritesDir: File?): File {
+    return favoritesDir ?: File(context.getExternalFilesDir(null), "Favorites")
 }
 
 suspend fun hasLocalCache(
@@ -119,18 +111,28 @@ suspend fun hasLocalCache(
     favoritesDir: File? = null,
 ): Boolean =
     withContext(Dispatchers.IO) {
-        val dir = getEffectiveFavoritesDir(favoritesDir)
+        val dir = getEffectiveFavoritesDir(context, favoritesDir)
 
-        if (!dir.exists()) return@withContext false
+        Logger.d("Dibella_IO", "hasLocalCache: checking dir=$dir for imageId=$imageId")
 
         val mediaSub = if (isVideo) TYPE_VIDEO else TYPE_IMAGE
         val baseName = if (isVideo) "${imageId}_thumb" else "$imageId"
+        val thumbDir = File(File(dir, mediaSub), TYPE_THUMBNAILS)
+
+        Logger.d("Dibella_IO", "hasLocalCache: thumbDir=$thumbDir exists=${thumbDir.exists()}")
 
         val found =
             FileUtils.IMAGE_EXTENSIONS.any { ext ->
-                val thumbFile = File(File(File(dir, mediaSub), TYPE_THUMBNAILS), "$baseName.$ext")
+                val thumbFile = File(thumbDir, "$baseName.$ext")
+                val exists = thumbFile.exists()
+                val length = if (exists) thumbFile.length() else 0L
 
-                thumbFile.exists() && thumbFile.length() > 100
+                Logger.v(
+                    "Dibella_IO",
+                    "hasLocalCache: [$imageId] $baseName.$ext exists=$exists length=$length",
+                )
+
+                exists && length > 100
             }
 
         if (found) Logger.v("Dibella_IO", "[$imageId] Local thumbnail cache found")
@@ -145,7 +147,7 @@ suspend fun hasFullCache(
     favoritesDir: File? = null,
 ): Boolean =
     withContext(Dispatchers.IO) {
-        val dir = getEffectiveFavoritesDir(favoritesDir)
+        val dir = getEffectiveFavoritesDir(context, favoritesDir)
 
         if (!dir.exists()) return@withContext false
 
@@ -177,14 +179,34 @@ suspend fun resolveImageData(
     favoriteInfo: FavoriteImage?,
     thumbnailWidth: Int = 320,
     useVideoPath: Boolean = false,
+    viewMode: String = "favorites",
     favoritesDir: File? = null,
 ): String =
     withContext(Dispatchers.IO) {
-        val dir = getEffectiveFavoritesDir(favoritesDir)
+        if (viewMode == "gallery" && !image.url.startsWith("http")) {
+            val localFile = File(image.url)
+
+            if (localFile.exists() && localFile.length() > 0) {
+                Logger.v("Dibella_Res", "ID: ${image.id} | Gallery | Local file: $localFile")
+
+                return@withContext image.url
+            }
+        }
+
+        val dir = getEffectiveFavoritesDir(context, favoritesDir)
+
+        Logger.d("Dibella_Res", "ID: ${image.id} | resolveImageData: dir=$dir")
+
         val isVideo = image.type == TYPE_VIDEO
         val mediaSub = if (isVideo) TYPE_VIDEO else TYPE_IMAGE
         val isFull = useVideoPath || thumbnailWidth > 400
         val contentSub = if (isFull) TYPE_PREVIEWS else TYPE_THUMBNAILS
+        val targetDir = File(File(dir, mediaSub), contentSub)
+
+        Logger.d(
+            "Dibella_Res",
+            "ID: ${image.id} | resolveImageData: targetDir=$targetDir exists=${targetDir.exists()}",
+        )
 
         val baseName =
             when {
@@ -199,9 +221,23 @@ suspend fun resolveImageData(
 
         if (dir.exists()) {
             for (ext in extensions) {
-                val file = File(File(File(dir, mediaSub), contentSub), "$baseName.$ext")
+                val file = File(targetDir, "$baseName.$ext")
+                val exists = file.exists()
+                val length = if (exists) file.length() else 0L
 
-                if (file.exists() && file.length() > 100) return@withContext file.absolutePath
+                Logger.v(
+                    "Dibella_Res",
+                    "ID: ${image.id} | resolveImageData: $baseName.$ext exists=$exists length=$length",
+                )
+
+                if (exists && file.length() > 100) {
+                    Logger.d(
+                        "Dibella_Res",
+                        "ID: ${image.id} | Using local file: ${file.absolutePath}",
+                    )
+
+                    return@withContext file.absolutePath
+                }
             }
         }
 
@@ -273,10 +309,10 @@ fun formatDuration(ms: Long): String {
 
 fun playerPoolSizeForColumns(columns: Int): Int {
     return when (columns) {
-        1 -> 4
-        2 -> 10
-        3 -> 18
-        4 -> 24
+        1 -> Constants.VIDEO_POOL_SIZE_1_COLUMN
+        2 -> Constants.VIDEO_POOL_SIZE_2_COLUMNS
+        3 -> Constants.VIDEO_POOL_SIZE_3_COLUMNS
+        4 -> Constants.VIDEO_POOL_SIZE_4_COLUMNS
         else -> 12
     }
 }

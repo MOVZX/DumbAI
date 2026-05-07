@@ -4,11 +4,12 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import org.movzx.dibella.model.Bookmark
 import org.movzx.dibella.model.FavoriteImage
 import org.movzx.dibella.model.FeedItemCache
 
 @Database(
-    entities = [FavoriteImage::class, FeedItemCache::class],
+    entities = [FavoriteImage::class, FeedItemCache::class, Bookmark::class],
     version = 1,
     exportSchema = false,
 )
@@ -16,6 +17,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteImageDao(): FavoriteImageDao
 
     abstract fun feedCacheDao(): FeedCacheDao
+
+    abstract fun bookmarkDao(): BookmarkDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null

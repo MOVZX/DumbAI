@@ -11,14 +11,12 @@ import org.movzx.dibella.util.Logger
 @Singleton
 class CivitaiInterceptor @Inject constructor(private val repository: UserPreferencesRepository) :
     Interceptor {
-
     override fun intercept(chain: Interceptor.Chain): Response {
         val settings = repository.interceptorSettings.value
         val apiKey = settings.apiKey
         val backendEnabled = settings.backendEnabled
         val backendUrl = settings.backendUrl
         val backendApiKey = settings.backendApiKey
-
         val original = chain.request()
         var request = original
         val host = request.url.host
@@ -31,13 +29,20 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
             val uuid = CivitaiUrlBuilder.extractCivitaiUuid(url)
 
             if (uuid != null) {
-                val isVideo = url.contains("anim=false") || url.contains("transcode=true")
+                val lowerUrl = url.lowercase()
+
+                val isVideo =
+                    lowerUrl.contains("anim=false") ||
+                        lowerUrl.contains("transcode=true") ||
+                        lowerUrl.endsWith(".mp4") ||
+                        lowerUrl.endsWith(".webm")
+
                 val type = if (isVideo) "video" else "image"
 
                 val quality =
                     when {
                         url.contains("original=true") -> "original"
-                        url.contains("anim=false") -> "thumbnail"
+                        url.contains("anim=false") || url.contains("original=false") -> "thumbnail"
                         url.contains("width=320") -> "thumbnail"
                         else -> "preview"
                     }
@@ -50,6 +55,17 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
             } else {
                 Logger.d("Dibella_Net", "Civitai URL without UUID, no redirect: $url")
             }
+        }
+
+        val isFeedApi = isCivitai && path.contains("/api/v1/images")
+        val isBackendFeedRedirect = isFeedApi && backendEnabled && backendUrl.isNotBlank()
+
+        if (isBackendFeedRedirect) {
+            val redirectedUrl = CivitaiUrlBuilder.buildBackendFeedUrl(request.url.toString())
+
+            Logger.d("Dibella_Net", "Redirecting API feed request to backend: $redirectedUrl")
+
+            request = request.newBuilder().url(redirectedUrl).build()
         }
 
         val isBackend =
@@ -68,9 +84,8 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
 
         val requestBuilder = request.newBuilder()
 
-        if (isBackend && backendApiKey.isNotBlank()) {
+        if (isBackend && backendApiKey.isNotBlank())
             requestBuilder.header("Authorization", "Bearer $backendApiKey")
-        }
 
         if (isCivitai) {
             requestBuilder.header(

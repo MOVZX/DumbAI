@@ -167,6 +167,7 @@ fun ImageGrid(
                 autoplayEnabled = autoplayEnabled && !isPreviewOpen,
                 isVisibleInViewport = visibleItemIds.contains(image.id),
                 isScrolling = state.isScrollInProgress,
+                isPreviewOpen = isPreviewOpen,
                 animationIndex = if (isAnimated) -1 else index,
                 isPressed = pressedId == image.id,
                 onPressChange = { isPressed -> pressedId = if (isPressed) image.id else null },
@@ -179,7 +180,7 @@ fun ImageGrid(
                     modifier =
                         Modifier.fillMaxWidth()
                             .aspectRatio(1f)
-                            .clip(MaterialTheme.shapes.large)
+                            .clip(MaterialTheme.shapes.small)
                             .shimmerBackground()
                 )
             }

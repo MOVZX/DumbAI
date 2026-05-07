@@ -5,7 +5,6 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import dagger.hilt.android.HiltAndroidApp
-import `is`.xyz.mpv.MPVLib
 import javax.inject.Inject
 import org.movzx.dibella.data.FavoritesRepository
 import org.movzx.dibella.util.Logger
@@ -21,12 +20,6 @@ class DibellaApplication : Application(), SingletonImageLoader.Factory {
 
     override fun onTerminate() {
         super.onTerminate()
-
-        try {
-            MPVLib.destroy()
-        } catch (e: Exception) {
-            Logger.e("Dibella_App", "Failed to destroy MPVLib: ${e.message}")
-        }
 
         try {
             favoritesRepository.close()

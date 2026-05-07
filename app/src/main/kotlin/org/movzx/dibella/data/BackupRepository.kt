@@ -21,6 +21,7 @@ constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: UserPreferencesRepository,
     private val favoritesRepository: FavoritesRepository,
+    private val bookmarkRepository: BookmarkRepository,
     private val feedCacheDao: FeedCacheDao,
     private val moshi: Moshi,
 ) {
@@ -35,36 +36,46 @@ constructor(
                             nsfw = fav.nsfw,
                             type = fav.type,
                             timestamp = fav.timestamp,
-                            variant = CivitaiUrlBuilder.extractVariant(fav.url),
                         )
                     }
 
-                val feedItems = mutableListOf<FeedItemBackup>()
-
-                listOf("image", "video").forEach { feedType ->
-                    feedCacheDao.getFeed(feedType).forEach { item ->
-                        feedItems.add(
-                            FeedItemBackup(
-                                id = item.id,
-                                url = CivitaiUrlBuilder.compressUrl(item.url),
-                                width = item.width,
-                                height = item.height,
-                                nsfw = item.nsfw,
-                                type = item.type,
-                                feedType = item.feedType,
-                                orderIndex = item.orderIndex,
-                            )
+                val bookmarks =
+                    bookmarkRepository.getAllBookmarksSync().map { bm ->
+                        BookmarkBackup(
+                            id = bm.id,
+                            title = bm.title,
+                            type = bm.type,
+                            sort = bm.sort,
+                            period = bm.period,
+                            nsfw = bm.nsfw,
+                            cursor = bm.cursor,
+                            tags = bm.tags,
+                            timestamp = bm.timestamp,
                         )
                     }
-                }
 
                 val settings = repository.getCurrentSettings()
+
+                val feedItems =
+                    feedCacheDao.getAllFeedItemsSync().map { item ->
+                        FeedItemBackup(
+                            id = item.id,
+                            url = CivitaiUrlBuilder.compressUrl(item.url),
+                            width = item.width,
+                            height = item.height,
+                            nsfw = item.nsfw,
+                            type = item.type,
+                            feedType = item.feedType,
+                            orderIndex = item.orderIndex,
+                        )
+                    }
 
                 val backup =
                     AppBackup(
                         version = 1,
                         settings = settings,
                         favorites = favorites,
+                        bookmarks = bookmarks,
                         feedItems = feedItems,
                     )
 
@@ -94,8 +105,7 @@ constructor(
                         backup.favorites.map { back ->
                             FavoriteImage(
                                 id = back.id,
-                                url =
-                                    CivitaiUrlBuilder.expandUrl(back.url, back.type, back.variant),
+                                url = CivitaiUrlBuilder.expandUrl(back.url, back.type),
                                 width = null,
                                 height = null,
                                 nsfw = back.nsfw,
@@ -107,8 +117,23 @@ constructor(
 
                     favoritesRepository.importFavorites(favoriteImages)
 
+                    backup.bookmarks.forEach { bm ->
+                        bookmarkRepository.addBookmark(
+                            Bookmark(
+                                title = bm.title,
+                                type = bm.type,
+                                sort = bm.sort,
+                                period = bm.period,
+                                nsfw = bm.nsfw,
+                                cursor = bm.cursor,
+                                tags = bm.tags,
+                                timestamp = bm.timestamp,
+                            )
+                        )
+                    }
+
                     if (backup.feedItems.isNotEmpty()) {
-                        val items =
+                        val feedItems =
                             backup.feedItems.map { back ->
                                 FeedItemCache(
                                     id = back.id,
@@ -121,13 +146,7 @@ constructor(
                                     orderIndex = back.orderIndex,
                                 )
                             }
-
-                        listOf("image", "video").forEach { type ->
-                            val feedTypeItems = items.filter { it.feedType == type }
-
-                            if (feedTypeItems.isNotEmpty())
-                                feedCacheDao.replaceFeed(type, feedTypeItems)
-                        }
+                        feedCacheDao.insertFeed(feedItems)
                     }
 
                     true

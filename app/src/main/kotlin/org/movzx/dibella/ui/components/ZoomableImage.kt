@@ -29,7 +29,7 @@ fun ZoomableImage(
     onZoomChange: (Boolean) -> Unit,
     onTap: () -> Unit = {},
 ) {
-    var scale by remember { mutableStateOf(1f) }
+    var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     val isLocal = model is String && !model.startsWith("http")
 

@@ -39,6 +39,8 @@ fun FeedScreen(
     val activity = context as ComponentActivity
     val viewModel: FeedViewModel = hiltViewModel(activity)
     val favViewModel: FavoritesViewModel = hiltViewModel(activity)
+    val bookmarkViewModel: org.movzx.dibella.viewmodel.BookmarkViewModel = hiltViewModel(activity)
+    val bookmarkState by bookmarkViewModel.uiState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val videoPlayerManager = LocalVideoPlayerManager.current
 
@@ -71,6 +73,29 @@ fun FeedScreen(
     val galleryViewModel: org.movzx.dibella.viewmodel.GalleryViewModel = hiltViewModel(activity)
     val galleryState by galleryViewModel.uiState.collectAsState()
     val feedCount = uiState.images.size
+    var showJumpDialog by remember { mutableStateOf(false) }
+    var showBookmarkDialog by remember { mutableStateOf(false) }
+
+    if (showJumpDialog) {
+        JumpDialog(
+            currentCursor = uiState.nextCursor,
+            onApply = { targetCursor ->
+                showJumpDialog = false
+                viewModel.jumpToCursor(targetCursor)
+            },
+            onDismiss = { showJumpDialog = false },
+        )
+    }
+
+    if (showBookmarkDialog) {
+        BookmarkDialog(
+            onApply = { title ->
+                showBookmarkDialog = false
+                viewModel.saveBookmark(title)
+            },
+            onDismiss = { showBookmarkDialog = false },
+        )
+    }
 
     AppScaffold(
         topBar = {
@@ -89,6 +114,7 @@ fun FeedScreen(
                 feedCount = feedCount,
                 favoritesCount = favState.images.size,
                 galleryCount = galleryState.images.size,
+                bookmarkCount = bookmarkState.bookmarkCount,
             )
         },
         gridState = gridState,
@@ -96,8 +122,11 @@ fun FeedScreen(
         amoledMode = amoledMode,
         hasMore = uiState.hasMore,
         showRefresh = true,
+        showBookmarkJump = true,
         onRefresh = { viewModel.refresh() },
         onLoadMore = { viewModel.loadMore() },
+        onJumpClicked = { showJumpDialog = true },
+        onBookmarkClicked = { showBookmarkDialog = true },
     ) { padding ->
         ImageGrid(
             images = uiState.images,

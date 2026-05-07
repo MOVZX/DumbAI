@@ -3,22 +3,27 @@ package org.movzx.dibella.ui.components
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Velocity
@@ -34,16 +39,18 @@ fun AppScaffold(
     amoledMode: Boolean = false,
     hasMore: Boolean = false,
     showRefresh: Boolean = false,
+    showBookmarkJump: Boolean = true,
     onRefresh: () -> Unit = {},
     onLoadMore: () -> Unit = {},
+    onJumpClicked: () -> Unit = {},
+    onBookmarkClicked: () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     var isBarsVisible by remember { mutableStateOf(true) }
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
-
     var pullOffset by remember { mutableFloatStateOf(0f) }
-    val pullThreshold = 80.dp
-    val pullLimit = 140.dp
+    val pullThreshold = 50.dp
+    val pullLimit = 150.dp
     val density = androidx.compose.ui.platform.LocalDensity.current
     val pullThresholdPx = with(density) { pullThreshold.toPx() }
     val pullLimitPx = with(density) { pullLimit.toPx() }
@@ -77,6 +84,7 @@ fun AppScaffold(
                     if (available.y > 0 && showRefresh) {
                         val progress = (pullOffset / pullLimitPx).coerceIn(0f, 1f)
                         val resistance = 1f - progress
+
                         pullOffset =
                             (pullOffset + available.y * 0.5f * resistance).coerceAtMost(pullLimitPx)
 
@@ -86,6 +94,7 @@ fun AppScaffold(
                     if (available.y < 0 && hasMore) {
                         val progress = (Math.abs(pullOffset) / pullLimitPx).coerceIn(0f, 1f)
                         val resistance = 1f - progress
+
                         pullOffset =
                             (pullOffset + available.y * 0.5f * resistance).coerceAtLeast(
                                 -pullLimitPx
@@ -145,7 +154,21 @@ fun AppScaffold(
         }
 
     Box(modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection)) {
-        Box(modifier = Modifier.fillMaxSize().graphicsLayer { translationY = animatedPullOffset }) {
+        Box(
+            modifier =
+                Modifier.fillMaxSize()
+                    .graphicsLayer { translationY = animatedPullOffset }
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures(
+                            onDragEnd = {},
+                            onDragCancel = {},
+                            onVerticalDrag = { _, dragAmount ->
+                                if (dragAmount < -15f && isBarsVisible) isBarsVisible = false
+                                else if (dragAmount > 15f && !isBarsVisible) isBarsVisible = true
+                            },
+                        )
+                    }
+        ) {
             content(
                 PaddingValues(
                     top = 64.dp + systemBarsPadding.calculateTopPadding(),
@@ -223,12 +246,14 @@ fun AppScaffold(
             if (amoledMode) androidx.compose.ui.graphics.Color.Black
             else MaterialTheme.colorScheme.surface
 
+        val barBackgroundAlpha = if (isBarsVisible) 1f else 0f
+
         Box(
             modifier =
                 Modifier.fillMaxWidth()
                     .align(Alignment.TopCenter)
                     .graphicsLayer { translationY = -barTranslation * size.height }
-                    .background(barColor)
+                    .background(barColor.copy(alpha = barBackgroundAlpha))
                     .statusBarsPadding()
         ) {
             topBar()
@@ -245,7 +270,14 @@ fun AppScaffold(
 
                         translationY = -(1f - barTranslation) * bottomBarHeight
                     }
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        shape =
+                            androidx.compose.foundation.shape.RoundedCornerShape(
+                                topStart = 16.dp,
+                                topEnd = 16.dp,
+                            ),
+                    )
         ) {
             Box(
                 modifier =
@@ -260,7 +292,21 @@ fun AppScaffold(
                 Modifier.fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .graphicsLayer { translationY = barTranslation * size.height }
-                    .background(barColor)
+                    .shadow(
+                        if (isBarsVisible) 8.dp else 0.dp,
+                        androidx.compose.foundation.shape.RoundedCornerShape(
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                        ),
+                    )
+                    .background(
+                        color = barColor.copy(alpha = barBackgroundAlpha),
+                        shape =
+                            androidx.compose.foundation.shape.RoundedCornerShape(
+                                topStart = 16.dp,
+                                topEnd = 16.dp,
+                            ),
+                    )
                     .navigationBarsPadding()
         ) {
             bottomBar()
@@ -274,18 +320,25 @@ fun AppScaffold(
             )
 
         if (fabAlpha > 0.01f) {
-            Box(
-                modifier =
-                    Modifier.align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                        .padding(bottom = 80.dp + systemBarsPadding.calculateBottomPadding())
-                        .graphicsLayer {
-                            alpha = fabAlpha
-                            scaleX = fabAlpha
-                            scaleY = fabAlpha
-                        }
-            ) {
-                AppFab(gridState = gridState, isLoading = isLoading, hasMore = hasMore)
+            val fabModifier =
+                Modifier.padding(16.dp)
+                    .padding(bottom = 80.dp + systemBarsPadding.calculateBottomPadding())
+                    .graphicsLayer {
+                        alpha = fabAlpha
+                        scaleX = fabAlpha
+                        scaleY = fabAlpha
+                    }
+
+            Box(modifier = fabModifier.align(Alignment.BottomStart)) {
+                AppActionFab(
+                    showBookmarkJump = showBookmarkJump,
+                    onJumpClicked = onJumpClicked,
+                    onBookmarkClicked = onBookmarkClicked,
+                )
+            }
+
+            Box(modifier = fabModifier.align(Alignment.BottomEnd)) {
+                AppNavigationFab(gridState = gridState)
             }
         }
     }
@@ -313,7 +366,7 @@ fun EmptyState(viewMode: String) {
             targetValue = 360f,
             animationSpec =
                 infiniteRepeatable(
-                    animation = tween(3000, easing = LinearEasing),
+                    animation = tween(2000, easing = LinearEasing),
                     repeatMode = RepeatMode.Restart,
                 ),
             label = "rotation",
@@ -341,6 +394,10 @@ fun EmptyState(viewMode: String) {
                 "favorites" ->
                     stringResource(R.string.empty_favorites) to Icons.Default.FavoriteBorder
                 "gallery" -> stringResource(R.string.empty_gallery) to Icons.Outlined.Collections
+                "bookmarks" ->
+                    stringResource(R.string.empty_bookmarks) to Icons.Outlined.BookmarkBorder
+                "duplicates" ->
+                    stringResource(R.string.msg_no_duplicates_found) to Icons.Default.DeleteSweep
                 else -> stringResource(R.string.empty_feed) to Icons.Default.Search
             }
 

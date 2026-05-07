@@ -37,6 +37,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.model.FavoriteImage
+import org.movzx.dibella.util.Constants
+import org.movzx.dibella.util.getThumbnailUrl
+import org.movzx.dibella.util.getVideoThumbnailUrl
+import org.movzx.dibella.util.hasFullCache
+import org.movzx.dibella.util.hasLocalCache
+import org.movzx.dibella.util.resolveImageData
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -55,6 +61,7 @@ fun ImageCard(
     onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onEnsureFavoriteResourcesThrottled: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
     onClick: (CivitaiImage) -> Unit,
+    onVideoClick: ((CivitaiImage) -> Unit)? = null,
     onToggleFavorite: (CivitaiImage) -> Unit,
     onRetryThumbnail: (String, () -> Unit) -> Unit = { _, _ -> },
     onToggleSelection: () -> Unit = {},
@@ -62,6 +69,7 @@ fun ImageCard(
     autoplayEnabled: Boolean = false,
     isVisibleInViewport: Boolean = false,
     isScrolling: Boolean = false,
+    isPreviewOpen: Boolean = false,
     animationIndex: Int = -1,
     isPressed: Boolean = false,
     onPressChange: (Boolean) -> Unit = {},
@@ -80,17 +88,22 @@ fun ImageCard(
 
     val imageData by
         produceState(
-            initialValue = image.url,
+            initialValue =
+                if (image.url.startsWith("http")) {
+                    if (image.type == "video") getVideoThumbnailUrl(image.url)
+                    else getThumbnailUrl(image.url, 320)
+                } else image.url,
             image.url,
             favoriteInfo?.isSynced,
             retryCount,
             favDir,
         ) {
             value =
-                org.movzx.dibella.util.resolveImageData(
+                resolveImageData(
                     context,
                     image,
                     favoriteInfo,
+                    viewMode = viewMode,
                     favoritesDir = favDir,
                 )
         }
@@ -116,14 +129,15 @@ fun ImageCard(
 
     LaunchedEffect(isVisibleInViewport) {
         if (isVisibleInViewport) {
-            kotlinx.coroutines.delay(150)
+            kotlinx.coroutines.delay(Constants.DEBOUNCE_DELAY_MS)
 
             isAutoplayDebounced = true
         } else {
             isAutoplayDebounced = false
-            isLongPressPreviewActive = false
         }
     }
+
+    LaunchedEffect(isPreviewOpen) { if (isPreviewOpen) isLongPressPreviewActive = false }
 
     val videoData by
         produceState<String?>(
@@ -136,11 +150,12 @@ fun ImageCard(
         ) {
             value =
                 if ((autoplayEnabled || isLongPressPreviewActive) && image.type == "video") {
-                    org.movzx.dibella.util.resolveImageData(
+                    resolveImageData(
                         context,
                         image,
                         favoriteInfo,
                         useVideoPath = true,
+                        viewMode = viewMode,
                         favoritesDir = favDir,
                     )
                 } else null
@@ -161,7 +176,7 @@ fun ImageCard(
             favDir,
         ) {
             value =
-                org.movzx.dibella.util.hasLocalCache(
+                hasLocalCache(
                     context = context,
                     imageId = image.id,
                     isVideo = image.type == "video",
@@ -181,7 +196,7 @@ fun ImageCard(
             favDir,
         ) {
             value =
-                org.movzx.dibella.util.hasFullCache(
+                hasFullCache(
                     context = context,
                     imageId = image.id,
                     isVideo = image.type == "video",
@@ -189,11 +204,20 @@ fun ImageCard(
                 )
         }
 
-    LaunchedEffect(image.id, isFavorite) {
-        if (isFavorite && image.url.startsWith("http") && !hasEnsuredResources) {
-            hasEnsuredResources = true
+    LaunchedEffect(image.id, isFavorite, isPreviewCached) {
+        if (
+            viewMode == "favorites" &&
+                isFavorite &&
+                image.url.startsWith("http") &&
+                !hasEnsuredResources
+        ) {
+            delay(Constants.DEBOUNCE_DELAY_MS)
 
-            onEnsureFavoriteResourcesThrottled(image, false) { _ -> }
+            if (isPreviewCached == false) {
+                hasEnsuredResources = true
+
+                onEnsureFavoriteResourcesThrottled(image, false) { _ -> }
+            }
         }
     }
 
@@ -317,7 +341,13 @@ fun ImageCard(
                     onClick = {
                         view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
 
-                        if (isSelectionMode) onToggleSelection() else onClick(image)
+                        if (isSelectionMode) {
+                            onToggleSelection()
+                        } else {
+                            if (image.type == "video") isLongPressPreviewActive = false
+
+                            onClick(image)
+                        }
                     },
                     onLongClick = {
                         view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
@@ -327,7 +357,7 @@ fun ImageCard(
                         onLongClick()
                     },
                 ),
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = MaterialTheme.shapes.small,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         border =
             androidx.compose.foundation.BorderStroke(
@@ -359,6 +389,7 @@ fun ImageCard(
                     isPlaying = isVisibleInViewport && !isScrolling,
                     isMuted = true,
                     scaleMode = ScaleMode.CROP,
+                    playOnce = isLongPressPreviewActive,
                     onProgressUpdate = { pos, dur ->
                         if (dur > 0) videoProgress = pos.toFloat() / dur.toFloat()
                     },
@@ -411,7 +442,7 @@ fun ImageCard(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Selected",
                         tint = colorResource(org.movzx.dibella.R.color.success),
-                        modifier = Modifier.size(48.dp),
+                        modifier = Modifier.size(36.dp),
                     )
                 }
             }
@@ -422,7 +453,7 @@ fun ImageCard(
                         imageVector = Icons.Default.BrokenImage,
                         contentDescription = "Failed to load",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(24.dp),
                     )
                 }
             }
@@ -475,28 +506,18 @@ fun ImageCard(
             if (image.type == "video" && viewMode != "feed") {
                 Box(
                     modifier =
-                        Modifier.padding(8.dp)
+                        Modifier.padding(2.dp)
                             .align(Alignment.TopEnd)
-                            .background(
-                                Brush.linearGradient(
-                                    colors =
-                                        listOf(
-                                            colorResource(org.movzx.dibella.R.color.primary),
-                                            colorResource(org.movzx.dibella.R.color.secondary),
-                                        )
-                                ),
-                                MaterialTheme.shapes.small,
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(horizontal = 2.dp, vertical = 2.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
+                        imageVector = Icons.Default.Videocam,
                         contentDescription = null,
                         tint =
                             androidx.compose.ui.res.colorResource(
                                 org.movzx.dibella.R.color.pure_white
                             ),
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(9.dp),
                     )
                 }
             }
@@ -536,8 +557,8 @@ fun ImageCard(
                     },
                     modifier =
                         Modifier.align(Alignment.BottomEnd)
-                            .padding(6.dp)
-                            .size(28.dp)
+                            .padding(4.dp)
+                            .size(21.dp)
                             .background(
                                 androidx.compose.ui.res
                                     .colorResource(org.movzx.dibella.R.color.pure_white)
@@ -549,8 +570,8 @@ fun ImageCard(
                     if (isRetrying) {
                         CircularProgressIndicator(
                             color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 1.5.dp,
+                            modifier = Modifier.size(12.dp),
                         )
                     } else if (isError) {
                         Icon(
@@ -560,7 +581,7 @@ fun ImageCard(
                                 androidx.compose.ui.res.colorResource(
                                     org.movzx.dibella.R.color.pure_white
                                 ),
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(12.dp),
                         )
                     } else if (viewMode == "favorites") {
                         val cloudColor =
@@ -572,15 +593,15 @@ fun ImageCard(
                             CircularProgressIndicator(
                                 progress = { progress },
                                 color = cloudColor,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 1.5.dp,
+                                modifier = Modifier.size(12.dp),
                             )
                         } else {
                             Icon(
                                 Icons.Default.CloudDownload,
                                 contentDescription = "Cache Status",
                                 tint = cloudColor,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(12.dp),
                             )
                         }
                     } else {
@@ -598,7 +619,7 @@ fun ImageCard(
                                     androidx.compose.ui.res.colorResource(
                                         org.movzx.dibella.R.color.pure_white
                                     ),
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(12.dp),
                         )
                     }
                 }

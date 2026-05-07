@@ -17,12 +17,7 @@ object FileUtils {
     fun saveBitmapAsWebP(bitmap: Bitmap, outputFile: File, quality: Int): Boolean {
         return try {
             outputFile.outputStream().use { out ->
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                    bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, quality, out)
-                } else {
-                    @Suppress("DEPRECATION")
-                    bitmap.compress(Bitmap.CompressFormat.WEBP, quality, out)
-                }
+                bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, quality, out)
             }
 
             true
@@ -120,6 +115,22 @@ object FileUtils {
             hex.startsWith("1A45DFA3") -> "mkv"
             else -> null
         }
+    }
+
+    fun isVideoFile(bytes: ByteArray): Boolean {
+        if (bytes.size < 4) return false
+
+        val hex = bytes.joinToString("") { "%02X".format(it) }.uppercase()
+
+        return hex.contains("66747970") || (hex.startsWith("1A45DFA3"))
+    }
+
+    fun isImageFile(bytes: ByteArray): Boolean {
+        if (bytes.size < 4) return false
+
+        val hex = bytes.joinToString("") { "%02X".format(it) }.uppercase()
+
+        return hex.startsWith("FFD8FF") || (hex.startsWith("52494646") && hex.contains("57454250"))
     }
 
     fun isRealMedia(file: File): Boolean {

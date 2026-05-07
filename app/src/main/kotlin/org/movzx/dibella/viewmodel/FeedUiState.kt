@@ -20,4 +20,5 @@ data class FeedUiState(
     val favoriteIds: Set<Long> = emptySet(),
     val favoritesPath: String? = null,
     val isRestored: Boolean = false,
+    val nextCursor: String? = null,
 ) : BaseUiState

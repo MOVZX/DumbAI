@@ -1,10 +1,9 @@
 package org.movzx.dibella.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,7 +12,6 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.movzx.dibella.R
-import org.movzx.dibella.util.scrollbar
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +53,6 @@ fun SettingsSidebar(
     var bKey by remember(backendApiKey) { mutableStateOf(backendApiKey) }
     var path by remember(downloadPath) { mutableStateOf(downloadPath ?: "") }
     var favPath by remember(favoritesPath) { mutableStateOf(favoritesPath ?: "") }
-    val scrollState = rememberScrollState()
     var showAutoplayDialog by remember { mutableStateOf(false) }
 
     if (showAutoplayDialog) {
@@ -75,328 +72,346 @@ fun SettingsSidebar(
         onDismiss = onDismiss,
         amoledMode = amoledMode,
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().scrollbar(scrollState).verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+        SidebarSection(
+            title = stringResource(R.string.section_appearance),
+            icon = Icons.Outlined.Palette,
         ) {
-            SidebarSection(title = stringResource(R.string.section_appearance)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        stringResource(R.string.label_amoled_mode),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Switch(checked = amoledMode, onCheckedChange = onToggleAmoled)
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.label_amoled_mode),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Switch(checked = amoledMode, onCheckedChange = onToggleAmoled)
+            }
+        }
+
+        SidebarSection(
+            title = stringResource(R.string.section_player),
+            icon = Icons.Outlined.PlayCircle,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.label_hide_player_controls),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Switch(checked = hidePlayerControls, onCheckedChange = onHidePlayerControls)
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-
-            SidebarSection(title = stringResource(R.string.section_player)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        stringResource(R.string.label_hide_player_controls),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Switch(checked = hidePlayerControls, onCheckedChange = onHidePlayerControls)
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        stringResource(R.string.label_always_enable_hd),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Switch(checked = alwaysEnableHD, onCheckedChange = onAlwaysEnableHD)
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        stringResource(R.string.label_always_mute_video),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Switch(checked = alwaysMuteVideo, onCheckedChange = onAlwaysMuteVideo)
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        stringResource(R.string.label_feed_video_autoplay),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-
-                    Switch(
-                        checked = feedVideoAutoplay,
-                        onCheckedChange = { checked ->
-                            if (checked) showAutoplayDialog = true else onFeedVideoAutoplay(false)
-                        },
-                    )
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.label_always_enable_hd),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Switch(checked = alwaysEnableHD, onCheckedChange = onAlwaysEnableHD)
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.label_always_mute_video),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Switch(checked = alwaysMuteVideo, onCheckedChange = onAlwaysMuteVideo)
+            }
 
-            SidebarSection(title = stringResource(R.string.section_api)) {
-                OutlinedTextField(
-                    value = key,
-                    onValueChange = { key = it },
-                    label = { Text(stringResource(R.string.label_api_key)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.label_feed_video_autoplay),
+                    style = MaterialTheme.typography.bodyLarge,
                 )
 
-                Button(
-                    onClick = { onSaveApiKey(key) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                ) {
-                    Text(stringResource(R.string.btn_save_api_key))
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-
-            SidebarSection(title = stringResource(R.string.section_storage)) {
-                OutlinedTextField(
-                    value = path,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text(stringResource(R.string.label_gallery_location)) },
-                    placeholder = { Text(stringResource(R.string.placeholder_default_gallery)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    trailingIcon = {
-                        IconButton(onClick = onPickDirectory) {
-                            Icon(
-                                Icons.Default.FolderOpen,
-                                contentDescription = stringResource(R.string.btn_choose),
-                            )
-                        }
+                Switch(
+                    checked = feedVideoAutoplay,
+                    onCheckedChange = { checked ->
+                        if (checked) showAutoplayDialog = true else onFeedVideoAutoplay(false)
                     },
                 )
+            }
+        }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+        SidebarSection(title = stringResource(R.string.section_api), icon = Icons.Outlined.Key) {
+            OutlinedTextField(
+                value = key,
+                onValueChange = { key = it },
+                label = { Text(stringResource(R.string.label_api_key)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+            )
+
+            Button(
+                onClick = { onSaveApiKey(key) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+            ) {
+                Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.btn_save_api_key))
+            }
+        }
+
+        SidebarSection(
+            title = stringResource(R.string.section_backend),
+            icon = Icons.Outlined.Cloud,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.label_backend_enabled),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Switch(checked = backendEnabled, onCheckedChange = onToggleBackend)
+            }
+
+            OutlinedTextField(
+                value = bKey,
+                onValueChange = { bKey = it },
+                label = { Text(stringResource(R.string.label_backend_api_key)) },
+                placeholder = { Text(stringResource(R.string.placeholder_backend_api_key)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                enabled = backendEnabled,
+            )
+
+            Button(
+                onClick = { onSaveBackendApiKey(bKey) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                enabled = backendEnabled,
+            ) {
+                Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.btn_save_backend_api_key))
+            }
+
+            OutlinedTextField(
+                value = bUrl,
+                onValueChange = { bUrl = it },
+                label = { Text(stringResource(R.string.label_backend_url)) },
+                placeholder = { Text(stringResource(R.string.placeholder_backend_url)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                enabled = backendEnabled,
+            )
+
+            Button(
+                onClick = { onSaveBackendUrl(bUrl) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                enabled = backendEnabled,
+            ) {
+                Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.btn_save_backend_url))
+            }
+        }
+
+        SidebarSection(
+            title = stringResource(R.string.section_storage),
+            icon = Icons.Outlined.Folder,
+        ) {
+            OutlinedTextField(
+                value = path,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.label_gallery_location)) },
+                placeholder = { Text(stringResource(R.string.placeholder_default_gallery)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                trailingIcon = {
+                    IconButton(onClick = onPickDirectory) {
+                        Icon(
+                            Icons.Default.FolderOpen,
+                            contentDescription = stringResource(R.string.btn_choose),
+                        )
+                    }
+                },
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    onClick = onPickDirectory,
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.small,
                 ) {
-                    Button(
-                        onClick = onPickDirectory,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                    ) {
-                        Icon(Icons.Default.Folder, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.btn_choose))
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            path = ""
-                            onUpdateDownloadPath(null)
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                    ) {
-                        Text(stringResource(R.string.btn_reset))
-                    }
+                    Icon(Icons.Default.Folder, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_choose))
                 }
 
-                Spacer(Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = favPath,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text(stringResource(R.string.label_favorite_location)) },
-                    placeholder = { Text(stringResource(R.string.placeholder_default_favorite)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    trailingIcon = {
-                        IconButton(onClick = onPickFavoritesDirectory) {
-                            Icon(
-                                Icons.Default.FolderOpen,
-                                contentDescription = stringResource(R.string.btn_choose),
-                            )
-                        }
+                OutlinedButton(
+                    onClick = {
+                        path = ""
+                        onUpdateDownloadPath(null)
                     },
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.small,
                 ) {
-                    Button(
-                        onClick = onPickFavoritesDirectory,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                    ) {
-                        Icon(Icons.Default.Folder, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.btn_choose))
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            favPath = ""
-                            onUpdateFavoritesPath(null)
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                    ) {
-                        Text(stringResource(R.string.btn_reset))
-                    }
+                    Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_reset))
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            Spacer(Modifier.height(8.dp))
 
-            SidebarSection(title = stringResource(R.string.section_backup)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Button(
-                        onClick = onImport,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = colorResource(R.color.success),
-                                contentColor = androidx.compose.ui.graphics.Color.White,
-                            ),
-                    ) {
-                        Text(stringResource(R.string.btn_import))
+            OutlinedTextField(
+                value = favPath,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.label_favorite_location)) },
+                placeholder = { Text(stringResource(R.string.placeholder_default_favorite)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                trailingIcon = {
+                    IconButton(onClick = onPickFavoritesDirectory) {
+                        Icon(
+                            Icons.Default.FolderOpen,
+                            contentDescription = stringResource(R.string.btn_choose),
+                        )
                     }
+                },
+            )
 
-                    Button(
-                        onClick = onExport,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = colorResource(R.color.error),
-                                contentColor = androidx.compose.ui.graphics.Color.White,
-                            ),
-                    ) {
-                        Text(stringResource(R.string.btn_export))
-                    }
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-
-            SidebarSection(title = stringResource(R.string.section_backend)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        stringResource(R.string.label_backend_enabled),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Switch(checked = backendEnabled, onCheckedChange = onToggleBackend)
-                }
-
-                OutlinedTextField(
-                    value = bKey,
-                    onValueChange = { bKey = it },
-                    label = { Text(stringResource(R.string.label_backend_api_key)) },
-                    placeholder = { Text(stringResource(R.string.placeholder_backend_api_key)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = backendEnabled,
-                )
-
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Button(
-                    onClick = { onSaveBackendApiKey(bKey) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = backendEnabled,
+                    onClick = onPickFavoritesDirectory,
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.small,
                 ) {
-                    Text(stringResource(R.string.btn_save_backend_api_key))
+                    Icon(Icons.Default.Folder, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_choose))
                 }
 
-                OutlinedTextField(
-                    value = bUrl,
-                    onValueChange = { bUrl = it },
-                    label = { Text(stringResource(R.string.label_backend_url)) },
-                    placeholder = { Text(stringResource(R.string.placeholder_backend_url)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = backendEnabled,
-                )
+                OutlinedButton(
+                    onClick = {
+                        favPath = ""
+                        onUpdateFavoritesPath(null)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.small,
+                ) {
+                    Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_reset))
+                }
+            }
+        }
 
+        SidebarSection(
+            title = stringResource(R.string.section_backup),
+            icon = Icons.Outlined.Backup,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Button(
-                    onClick = { onSaveBackendUrl(bUrl) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = backendEnabled,
+                    onClick = onImport,
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.small,
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.success),
+                            contentColor = androidx.compose.ui.graphics.Color.White,
+                        ),
                 ) {
-                    Text(stringResource(R.string.btn_save_backend_url))
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-
-            SidebarSection(title = stringResource(R.string.section_developer)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        stringResource(R.string.label_debug_logging),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-
-                    Switch(checked = debugEnabled, onCheckedChange = onToggleDebug)
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-
-            SidebarSection(title = stringResource(R.string.section_cache)) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium,
-                ) {
-                    Text(
-                        stringResource(R.string.label_image_cache_size, cacheSize),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                    )
+                    Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_import))
                 }
 
                 Button(
-                    onClick = { onClearCache() },
+                    onClick = onExport,
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.small,
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = colorResource(R.color.error),
                             contentColor = androidx.compose.ui.graphics.Color.White,
                         ),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
                 ) {
-                    Text(stringResource(R.string.btn_clear_image_cache))
+                    Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_export))
                 }
+            }
+        }
+
+        SidebarSection(
+            title = stringResource(R.string.section_developer),
+            icon = Icons.Outlined.Code,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.label_debug_logging),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+
+                Switch(checked = debugEnabled, onCheckedChange = onToggleDebug)
+            }
+        }
+
+        SidebarSection(
+            title = stringResource(R.string.section_cache),
+            icon = Icons.Outlined.Storage,
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.small,
+            ) {
+                Text(
+                    stringResource(R.string.label_image_cache_size, cacheSize),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                )
+            }
+
+            Button(
+                onClick = { onClearCache() },
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.error),
+                        contentColor = androidx.compose.ui.graphics.Color.White,
+                    ),
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+            ) {
+                Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.btn_clear_image_cache))
             }
         }
     }

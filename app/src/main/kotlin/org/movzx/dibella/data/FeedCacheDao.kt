@@ -9,6 +9,9 @@ interface FeedCacheDao {
     @Query("SELECT * FROM feed_cache WHERE feedType = :feedType ORDER BY orderIndex ASC")
     suspend fun getFeed(feedType: String): List<FeedItemCache>
 
+    @Query("SELECT * FROM feed_cache ORDER BY feedType, orderIndex ASC")
+    suspend fun getAllFeedItemsSync(): List<FeedItemCache>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFeed(items: List<FeedItemCache>)
 

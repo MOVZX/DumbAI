@@ -39,7 +39,6 @@ data class FavoriteImageBackup(
     val nsfw: Boolean?,
     val type: String?,
     val timestamp: Long,
-    val variant: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -55,9 +54,23 @@ data class FeedItemBackup(
 )
 
 @JsonClass(generateAdapter = true)
+data class BookmarkBackup(
+    val id: Long,
+    val title: String,
+    val type: String,
+    val sort: String,
+    val period: String,
+    val nsfw: String,
+    val cursor: String,
+    val tags: String?,
+    val timestamp: Long,
+)
+
+@JsonClass(generateAdapter = true)
 data class AppBackup(
     val version: Int = 1,
     val settings: AppSettingsBackup?,
     val favorites: List<FavoriteImageBackup>,
+    val bookmarks: List<BookmarkBackup> = emptyList(),
     val feedItems: List<FeedItemBackup> = emptyList(),
 )

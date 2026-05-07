@@ -49,6 +49,8 @@ class FavoritesRepository(
     private val toggleMutexes = ConcurrentHashMap<Long, Mutex>()
     private val repositoryJob = SupervisorJob()
     private val repositoryScope = CoroutineScope(repositoryJob + Dispatchers.IO)
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val syncDispatcher = Dispatchers.IO.limitedParallelism(16)
 
     @Volatile
     private var _okHttpClient: OkHttpClient = okHttpClient
@@ -135,29 +137,9 @@ class FavoritesRepository(
         val path = preferencesRepository.effectiveFavoritesPath.first()
         val baseDir = File(path)
 
-        if (!baseDir.exists()) {
-            baseDir.mkdirs()
-
-            try {
-                File(baseDir, ".nomedia").createNewFile()
-            } catch (e: Exception) {
-                Logger.e("Dibella_IO", "Failed to create .nomedia: ${e.message}")
-            }
-        }
+        if (!baseDir.exists()) baseDir.mkdirs()
 
         return baseDir
-    }
-
-    private fun ensureNomedia(dir: File) {
-        try {
-            if (!dir.exists()) dir.mkdirs()
-
-            val nomedia = File(dir, ".nomedia")
-
-            if (!nomedia.exists()) nomedia.createNewFile()
-        } catch (e: Exception) {
-            Logger.e("Dibella_IO", "Failed to create .nomedia in ${dir.path}: ${e.message}")
-        }
     }
 
     private suspend fun getMediaDir(type: String, contentType: String): File {
@@ -166,7 +148,7 @@ class FavoritesRepository(
         val contentSub = if (contentType == "preview") TYPE_PREVIEWS else TYPE_THUMBNAILS
         val dir = File(File(base, mediaSub), contentSub)
 
-        ensureNomedia(dir)
+        if (!dir.exists()) dir.mkdirs()
 
         return dir
     }
@@ -251,7 +233,7 @@ class FavoritesRepository(
         force: Boolean = false,
         onProgress: (Float) -> Unit = {},
     ) =
-        withContext(Dispatchers.IO) {
+        withContext(syncDispatcher) {
             if (!resourceChecksInProgress.add(image.id)) {
                 Logger.d(
                     "Dibella_Cache",
@@ -325,21 +307,31 @@ class FavoritesRepository(
                             )
 
                         var success =
-                            downloadFile(getVideoPreviewUrl(image.url), tempFile) { p ->
+                            downloadFile(
+                                getVideoPreviewUrl(image.url),
+                                tempFile,
+                                expectedType = TYPE_VIDEO,
+                            ) { p ->
                                 contentProgress = p
                                 updateTotalProgress()
                             }
 
                         if (!success) {
                             success =
-                                downloadFile(image.url, tempFile) { p ->
+                                downloadFile(image.url, tempFile, expectedType = TYPE_VIDEO) { p ->
                                     contentProgress = p
                                     updateTotalProgress()
                                 }
                         }
 
                         if (success) {
-                            val bytes = tempFile.inputStream().use { it.readNBytes(64) }
+                            val bytes =
+                                tempFile.inputStream().use { input ->
+                                    val buffer = ByteArray(64)
+                                    val read = input.read(buffer)
+                                    if (read > 0) buffer.copyOf(read) else ByteArray(0)
+                                }
+
                             val ext = FileUtils.getExtensionFromBytes(bytes) ?: "mp4"
                             val finalFile = File(previewDir, "${image.id}.$ext")
 
@@ -375,13 +367,24 @@ class FavoritesRepository(
                                 "temp_full_${image.id}_${System.currentTimeMillis()}",
                             )
                         if (
-                            downloadFile(image.url, tempFile, webpQuality = 75) { p ->
+                            downloadFile(
+                                image.url,
+                                tempFile,
+                                webpQuality = 75,
+                                expectedType = TYPE_IMAGE,
+                            ) { p ->
                                 contentProgress = p
 
                                 updateTotalProgress()
                             }
                         ) {
-                            val bytes = tempFile.inputStream().use { it.readNBytes(64) }
+                            val bytes =
+                                tempFile.inputStream().use { input ->
+                                    val buffer = ByteArray(64)
+                                    val read = input.read(buffer)
+                                    if (read > 0) buffer.copyOf(read) else ByteArray(0)
+                                }
+
                             val ext = FileUtils.getExtensionFromBytes(bytes) ?: "jpg"
                             val finalFile = File(previewDir, "${image.id}_full.$ext")
 
@@ -426,8 +429,9 @@ class FavoritesRepository(
                                 getVideoThumbnailUrl(image.url),
                                 tempFile,
                                 extractFrame = true,
-                                skipExtraction = false,
+                                skipExtraction = skipExtraction,
                                 webpQuality = 50,
+                                expectedType = TYPE_IMAGE,
                             ) { p ->
                                 thumbProgress = p
 
@@ -440,8 +444,9 @@ class FavoritesRepository(
                                     getVideoPreviewUrl(image.url),
                                     tempFile,
                                     extractFrame = true,
-                                    skipExtraction = false,
+                                    skipExtraction = skipExtraction,
                                     webpQuality = 50,
+                                    expectedType = TYPE_IMAGE,
                                 ) { p ->
                                     thumbProgress = p
 
@@ -457,6 +462,7 @@ class FavoritesRepository(
                                     extractFrame = true,
                                     skipExtraction = skipExtraction,
                                     webpQuality = 50,
+                                    expectedType = TYPE_IMAGE,
                                 ) { p ->
                                     thumbProgress = p
 
@@ -465,7 +471,13 @@ class FavoritesRepository(
                         }
 
                         if (downloadSuccess) {
-                            val bytes = tempFile.inputStream().use { it.readNBytes(64) }
+                            val bytes =
+                                tempFile.inputStream().use { input ->
+                                    val buffer = ByteArray(64)
+                                    val read = input.read(buffer)
+                                    if (read > 0) buffer.copyOf(read) else ByteArray(0)
+                                }
+
                             val ext = FileUtils.getExtensionFromBytes(bytes) ?: "jpg"
                             val actualFinalFile = File(thumbDir, "$thumbBaseName.$ext")
 
@@ -484,6 +496,7 @@ class FavoritesRepository(
                                 tempFile,
                                 extractFrame = true,
                                 webpQuality = 50,
+                                expectedType = TYPE_IMAGE,
                             ) { p ->
                                 thumbProgress = p
 
@@ -491,7 +504,13 @@ class FavoritesRepository(
                             }
 
                         if (downloadSuccess) {
-                            val bytes = tempFile.inputStream().use { it.readNBytes(64) }
+                            val bytes =
+                                tempFile.inputStream().use { input ->
+                                    val buffer = ByteArray(64)
+                                    val read = input.read(buffer)
+                                    if (read > 0) buffer.copyOf(read) else ByteArray(0)
+                                }
+
                             val ext = FileUtils.getExtensionFromBytes(bytes) ?: "jpg"
                             val actualFinalFile = File(thumbDir, "$thumbBaseName.$ext")
 
@@ -572,6 +591,7 @@ class FavoritesRepository(
         extractFrame: Boolean = false,
         skipExtraction: Boolean = false,
         webpQuality: Int? = null,
+        expectedType: String? = null,
         onProgress: (Float) -> Unit = {},
     ): Boolean {
         val startTime = System.currentTimeMillis()
@@ -613,9 +633,47 @@ class FavoritesRepository(
                     if (downloadTempFile.exists() && downloadTempFile.length() > 10) {
                         var currentFile = downloadTempFile
                         var alreadyOptimized = false
+                        val skipExtraction = CivitaiUrlBuilder.backendEnabled
 
-                        if (extractFrame) {
-                            val bytes = currentFile.inputStream().use { it.readNBytes(64) }
+                        if (expectedType != null) {
+                            val bytes =
+                                currentFile.inputStream().use { input ->
+                                    val buffer = ByteArray(64)
+                                    val read = input.read(buffer)
+                                    if (read > 0) buffer.copyOf(read) else ByteArray(0)
+                                }
+
+                            if (expectedType == TYPE_VIDEO && !FileUtils.isVideoFile(bytes)) {
+                                Logger.e(
+                                    "Dibella_Codec",
+                                    "[${destination.name}] Type mismatch: expected video but got image/other",
+                                )
+
+                                if (currentFile.exists()) currentFile.delete()
+
+                                return false
+                            }
+
+                            if (expectedType == TYPE_IMAGE && !FileUtils.isImageFile(bytes)) {
+                                Logger.e(
+                                    "Dibella_Codec",
+                                    "[${destination.name}] Type mismatch: expected image but got video/other",
+                                )
+
+                                if (currentFile.exists()) currentFile.delete()
+
+                                return false
+                            }
+                        }
+
+                        if (extractFrame && !skipExtraction) {
+                            val bytes =
+                                currentFile.inputStream().use { input ->
+                                    val buffer = ByteArray(64)
+                                    val read = input.read(buffer)
+                                    if (read > 0) buffer.copyOf(read) else ByteArray(0)
+                                }
+
                             val ext = FileUtils.getExtensionFromBytes(bytes)
 
                             if (ext == "mp4" || ext == "webm") {
@@ -646,7 +704,13 @@ class FavoritesRepository(
                         }
 
                         if (webpQuality != null && !alreadyOptimized && !skipExtraction) {
-                            val bytes = currentFile.inputStream().use { it.readNBytes(64) }
+                            val bytes =
+                                currentFile.inputStream().use { input ->
+                                    val buffer = ByteArray(64)
+                                    val read = input.read(buffer)
+                                    if (read > 0) buffer.copyOf(read) else ByteArray(0)
+                                }
+
                             val ext = FileUtils.getExtensionFromBytes(bytes)
 
                             if (ext != null && FileUtils.IMAGE_EXTENSIONS.contains(ext)) {
@@ -668,6 +732,37 @@ class FavoritesRepository(
                                 ) {
                                     currentFile = webpFile
                                 }
+                            }
+                        }
+
+                        if (expectedType != null) {
+                            val finalBytes =
+                                currentFile.inputStream().use { input ->
+                                    val buffer = ByteArray(64)
+                                    val read = input.read(buffer)
+                                    if (read > 0) buffer.copyOf(read) else ByteArray(0)
+                                }
+
+                            if (expectedType == TYPE_VIDEO && !FileUtils.isVideoFile(finalBytes)) {
+                                Logger.e(
+                                    "Dibella_Codec",
+                                    "[${destination.name}] Final file is not a video after processing, rejecting",
+                                )
+
+                                currentFile.delete()
+
+                                return false
+                            }
+
+                            if (expectedType == TYPE_IMAGE && !FileUtils.isImageFile(finalBytes)) {
+                                Logger.e(
+                                    "Dibella_Codec",
+                                    "[${destination.name}] Final file is not an image after processing, rejecting",
+                                )
+
+                                currentFile.delete()
+
+                                return false
                             }
                         }
 

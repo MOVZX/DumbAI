@@ -1,7 +1,6 @@
 package org.movzx.dibella.data
 
 import android.content.Context
-import android.os.Environment
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
@@ -52,6 +51,7 @@ class UserPreferencesRepository(private val context: Context) {
         val BACKEND_ENABLED = booleanPreferencesKey("backend_enabled")
         val BACKEND_URL = stringPreferencesKey("backend_url")
         val BACKEND_API_KEY = stringPreferencesKey("backend_api_key")
+        val SHOW_NSFW_FAVORITES = booleanPreferencesKey("show_nsfw_favorites")
     }
 
     val nsfw: Flow<String> =
@@ -139,19 +139,7 @@ class UserPreferencesRepository(private val context: Context) {
             if (!favPath.isNullOrBlank()) {
                 favPath
             } else {
-                val downPath = preferences[PreferencesKeys.DOWNLOAD_PATH]
-
-                val galleryDir =
-                    if (!downPath.isNullOrBlank()) File(downPath)
-                    else
-                        File(
-                            Environment.getExternalStoragePublicDirectory(
-                                Environment.DIRECTORY_PICTURES
-                            ),
-                            "Dibella",
-                        )
-
-                File(galleryDir, "Favorites").absolutePath
+                File(context.getExternalFilesDir(null), "Favorites").absolutePath
             }
         }
 
@@ -494,6 +482,19 @@ class UserPreferencesRepository(private val context: Context) {
 
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.ONBOARDING_COMPLETED] = completed
+        }
+    }
+
+    val showNsfwFavorites: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SHOW_NSFW_FAVORITES] ?: true
+        }
+
+    suspend fun setShowNsfwFavorites(show: Boolean) {
+        Logger.d("Dibella_Prefs", "setShowNsfwFavorites: $show")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_NSFW_FAVORITES] = show
         }
     }
 }

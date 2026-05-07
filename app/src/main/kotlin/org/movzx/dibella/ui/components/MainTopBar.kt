@@ -32,8 +32,9 @@ fun SelectionTopBar(
             Text(
                 text =
                     title
-                        ?: stringResource(
-                            org.movzx.dibella.R.string.label_selected_count,
+                        ?: androidx.compose.ui.res.pluralStringResource(
+                            org.movzx.dibella.R.plurals.label_selected_count,
+                            selectedCount,
                             selectedCount,
                         ),
                 style = MaterialTheme.typography.titleMedium,
@@ -79,8 +80,8 @@ fun SelectionTopBar(
 @Composable
 fun MainTopBar(
     gridColumns: Int,
-    onShowDisplayOptions: () -> Unit,
-    onUpdateGridColumns: (Int) -> Unit,
+    onShowDisplayOptions: (() -> Unit)?,
+    onUpdateGridColumns: ((Int) -> Unit)?,
     onShowFilters: (() -> Unit)?,
     onShowSettings: () -> Unit,
 ) {
@@ -141,30 +142,34 @@ fun MainTopBar(
         },
         navigationIcon = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onShowDisplayOptions) {
-                    Icon(
-                        imageVector = Icons.Default.GridView,
-                        contentDescription = stringResource(R.string.display_options),
-                    )
+                if (onShowDisplayOptions != null) {
+                    IconButton(onClick = onShowDisplayOptions) {
+                        Icon(
+                            imageVector = Icons.Default.GridView,
+                            contentDescription = stringResource(R.string.display_options),
+                        )
+                    }
                 }
 
-                IconButton(
-                    onClick = {
-                        val nextCols = if (gridColumns >= 4) 1 else gridColumns + 1
+                if (onUpdateGridColumns != null) {
+                    IconButton(
+                        onClick = {
+                            val nextCols = if (gridColumns >= 4) 1 else gridColumns + 1
 
-                        onUpdateGridColumns(nextCols)
+                            onUpdateGridColumns(nextCols)
+                        }
+                    ) {
+                        Icon(
+                            imageVector =
+                                when (gridColumns) {
+                                    1 -> Icons.Default.ViewStream
+                                    2 -> Icons.Default.Dashboard
+                                    3 -> Icons.Default.ViewModule
+                                    else -> Icons.Filled.Grid4x4
+                                },
+                            contentDescription = stringResource(R.string.label_grid_columns),
+                        )
                     }
-                ) {
-                    Icon(
-                        imageVector =
-                            when (gridColumns) {
-                                1 -> Icons.Default.ViewStream
-                                2 -> Icons.Default.Dashboard
-                                3 -> Icons.Default.ViewModule
-                                else -> Icons.Filled.Grid4x4
-                            },
-                        contentDescription = stringResource(R.string.label_grid_columns),
-                    )
                 }
             }
         },

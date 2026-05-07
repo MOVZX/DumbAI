@@ -42,6 +42,8 @@ fun FavoritesScreen(
     val context = LocalContext.current
     val activity = context as ComponentActivity
     val viewModel: FavoritesViewModel = hiltViewModel(activity)
+    val bookmarkViewModel: org.movzx.dibella.viewmodel.BookmarkViewModel = hiltViewModel(activity)
+    val bookmarkState by bookmarkViewModel.uiState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val videoPlayerManager = LocalVideoPlayerManager.current
 
@@ -107,7 +109,7 @@ fun FavoritesScreen(
                 onRemoveDuplicates = { viewModel.removeDuplicates() },
                 onOpenLeftSidebar = onOpenLeftSidebar,
                 onUpdateGridColumns = { viewModel.updateGridColumns(it) },
-                onShowFilters = {},
+                onShowFilters = null,
                 onShowSettings = { onOpenRightSidebar(RightSidebarType.SETTINGS) },
             )
         },
@@ -118,11 +120,13 @@ fun FavoritesScreen(
                 feedCount = feedCount,
                 favoritesCount = uiState.images.size,
                 galleryCount = galleryState.images.size,
+                bookmarkCount = bookmarkState.bookmarkCount,
             )
         },
         gridState = gridState,
         isLoading = uiState.isLoading,
         amoledMode = amoledMode,
+        showBookmarkJump = false,
     ) { padding ->
         ImageGrid(
             images =
@@ -166,7 +170,9 @@ fun FavoritesScreen(
             isRefreshing = uiState.isRefreshing,
         )
 
-        if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)
+        if (uiState.isShowingDuplicates && uiState.duplicateGroups.isEmpty() && !uiState.isLoading)
+            EmptyState("duplicates")
+        else if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)
             EmptyState("favorites")
     }
 }

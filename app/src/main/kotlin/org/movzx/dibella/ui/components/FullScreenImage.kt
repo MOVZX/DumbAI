@@ -1,7 +1,6 @@
 package org.movzx.dibella.ui.components
 
 import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -20,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -29,6 +27,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import coil3.ImageLoader
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
@@ -70,7 +69,7 @@ fun FullScreenImage(
 
     var isZoomed by remember { mutableStateOf(false) }
     var showUI by remember { mutableStateOf(!hidePlayerControls) }
-    var offsetY by remember { mutableStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
     var showUnfavoriteDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var shouldNavigateToNextPage by remember { mutableStateOf(false) }
@@ -86,8 +85,6 @@ fun FullScreenImage(
     var hasAudio by remember { mutableStateOf(false) }
     var videoPlaybackError by remember { mutableStateOf<String?>(null) }
     var currentFps by remember { mutableIntStateOf(0) }
-    var currentPlayerType by remember { mutableStateOf("ExoPlayer") }
-
     val density = LocalDensity.current
     val dismissThresholdDp = 150.dp
     val dismissThreshold = with(density) { dismissThresholdDp.toPx() }
@@ -139,14 +136,10 @@ fun FullScreenImage(
             onConfirm = {
                 if (pagerState.currentPage < images.size) {
                     onDeleteLocalFile(images[pagerState.currentPage])
-
-                    val canNavigate =
-                        pagerState.currentPage + 1 < images.size || pagerState.currentPage - 1 >= 0
-
-                    if (canNavigate) shouldNavigateToNextPage = true
                 }
 
                 showDeleteDialog = false
+                onDismiss()
             },
             onDismiss = { showDeleteDialog = false },
         )
@@ -225,18 +218,18 @@ fun FullScreenImage(
             key = { images.getOrNull(it)?.id ?: it },
             pageSpacing = 16.dp,
         ) { page ->
-            val pageOffset =
-                ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
-
-            val scale = 0.9f + (1f - abs(pageOffset)).coerceIn(0f, 1f) * 0.1f
-            val alpha = 0.5f + (1f - abs(pageOffset)).coerceIn(0f, 1f) * 0.5f
-
             Box(
                 modifier =
                     Modifier.fillMaxSize().graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        this.alpha = alpha
+                        val pageOffset =
+                            ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+
+                        val lerpScale = 0.9f + (1f - abs(pageOffset)).coerceIn(0f, 1f) * 0.1f
+                        val lerpAlpha = 0.5f + (1f - abs(pageOffset)).coerceIn(0f, 1f) * 0.5f
+
+                        scaleX = lerpScale
+                        scaleY = lerpScale
+                        this.alpha = lerpAlpha
                     }
             ) {
                 if (page < images.size) {
@@ -253,18 +246,39 @@ fun FullScreenImage(
                     val favDir = remember(favoritesPath) { favoritesPath?.let { java.io.File(it) } }
 
                     val thumbnailData by
-                        produceState(initialValue = image.url, image.url, favoriteInfo, favDir) {
+                        produceState(
+                            initialValue =
+                                if (image.url.startsWith("http")) {
+                                    if (image.type == "video")
+                                        org.movzx.dibella.util.getVideoThumbnailUrl(image.url)
+                                    else org.movzx.dibella.util.getThumbnailUrl(image.url, 320)
+                                } else image.url,
+                            image.url,
+                            favoriteInfo,
+                            favDir,
+                        ) {
                             value =
                                 org.movzx.dibella.util.resolveImageData(
                                     context,
                                     image,
                                     favoriteInfo,
+                                    viewMode = viewMode,
                                     favoritesDir = favDir,
                                 )
                         }
 
                     val previewData by
-                        produceState(initialValue = image.url, image.url, favoriteInfo, favDir) {
+                        produceState(
+                            initialValue =
+                                if (image.url.startsWith("http")) {
+                                    if (image.type == "video")
+                                        org.movzx.dibella.util.getVideoPreviewUrl(image.url)
+                                    else org.movzx.dibella.util.getThumbnailUrl(image.url, 800)
+                                } else image.url,
+                            image.url,
+                            favoriteInfo,
+                            favDir,
+                        ) {
                             value =
                                 org.movzx.dibella.util.resolveImageData(
                                     context = context,
@@ -272,6 +286,7 @@ fun FullScreenImage(
                                     favoriteInfo = favoriteInfo,
                                     thumbnailWidth = 450,
                                     useVideoPath = true,
+                                    viewMode = viewMode,
                                     favoritesDir = favDir,
                                 )
                         }
@@ -334,7 +349,6 @@ fun FullScreenImage(
                                     }
                                 },
                                 onFpsUpdate = { currentFps = it },
-                                onPlayerTypeUpdate = { currentPlayerType = it },
                                 onAudioStateChange = { hasAudio = it },
                                 onPlaybackError = { videoPlaybackError = it },
                                 onZoomChange = { isZoomed = it },
@@ -413,7 +427,7 @@ fun FullScreenImage(
                         modifier = Modifier.align(Alignment.CenterStart),
                     ) {
                         Text(
-                            text = "$currentPlayerType: $currentFps FPS",
+                            text = "$currentFps FPS",
                             color = androidx.compose.ui.res.colorResource(R.color.pure_white),
                             fontSize = 12.sp,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -429,7 +443,7 @@ fun FullScreenImage(
                             view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
 
                             val url = "https://civitai.com/images/${currentImage.id}"
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            val intent = Intent(Intent.ACTION_VIEW, url.toUri())
 
                             context.startActivity(intent)
                         },
@@ -470,21 +484,15 @@ fun FullScreenImage(
                     ),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
-            val bottomGradient =
-                androidx.compose.ui.graphics.Brush.verticalGradient(
-                    colors =
-                        listOf(
-                            Color.Transparent,
-                            colorResource(R.color.pure_black).copy(alpha = 0.7f),
-                        )
-                )
-
             Column(
                 modifier =
                     Modifier.fillMaxWidth()
                         .padding(16.dp)
                         .navigationBarsPadding()
-                        .background(bottomGradient, MaterialTheme.shapes.large)
+                        .background(
+                            colorResource(R.color.pure_black).copy(alpha = 0.5f),
+                            MaterialTheme.shapes.small,
+                        )
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -563,7 +571,7 @@ fun FullScreenImage(
                                 if (userIsPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                 contentDescription = "Play/Pause",
                                 tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
 
@@ -586,7 +594,7 @@ fun FullScreenImage(
                                     androidx.compose.ui.res
                                         .colorResource(R.color.pure_white)
                                         .copy(alpha = if (hasAudio) 1f else 0.3f),
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
 
@@ -636,7 +644,7 @@ fun FullScreenImage(
                                         androidx.compose.ui.res
                                             .colorResource(R.color.pure_white)
                                             .copy(alpha = 0.5f),
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
 
@@ -663,14 +671,14 @@ fun FullScreenImage(
                                 },
                                 contentDescription = "Scale Mode",
                                 tint = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
                     }
 
                     if (currentImage?.type == "video") {
                         VerticalDivider(
-                            modifier = Modifier.height(28.dp).padding(horizontal = 4.dp),
+                            modifier = Modifier.height(24.dp).padding(horizontal = 4.dp),
                             color =
                                 androidx.compose.ui.res
                                     .colorResource(R.color.pure_white)
@@ -707,7 +715,7 @@ fun FullScreenImage(
                                     if (isFavorite)
                                         androidx.compose.ui.res.colorResource(R.color.error)
                                     else androidx.compose.ui.res.colorResource(R.color.pure_white),
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
                     }
@@ -744,8 +752,8 @@ fun FullScreenImage(
                                     tint =
                                         androidx.compose.ui.res
                                             .colorResource(R.color.pure_white)
-                                            .copy(alpha = if (isDownloaded) 0.5f else 1f),
-                                    modifier = Modifier.size(28.dp),
+                                            .copy(alpha = if (isDownloaded) 0.7f else 1f),
+                                    modifier = Modifier.size(24.dp),
                                 )
                             }
                         }
@@ -766,7 +774,7 @@ fun FullScreenImage(
                                 Icons.Default.Delete,
                                 contentDescription = stringResource(R.string.btn_delete),
                                 tint = androidx.compose.ui.res.colorResource(R.color.error),
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
                     }

@@ -1,11 +1,14 @@
 package org.movzx.dibella.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import org.movzx.dibella.util.scrollbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -16,6 +19,8 @@ fun BaseSidebar(
     amoledMode: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val scrollState = rememberScrollState()
+
     ModalDrawerSheet(
         modifier =
             Modifier.width(320.dp).fillMaxHeight().windowInsetsPadding(WindowInsets.safeDrawing),
@@ -28,7 +33,7 @@ fun BaseSidebar(
             modifier =
                 Modifier.fillMaxSize()
                     .padding(horizontal = 24.dp)
-                    .padding(top = 24.dp, bottom = 32.dp)
+                    .padding(top = 24.dp, bottom = 24.dp)
         ) {
             Text(
                 title,
@@ -37,7 +42,11 @@ fun BaseSidebar(
                 color = MaterialTheme.colorScheme.primary,
             )
 
-            Column(modifier = Modifier.weight(1f), content = content)
+            Column(
+                modifier = Modifier.weight(1f).scrollbar(scrollState).verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                content = content,
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 

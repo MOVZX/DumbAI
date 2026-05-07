@@ -11,7 +11,6 @@ import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -23,6 +22,7 @@ import okhttp3.Request
 import okio.buffer
 import okio.source
 import org.movzx.dibella.model.CivitaiImage
+import org.movzx.dibella.util.CivitaiUrlBuilder
 import org.movzx.dibella.util.DuplicateDetector
 import org.movzx.dibella.util.FileUtils
 import org.movzx.dibella.util.Logger
@@ -35,7 +35,8 @@ constructor(
     private val okHttpClient: OkHttpClient,
     private val preferencesRepository: UserPreferencesRepository,
 ) {
-    private val videoMetadataDispatcher = Dispatchers.IO
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val videoMetadataDispatcher = Dispatchers.IO.limitedParallelism(16)
     private val _downloadedIds = kotlinx.coroutines.flow.MutableStateFlow<Set<Long>>(emptySet())
     val downloadedIds: kotlinx.coroutines.flow.StateFlow<Set<Long>> = _downloadedIds.asStateFlow()
     private val refreshMutex = Mutex()
@@ -205,122 +206,145 @@ constructor(
         withContext(Dispatchers.IO) {
             getDownloadMutex(image.id).withLock {
                 val startTime = System.currentTimeMillis()
-                val maxAttempts = 3
+                val isVideo = image.type == "video"
+                val urlsToTry = mutableListOf<String>()
+                val expanded = CivitaiUrlBuilder.expandUrl(image.url, image.type)
+                val uuid = CivitaiUrlBuilder.extractCivitaiUuid(expanded)
+
+                if (isVideo) {
+                    if (!CivitaiUrlBuilder.backendEnabled && uuid != null) {
+                        urlsToTry.add(
+                            "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/$uuid/original=true/$uuid.mp4"
+                        )
+
+                        urlsToTry.add(
+                            "https://image-b2.civitai.com/file/civitai-media-cache/$uuid/original"
+                        )
+
+                        urlsToTry.add(
+                            "https://image-b2.civitai.com/file/civitai-media-cache/$uuid/default"
+                        )
+                    } else {
+                        urlsToTry.add(CivitaiUrlBuilder.getVideoOriginalUrl(expanded))
+                    }
+                } else {
+                    urlsToTry.add(CivitaiUrlBuilder.getImageOriginalUrl(expanded))
+                }
+
+                if (!urlsToTry.contains(expanded)) urlsToTry.add(expanded)
 
                 try {
                     val downloadDir = getDownloadDir(preferencesRepository.downloadPath.first())
 
-                    if (!downloadDir.exists()) {
-                        val created = downloadDir.mkdirs()
+                    if (!downloadDir.exists()) downloadDir.mkdirs()
 
-                        Logger.d("Dibella_IO", "Creating download directory: $created")
-                    }
+                    var lastError: Exception? = null
 
-                    var result: Result<String>? = null
+                    for (url in urlsToTry) {
+                        try {
+                            val isBackendUrl =
+                                CivitaiUrlBuilder.backendEnabled &&
+                                    CivitaiUrlBuilder.backendUrl.isNotBlank() &&
+                                    url.startsWith(CivitaiUrlBuilder.backendUrl.removeSuffix("/"))
 
-                    retryLoop@ for (attempt in 1..maxAttempts) {
-                        val request = Request.Builder().url(image.url).build()
+                            val request = Request.Builder().url(url).build()
 
-                        Logger.d(
-                            "Dibella_Net",
-                            "[${image.id}] Download attempt $attempt/$maxAttempts | URL: ${image.url}",
-                        )
+                            val callClient =
+                                if (isBackendUrl) {
+                                    okHttpClient
+                                        .newBuilder()
+                                        .callTimeout(
+                                            CivitaiUrlBuilder.BACKEND_DOWNLOAD_TIMEOUT_SECONDS,
+                                            java.util.concurrent.TimeUnit.SECONDS,
+                                        )
+                                        .build()
+                                } else okHttpClient
 
-                        okHttpClient.newCall(request).execute().use { response ->
-                            if (!response.isSuccessful) {
-                                Logger.e(
+                            if (isBackendUrl) {
+                                Logger.d(
                                     "Dibella_Net",
-                                    "[${image.id}] Download Failed | HTTP ${response.code}",
+                                    "[${image.id}] Backend download with ${CivitaiUrlBuilder.BACKEND_DOWNLOAD_TIMEOUT_SECONDS}s call timeout | URL: $url",
                                 )
-
-                                if (attempt < maxAttempts) {
-                                    delay(1000L * attempt)
-
-                                    continue@retryLoop
-                                }
-
-                                result = Result.failure(Exception("HTTP ${response.code}"))
-
-                                return@use
-                            }
-
-                            val body = response.body
-
-                            if (body == null) {
-                                if (attempt < maxAttempts) {
-                                    delay(1000L * attempt)
-
-                                    continue@retryLoop
-                                }
-
-                                result = Result.failure(Exception("Empty body"))
-
-                                return@use
-                            }
-
-                            val contentLength = body.contentLength()
-                            val source = body.source()
-
-                            val ext =
-                                FileUtils.detectExtension(
-                                    contentType = response.header("Content-Type"),
-                                    source = source,
-                                    url = image.url,
+                            } else {
+                                Logger.d(
+                                    "Dibella_Net",
+                                    "[${image.id}] Download attempt | URL: $url",
                                 )
-
-                            val file = File(downloadDir, "Dibella_${image.id}.$ext")
-
-                            Logger.d(
-                                "Dibella_Net",
-                                "[${image.id}] Detected extension: $ext | Size: ${contentLength / 1024}KB",
-                            )
-
-                            FileOutputStream(file).use { output ->
-                                val buffer = ByteArray(8192)
-                                var totalBytesRead = 0L
-                                var bytesRead: Int
-
-                                while (source.read(buffer).also { bytesRead = it } != -1) {
-                                    output.write(buffer, 0, bytesRead)
-
-                                    totalBytesRead += bytesRead
-
-                                    if (contentLength > 0)
-                                        onProgress(totalBytesRead.toFloat() / contentLength)
-                                }
                             }
 
-                            MediaScannerConnection.scanFile(
-                                context,
-                                arrayOf(file.absolutePath),
-                                null,
-                                null,
-                            )
+                            val result: String? =
+                                callClient.newCall(request).execute().use { response ->
+                                    if (!response.isSuccessful)
+                                        throw Exception("HTTP ${response.code}")
 
-                            _downloadedIds.update { it + image.id }
+                                    val body = response.body ?: throw Exception("Empty body")
+                                    val source = body.source()
 
-                            Logger.d(
-                                "Dibella_IO",
-                                "[${image.id}] Download complete in ${System.currentTimeMillis() - startTime}ms | Path: ${file}",
-                            )
+                                    val ext =
+                                        FileUtils.detectExtension(
+                                            contentType = response.header("Content-Type"),
+                                            source = source,
+                                            url = url,
+                                        )
 
-                            result = Result.success(file.absolutePath)
+                                    val isActualVideo = FileUtils.VIDEO_EXTENSIONS.contains(ext)
+
+                                    if (isVideo && !isActualVideo) {
+                                        Logger.w(
+                                            "Dibella_Net",
+                                            "[${image.id}] Expected video but got $ext. Trying next fallback.",
+                                        )
+
+                                        return@use null
+                                    }
+
+                                    val file = File(downloadDir, "Dibella_${image.id}.$ext")
+                                    val contentLength = body.contentLength()
+
+                                    FileOutputStream(file).use { output ->
+                                        val buffer = ByteArray(8192)
+                                        var totalBytesRead = 0L
+                                        var bytesRead: Int
+
+                                        while (source.read(buffer).also { bytesRead = it } != -1) {
+                                            output.write(buffer, 0, bytesRead)
+
+                                            totalBytesRead += bytesRead
+
+                                            if (contentLength > 0)
+                                                onProgress(totalBytesRead.toFloat() / contentLength)
+                                        }
+                                    }
+
+                                    MediaScannerConnection.scanFile(
+                                        context,
+                                        arrayOf(file.absolutePath),
+                                        null,
+                                        null,
+                                    )
+                                    _downloadedIds.update { it + image.id }
+
+                                    Logger.d(
+                                        "Dibella_IO",
+                                        "[${image.id}] Download complete in ${System.currentTimeMillis() - startTime}ms | Path: $file",
+                                    )
+
+                                    file.absolutePath
+                                }
+
+                            if (result != null) return@withLock Result.success(result)
+                        } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+
+                            lastError = e
+
+                            Logger.e("Dibella_Net", "[${image.id}] Fallback Failed: ${e.message}")
                         }
-
-                        if (result != null) break
                     }
 
-                    val finalResult =
-                        result
-                            ?: Result.failure(
-                                Exception("Download failed after $maxAttempts attempts")
-                            )
-                    finalResult
+                    Result.failure(lastError ?: Exception("All download fallbacks failed"))
                 } catch (e: Exception) {
-                    Logger.e("Dibella_Net", "[${image.id}] Download Exception: ${e.message}")
-
                     if (e is kotlinx.coroutines.CancellationException) throw e
-
                     Result.failure(e)
                 }
             }

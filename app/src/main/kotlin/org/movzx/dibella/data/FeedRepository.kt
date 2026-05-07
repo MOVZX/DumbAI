@@ -33,6 +33,7 @@ constructor(
         limit: Int,
         cursor: String?,
         isNew: Boolean,
+        startOrderIndex: Int = 0,
     ): Pair<List<CivitaiImage>, String?> {
         var attempt = 0
         var currentCursor = cursor
@@ -59,7 +60,7 @@ constructor(
                 val nextCursor = response.metadata.nextCursor?.substringBefore('|')
 
                 val cacheItems = items.mapIndexed { index, image ->
-                    FeedItemCache.fromCivitaiImage(image, type, if (isNew) index else 9999 + index)
+                    FeedItemCache.fromCivitaiImage(image, type, startOrderIndex + index)
                 }
 
                 if (isNew) feedCacheDao.replaceFeed(type, cacheItems)

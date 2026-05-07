@@ -109,6 +109,19 @@ object AppModule {
     }
 
     @Provides
+    fun provideBookmarkDao(database: AppDatabase): org.movzx.dibella.data.BookmarkDao {
+        return database.bookmarkDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBookmarkRepository(
+        bookmarkDao: org.movzx.dibella.data.BookmarkDao
+    ): org.movzx.dibella.data.BookmarkRepository {
+        return org.movzx.dibella.data.BookmarkRepository(bookmarkDao)
+    }
+
+    @Provides
     @Singleton
     fun provideUserPreferencesRepository(
         @ApplicationContext context: Context

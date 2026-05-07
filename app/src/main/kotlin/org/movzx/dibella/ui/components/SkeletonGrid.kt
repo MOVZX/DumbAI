@@ -36,7 +36,7 @@ fun SkeletonGrid(columnCount: Int) {
                 modifier =
                     Modifier.fillMaxWidth()
                         .aspectRatio(aspectRatio)
-                        .clip(MaterialTheme.shapes.large)
+                        .clip(MaterialTheme.shapes.small)
                         .shimmerBackground()
             )
         }

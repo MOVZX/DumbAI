@@ -8,7 +8,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +22,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -72,7 +71,7 @@ fun OnboardingScreen(onSkip: () -> Unit, onFinish: () -> Unit, modifier: Modifie
 
         IconButton(onClick = onSkip, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
             Icon(
-                imageVector = Icons.Default.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.btn_skip),
                 tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp),
@@ -108,7 +107,7 @@ fun OnboardingScreen(onSkip: () -> Unit, onFinish: () -> Unit, modifier: Modifie
                     else onFinish()
                 },
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.small,
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.primary),
@@ -168,7 +167,6 @@ private fun OnboardingPageContent(page: OnboardingPage) {
             Text(
                 text = page.title,
                 style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
                 color = Color.White,
                 textAlign = TextAlign.Center,
             )

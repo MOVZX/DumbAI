@@ -2,6 +2,9 @@ package org.movzx.dibella.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -53,8 +56,10 @@ fun ConfirmationDialog(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         ),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = MaterialTheme.shapes.small,
                 ) {
+                    Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(text = stringResource(R.string.btn_cancel))
                 }
                 Button(
@@ -68,8 +73,10 @@ fun ConfirmationDialog(
                             containerColor = colorResource(R.color.tertiary),
                             contentColor = androidx.compose.ui.graphics.Color.White,
                         ),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = MaterialTheme.shapes.small,
                 ) {
+                    Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(text = stringResource(R.string.btn_confirm))
                 }
             }

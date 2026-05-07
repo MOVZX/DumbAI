@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -126,6 +126,8 @@ fun MainScreen(imageLoader: ImageLoader) {
     var fullScreenViewMode by remember { mutableStateOf("feed") }
     var backPressedTime by remember { mutableLongStateOf(0L) }
     val exitConfirmMsg = stringResource(R.string.msg_exit_confirm)
+    val backupFilename = stringResource(R.string.backup_filename)
+    val mimeJson = stringResource(R.string.mime_json)
 
     LaunchedEffect(settingsViewModel.exitEvent) {
         settingsViewModel.exitEvent.collect {
@@ -205,7 +207,7 @@ fun MainScreen(imageLoader: ImageLoader) {
 
         ModalNavigationDrawer(
             drawerState = leftDrawerState,
-            gesturesEnabled = true,
+            gesturesEnabled = selectedImageIndex == null && currentRoute != "bookmarks",
             drawerContent = {
                 ModalDrawerSheet(
                     modifier = Modifier.width(300.dp).fillMaxHeight(),
@@ -268,88 +270,90 @@ fun MainScreen(imageLoader: ImageLoader) {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 ModalNavigationDrawer(
                     drawerState = rightDrawerState,
-                    gesturesEnabled = true,
+                    gesturesEnabled = selectedImageIndex == null && leftDrawerState.isClosed,
                     drawerContent = {
-                        CompositionLocalProvider(
-                            LocalLayoutDirection provides LayoutDirection.Ltr
+                        ModalDrawerSheet(
+                            modifier = Modifier.width(300.dp).fillMaxHeight(),
+                            drawerContainerColor = sidebarColor,
+                            drawerShape = androidx.compose.ui.graphics.RectangleShape,
                         ) {
-                            if (
-                                rightSidebarType == RightSidebarType.FILTERS &&
-                                    currentRoute == "feed"
+                            CompositionLocalProvider(
+                                LocalLayoutDirection provides LayoutDirection.Ltr
                             ) {
-                                FilterSidebar(
-                                    nsfw = feedUiState.nsfw,
-                                    sort = feedUiState.sort,
-                                    period = feedUiState.period,
-                                    type = feedUiState.type,
-                                    tagIds = feedUiState.tagIds,
-                                    amoledMode = settingsState.amoledMode,
-                                    onDismiss = { scope.launch { rightDrawerState.close() } },
-                                    onFilterChange = { n, s, p, t, tg ->
-                                        feedViewModel.updateFilters(n, s, p, t, tg)
-                                    },
-                                    onResetFilters = { feedViewModel.resetFilters() },
-                                )
-                            } else {
-                                SettingsSidebar(
-                                    cacheSize = settingsState.cacheSize,
-                                    apiKey = settingsState.apiKey,
-                                    downloadPath = settingsState.downloadPath,
-                                    favoritesPath = settingsState.favoritesPath,
-                                    debugEnabled = settingsState.debugEnabled,
-                                    hidePlayerControls = settingsState.hidePlayerControls,
-                                    alwaysEnableHD = settingsState.alwaysEnableHD,
-                                    alwaysMuteVideo = settingsState.alwaysMuteVideo,
-                                    feedVideoAutoplay = settingsState.feedVideoAutoplay,
-                                    backendEnabled = settingsState.backendEnabled,
-                                    backendUrl = settingsState.backendUrl,
-                                    backendApiKey = settingsState.backendApiKey,
-                                    amoledMode = settingsState.amoledMode,
-                                    onDismiss = { scope.launch { rightDrawerState.close() } },
-                                    onClearCache = { settingsViewModel.clearImageCache() },
-                                    onSaveApiKey = { settingsViewModel.updateApiKey(it) },
-                                    onSaveBackendUrl = { settingsViewModel.updateBackendUrl(it) },
-                                    onSaveBackendApiKey = {
-                                        settingsViewModel.updateBackendApiKey(it)
-                                    },
-                                    onUpdateDownloadPath = {
-                                        settingsViewModel.updateDownloadPath(it)
-                                    },
-                                    onUpdateFavoritesPath = {
-                                        settingsViewModel.updateFavoritesPath(it)
-                                    },
-                                    onPickDirectory = { dirPickerLauncher.launch(null) },
-                                    onPickFavoritesDirectory = {
-                                        favDirPickerLauncher.launch(null)
-                                    },
-                                    onExport = {
-                                        exportLauncher.launch(
-                                            context.getString(R.string.backup_filename)
-                                        )
-                                    },
-                                    onImport = {
-                                        importLauncher.launch(
-                                            arrayOf(context.getString(R.string.mime_json))
-                                        )
-                                    },
-                                    onToggleDebug = { settingsViewModel.updateDebugEnabled(it) },
-                                    onToggleBackend = {
-                                        settingsViewModel.updateBackendEnabled(it)
-                                    },
-                                    onHidePlayerControls = {
-                                        settingsViewModel.updateHidePlayerControls(it)
-                                    },
-                                    onAlwaysEnableHD = {
-                                        settingsViewModel.updateAlwaysEnableHD(it)
-                                    },
-                                    onAlwaysMuteVideo = {
-                                        settingsViewModel.updateAlwaysMuteVideo(it)
-                                    },
-                                    onFeedVideoAutoplay = {
-                                        settingsViewModel.updateFeedVideoAutoplay(it)
-                                    },
-                                    onToggleAmoled = { settingsViewModel.updateAmoledMode(it) },
-                                )
+                                if (
+                                    rightSidebarType == RightSidebarType.FILTERS &&
+                                        currentRoute == "feed"
+                                ) {
+                                    FilterSidebar(
+                                        nsfw = feedUiState.nsfw,
+                                        sort = feedUiState.sort,
+                                        period = feedUiState.period,
+                                        type = feedUiState.type,
+                                        tagIds = feedUiState.tagIds,
+                                        amoledMode = settingsState.amoledMode,
+                                        onDismiss = { scope.launch { rightDrawerState.close() } },
+                                        onFilterChange = { n, s, p, t, tg ->
+                                            feedViewModel.updateFilters(n, s, p, t, tg)
+                                        },
+                                        onResetFilters = { feedViewModel.resetFilters() },
+                                    )
+                                } else {
+                                    SettingsSidebar(
+                                        cacheSize = settingsState.cacheSize,
+                                        apiKey = settingsState.apiKey,
+                                        downloadPath = settingsState.downloadPath,
+                                        favoritesPath = settingsState.favoritesPath,
+                                        debugEnabled = settingsState.debugEnabled,
+                                        hidePlayerControls = settingsState.hidePlayerControls,
+                                        alwaysEnableHD = settingsState.alwaysEnableHD,
+                                        alwaysMuteVideo = settingsState.alwaysMuteVideo,
+                                        feedVideoAutoplay = settingsState.feedVideoAutoplay,
+                                        backendEnabled = settingsState.backendEnabled,
+                                        backendUrl = settingsState.backendUrl,
+                                        backendApiKey = settingsState.backendApiKey,
+                                        amoledMode = settingsState.amoledMode,
+                                        onDismiss = { scope.launch { rightDrawerState.close() } },
+                                        onClearCache = { settingsViewModel.clearImageCache() },
+                                        onSaveApiKey = { settingsViewModel.updateApiKey(it) },
+                                        onSaveBackendUrl = {
+                                            settingsViewModel.updateBackendUrl(it)
+                                        },
+                                        onSaveBackendApiKey = {
+                                            settingsViewModel.updateBackendApiKey(it)
+                                        },
+                                        onUpdateDownloadPath = {
+                                            settingsViewModel.updateDownloadPath(it)
+                                        },
+                                        onUpdateFavoritesPath = {
+                                            settingsViewModel.updateFavoritesPath(it)
+                                        },
+                                        onPickDirectory = { dirPickerLauncher.launch(null) },
+                                        onPickFavoritesDirectory = {
+                                            favDirPickerLauncher.launch(null)
+                                        },
+                                        onExport = { exportLauncher.launch(backupFilename) },
+                                        onImport = { importLauncher.launch(arrayOf(mimeJson)) },
+                                        onToggleDebug = {
+                                            settingsViewModel.updateDebugEnabled(it)
+                                        },
+                                        onToggleBackend = {
+                                            settingsViewModel.updateBackendEnabled(it)
+                                        },
+                                        onHidePlayerControls = {
+                                            settingsViewModel.updateHidePlayerControls(it)
+                                        },
+                                        onAlwaysEnableHD = {
+                                            settingsViewModel.updateAlwaysEnableHD(it)
+                                        },
+                                        onAlwaysMuteVideo = {
+                                            settingsViewModel.updateAlwaysMuteVideo(it)
+                                        },
+                                        onFeedVideoAutoplay = {
+                                            settingsViewModel.updateFeedVideoAutoplay(it)
+                                        },
+                                        onToggleAmoled = { settingsViewModel.updateAmoledMode(it) },
+                                    )
+                                }
                             }
                         }
                     },
@@ -396,7 +400,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         targetValue = 0.08f,
                                         animationSpec =
                                             infiniteRepeatable(
-                                                animation = tween(6000, easing = LinearEasing),
+                                                animation = tween(8000, easing = LinearEasing),
                                                 repeatMode = RepeatMode.Reverse,
                                             ),
                                         label = "glowAlpha",
@@ -408,7 +412,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         targetValue = 0.7f,
                                         animationSpec =
                                             infiniteRepeatable(
-                                                animation = tween(10000, easing = LinearEasing),
+                                                animation = tween(8000, easing = LinearEasing),
                                                 repeatMode = RepeatMode.Reverse,
                                             ),
                                         label = "glowX",
@@ -420,7 +424,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         targetValue = 0.7f,
                                         animationSpec =
                                             infiniteRepeatable(
-                                                animation = tween(12000, easing = LinearEasing),
+                                                animation = tween(8000, easing = LinearEasing),
                                                 repeatMode = RepeatMode.Reverse,
                                             ),
                                         label = "glowY",
@@ -465,14 +469,16 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 galleryRestored = galleryRestored,
                                 onGalleryRestored = { galleryRestored = it },
                                 onOpenLeftSidebar = { scope.launch { leftDrawerState.open() } },
-                                onOpenRightSidebar = { type ->
-                                    rightSidebarType = type
+                                onOpenRightSidebar = {
+                                    rightSidebarType = it
                                     scope.launch { rightDrawerState.open() }
                                 },
-                                onImageClick = { images, index, viewMode ->
+                                rightSidebarType = rightSidebarType,
+                                onUpdateRightSidebarType = { rightSidebarType = it },
+                                onImageClick = { images, index, mode ->
                                     fullScreenImages = images
                                     selectedImageIndex = index
-                                    fullScreenViewMode = viewMode
+                                    fullScreenViewMode = mode
                                 },
                                 onUpdateLastRoute = { settingsViewModel.updateLastRoute(it) },
                                 leftDrawerState = leftDrawerState,
@@ -598,6 +604,8 @@ fun AppNavigation(
     onGalleryRestored: (Boolean) -> Unit,
     onOpenLeftSidebar: () -> Unit,
     onOpenRightSidebar: (RightSidebarType) -> Unit,
+    rightSidebarType: RightSidebarType,
+    onUpdateRightSidebarType: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
     onUpdateLastRoute: (String) -> Unit,
     leftDrawerState: DrawerState,
@@ -691,6 +699,27 @@ fun AppNavigation(
                 backPressedTime = backPressedTime,
                 onUpdateBackPressedTime = onUpdateBackPressedTime,
                 exitConfirmMsg = exitConfirmMsg,
+            )
+        }
+
+        composable("bookmarks") {
+            BookmarkScreen(
+                currentRoute = currentRoute,
+                amoledMode = amoledMode,
+                onNavigate = onNavigate,
+                onOpenRightSidebar = { type ->
+                    onUpdateRightSidebarType(type)
+                    scope.launch { rightDrawerState.open() }
+                },
+                leftDrawerState = leftDrawerState,
+                rightDrawerState = rightDrawerState,
+                scope = scope,
+                selectedImageIndex = selectedImageIndex,
+                backPressedTime = backPressedTime,
+                onUpdateBackPressedTime = onUpdateBackPressedTime,
+                exitConfirmMsg = exitConfirmMsg,
+                galleryRestored = galleryRestored,
+                onGalleryRestored = onGalleryRestored,
             )
         }
     }

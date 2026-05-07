@@ -19,7 +19,7 @@ fun Modifier.shimmerBackground(): Modifier = composed {
             targetValue = 1000f,
             animationSpec =
                 infiniteRepeatable(
-                    animation = tween(durationMillis = 1200, easing = LinearEasing),
+                    animation = tween(durationMillis = 1800, easing = LinearEasing),
                     repeatMode = RepeatMode.Restart,
                 ),
             label = "shimmerPrimary",

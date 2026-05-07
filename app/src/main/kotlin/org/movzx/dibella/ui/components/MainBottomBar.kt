@@ -1,12 +1,13 @@
 package org.movzx.dibella.ui.components
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
@@ -15,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -32,33 +32,13 @@ fun MainBottomBar(
     feedCount: Int = 0,
     favoritesCount: Int = 0,
     galleryCount: Int = 0,
+    bookmarkCount: Int = 0,
 ) {
     NavigationBar(
         containerColor = Color.Transparent,
         tonalElevation = 0.dp,
         windowInsets = WindowInsets(0, 0, 0, 0),
-        modifier =
-            Modifier.shadow(
-                    8.dp,
-                    androidx.compose.foundation.shape.RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                    ),
-                )
-                .background(
-                    Brush.verticalGradient(
-                        colors =
-                            listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                            )
-                    ),
-                    shape =
-                        androidx.compose.foundation.shape.RoundedCornerShape(
-                            topStart = 16.dp,
-                            topEnd = 16.dp,
-                        ),
-                ),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         BottomNavItem(
             selected = currentRoute == "feed",
@@ -88,6 +68,16 @@ fun MainBottomBar(
             label = stringResource(R.string.nav_gallery),
             count = galleryCount,
             selectedColor = colorResource(R.color.success),
+        )
+
+        BottomNavItem(
+            selected = currentRoute == "bookmarks",
+            onClick = { onNavigate("bookmarks") },
+            icon = Icons.Outlined.BookmarkBorder,
+            selectedIcon = Icons.Filled.Bookmark,
+            label = stringResource(R.string.nav_bookmarks),
+            count = bookmarkCount,
+            selectedColor = colorResource(R.color.accent_variant),
         )
     }
 }
@@ -162,20 +152,23 @@ private fun RowScope.BottomNavItem(
                     color =
                         if (selected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (count > 0) {
-                    Text(
-                        text = formatCount(count),
-                        style =
-                            MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 8.sp,
-                                color =
-                                    if (selected) selectedColor.copy(alpha = 0.7f)
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                            alpha = 0.5f
-                                        ),
-                            ),
-                    )
+
+                Box(modifier = Modifier.height(12.dp)) {
+                    if (count > 0) {
+                        Text(
+                            text = formatCount(count),
+                            style =
+                                MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    color =
+                                        if (selected) selectedColor.copy(alpha = 0.7f)
+                                        else
+                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                alpha = 0.7f
+                                            ),
+                                ),
+                        )
+                    }
                 }
             }
         },
@@ -192,9 +185,5 @@ private fun RowScope.BottomNavItem(
 }
 
 private fun formatCount(count: Int): String {
-    return when {
-        count >= 1_000_000 -> String.format("%.1fm", count / 1_000_000.0)
-        count >= 1_000 -> String.format("%.1fk", count / 1_000.0)
-        else -> count.toString()
-    }
+    return java.text.NumberFormat.getInstance(java.util.Locale.getDefault()).format(count)
 }

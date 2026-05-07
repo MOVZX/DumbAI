@@ -13,7 +13,7 @@ class MediaProcessor @Inject constructor() {
 
         return try {
             retriever.setDataSource(videoFile.absolutePath)
-            val timeInUs = 3 * 1000000L
+            val timeInUs = 2 * 1000000L
 
             val bitmap =
                 retriever.getFrameAtTime(timeInUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)

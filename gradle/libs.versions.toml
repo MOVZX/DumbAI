@@ -9,6 +9,7 @@ coreKtx = "1.18.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+mockk = "1.13.17"
 
 # Lifecycle & Activity
 lifecycleRuntimeKtx = "2.10.0"
@@ -18,7 +19,8 @@ activityCompose = "1.13.0"
 # Compose
 composeBom = "2026.04.01"
 navigationCompose = "2.9.8"
-material3 = "1.4.1"
+material3 = "1.6.1"
+materialIconsExtended = "1.6.1"
 
 # Networking & Media
 retrofit = "2.12.0"
@@ -67,6 +69,7 @@ androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.re
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

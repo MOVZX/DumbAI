@@ -46,15 +46,15 @@ constructor(
                         repository.lastRoute,
                     )
                 ) { values ->
-                    val apiKey = values[0] as String
-                    val downloadPath = values[1] as? String
-                    val favoritesPath = values[2] as? String
-                    val effectiveFavoritesPath = values[3] as String
-                    val debugEnabled = values[4] as Boolean
-                    val backendEnabled = values[5] as Boolean
-                    val backendUrl = values[6] as String
-                    val backendApiKey = values[7] as String
-                    val lastRoute = values[8] as? String
+                    @Suppress("UNCHECKED_CAST") val apiKey = values[0] as String
+                    @Suppress("UNCHECKED_CAST") val downloadPath = values[1] as? String
+                    @Suppress("UNCHECKED_CAST") val favoritesPath = values[2] as? String
+                    @Suppress("UNCHECKED_CAST") val effectiveFavoritesPath = values[3] as String
+                    @Suppress("UNCHECKED_CAST") val debugEnabled = values[4] as Boolean
+                    @Suppress("UNCHECKED_CAST") val backendEnabled = values[5] as Boolean
+                    @Suppress("UNCHECKED_CAST") val backendUrl = values[6] as String
+                    @Suppress("UNCHECKED_CAST") val backendApiKey = values[7] as String
+                    @Suppress("UNCHECKED_CAST") val lastRoute = values[8] as? String
 
                     SettingsUiState(
                         apiKey = apiKey,
@@ -199,9 +199,9 @@ constructor(
         val gb = mb / 1024.0
 
         return when {
-            gb >= 1.0 -> String.format("%.2f GB", gb)
-            mb >= 1.0 -> String.format("%.2f MB", mb)
-            else -> String.format("%.2f KB", kb)
+            gb >= 1.0 -> String.format(java.util.Locale.ROOT, "%.2f GB", gb)
+            mb >= 1.0 -> String.format(java.util.Locale.ROOT, "%.2f MB", mb)
+            else -> String.format(java.util.Locale.ROOT, "%.2f KB", kb)
         }
     }
 

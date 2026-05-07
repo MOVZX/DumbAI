@@ -41,17 +41,26 @@ constructor(
                     repository.gridColumns,
                     repository.favoritesType,
                     repository.effectiveFavoritesPath,
-                ) { favorites, ids, columns, type, path ->
-                    val filtered =
-                        when (type) {
-                            "image" -> favorites.filter { it.type == "image" }
-                            "video" -> favorites.filter { it.type == "video" }
-                            else -> favorites
-                        }
+                    repository.showNsfwFavorites,
+                ) { values ->
+                    @Suppress("UNCHECKED_CAST") val favorites = values[0] as List<CivitaiImage>
+                    @Suppress("UNCHECKED_CAST") val ids = values[1] as Set<Long>
+                    val columns = values[2] as Int
+                    val type = values[3] as String
+                    val path = values[4] as String?
+                    val showNsfw = values[5] as Boolean
+
+                    val filtered = favorites.filter { image ->
+                        val isNsfw = image.nsfw == true || image.nsfw == null
+
+                        (type == "image" && image.type == "image" ||
+                            type == "video" && image.type == "video" ||
+                            type == "all") && (showNsfw || !isNsfw)
+                    }
 
                     Logger.d(
                         "Dibella_DB",
-                        "Favorites updated: ${filtered.size} items (Type: $type)",
+                        "Favorites updated: ${filtered.size} items (Type: $type, NSFW: $showNsfw)",
                     )
 
                     _uiState.update {

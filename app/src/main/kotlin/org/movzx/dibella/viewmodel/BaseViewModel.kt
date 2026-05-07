@@ -25,7 +25,7 @@ abstract class BaseViewModel(
 
     private val _uiMessage = MutableSharedFlow<Int>()
     val uiMessage = _uiMessage.asSharedFlow()
-    val restrictedDispatcher = Dispatchers.IO
+    private val restrictedDispatcher = Dispatchers.IO
 
     fun updateGridColumns(columns: Int) {
         viewModelScope.launch { repository.updateGridColumns(columns) }

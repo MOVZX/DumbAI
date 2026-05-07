@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -15,10 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import coil3.ImageLoader
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.movzx.dibella.data.UserPreferencesRepository
 import org.movzx.dibella.ui.components.SplashScreen
@@ -32,7 +33,7 @@ enum class RightSidebarType {
 }
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     @Inject lateinit var imageLoader: ImageLoader
     @Inject lateinit var preferencesRepository: UserPreferencesRepository
 
@@ -67,8 +68,8 @@ class MainActivity : ComponentActivity() {
         }
 
     private val _permissionsGranted = mutableStateOf(false)
-    private val _showSplash = mutableStateOf(true)
     private val _showOnboarding = mutableStateOf(false)
+    private val _showMain = mutableStateOf(false)
 
     val permissionsGranted: State<Boolean>
         get() = _permissionsGranted
@@ -92,20 +93,31 @@ class MainActivity : ComponentActivity() {
         setContent {
             DibellaTheme {
                 if (_permissionsGranted.value) {
-                    if (_showOnboarding.value) {
-                        OnboardingScreen(
-                            onSkip = { _showOnboarding.value = false },
-                            onFinish = {
-                                lifecycleScope.launch {
-                                    preferencesRepository.updateOnboardingCompleted(true)
-                                    _showOnboarding.value = false
+                    when {
+                        _showOnboarding.value -> {
+                            OnboardingScreen(
+                                onSkip = { _showOnboarding.value = false },
+                                onFinish = {
+                                    lifecycleScope.launch {
+                                        preferencesRepository.updateOnboardingCompleted(true)
+                                        _showOnboarding.value = false
+                                    }
+                                },
+                            )
+                        }
+                        _showMain.value -> {
+                            MainScreen(imageLoader)
+                        }
+                        else -> {
+                            SplashScreen(
+                                onSplashFinished = {
+                                    lifecycleScope.launch {
+                                        delay(500)
+                                        _showMain.value = true
+                                    }
                                 }
-                            },
-                        )
-                    } else if (_showSplash.value) {
-                        SplashScreen(onSplashFinished = { _showSplash.value = false })
-                    } else {
-                        MainScreen(imageLoader)
+                            )
+                        }
                     }
                 } else
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

@@ -25,9 +25,9 @@ data class SpeedDialItem(
 
 @Composable
 fun SpeedDialFab(
-    mainIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Add,
     items: List<SpeedDialItem>,
     modifier: Modifier = Modifier,
+    mainIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Add,
 ) {
     val view = LocalView.current
     var expanded by remember { mutableStateOf(false) }
@@ -121,10 +121,10 @@ fun SpeedDialFab(
             elevation =
                 FloatingActionButtonDefaults.elevation(
                     defaultElevation = 8.dp,
-                    pressedElevation = 14.dp,
+                    pressedElevation = 16.dp,
                 ),
             modifier =
-                Modifier.rotate(rotation).size(44.dp).graphicsLayer {
+                Modifier.rotate(rotation).size(48.dp).graphicsLayer {
                     scaleX = scale
                     scaleY = scale
                 },

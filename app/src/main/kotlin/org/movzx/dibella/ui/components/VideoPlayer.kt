@@ -12,6 +12,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -32,13 +33,14 @@ import kotlinx.coroutines.isActive
 @Composable
 fun VideoPlayer(
     url: String,
+    modifier: Modifier = Modifier,
     isPlaying: Boolean = true,
     isMuted: Boolean = true,
     playbackSpeed: Float = 1.0f,
     scaleMode: ScaleMode = ScaleMode.NORMAL,
+    playOnce: Boolean = false,
     onProgressUpdate: (Long, Long) -> Unit = { _, _ -> },
     onFpsUpdate: (Int) -> Unit = {},
-    onPlayerTypeUpdate: (String) -> Unit = {},
     onAudioStateChange: (Boolean) -> Unit = {},
     onPlaybackError: (String?) -> Unit = { _ -> },
     onReady: () -> Unit = {},
@@ -49,13 +51,9 @@ fun VideoPlayer(
     seekPosition: Long? = null,
     onSeekConsumed: () -> Unit = {},
     usePool: Boolean = true,
-    modifier: Modifier = Modifier,
 ) {
-    var useMpv by remember(url) { mutableStateOf(false) }
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-
-    LaunchedEffect(useMpv) { onPlayerTypeUpdate(if (useMpv) "MPV" else "ExoPlayer") }
 
     Box(
         modifier =
@@ -113,36 +111,22 @@ fun VideoPlayer(
                     translationY = offset.y
                 }
     ) {
-        if (useMpv) {
-            MpvPlayer(
-                url = url,
-                isPlaying = isPlaying,
-                isMuted = isMuted,
-                playbackSpeed = playbackSpeed,
-                onProgressUpdate = onProgressUpdate,
-                onFpsUpdate = onFpsUpdate,
-                onAudioStateChange = onAudioStateChange,
-                seekPosition = seekPosition,
-                onSeekConsumed = onSeekConsumed,
-            )
-        } else {
-            ExoVideoPlayer(
-                url = url,
-                isPlaying = isPlaying,
-                isMuted = isMuted,
-                playbackSpeed = playbackSpeed,
-                scaleMode = scaleMode,
-                onProgressUpdate = onProgressUpdate,
-                onFpsUpdate = onFpsUpdate,
-                onAudioStateChange = onAudioStateChange,
-                onPlaybackError = onPlaybackError,
-                onReady = onReady,
-                onSwitchToMpv = { useMpv = true },
-                seekPosition = seekPosition,
-                onSeekConsumed = onSeekConsumed,
-                usePool = usePool,
-            )
-        }
+        ExoVideoPlayer(
+            url = url,
+            isPlaying = isPlaying,
+            isMuted = isMuted,
+            playbackSpeed = playbackSpeed,
+            scaleMode = scaleMode,
+            playOnce = playOnce,
+            onProgressUpdate = onProgressUpdate,
+            onFpsUpdate = onFpsUpdate,
+            onAudioStateChange = onAudioStateChange,
+            onPlaybackError = onPlaybackError,
+            onReady = onReady,
+            seekPosition = seekPosition,
+            onSeekConsumed = onSeekConsumed,
+            usePool = usePool,
+        )
     }
 }
 
@@ -154,12 +138,12 @@ private fun ExoVideoPlayer(
     isMuted: Boolean,
     playbackSpeed: Float,
     scaleMode: ScaleMode,
+    playOnce: Boolean,
     onProgressUpdate: (Long, Long) -> Unit,
     onFpsUpdate: (Int) -> Unit,
     onAudioStateChange: (Boolean) -> Unit,
     onPlaybackError: (String?) -> Unit,
     onReady: () -> Unit,
-    onSwitchToMpv: () -> Unit,
     seekPosition: Long?,
     onSeekConsumed: () -> Unit,
     usePool: Boolean,
@@ -251,7 +235,7 @@ private fun ExoVideoPlayer(
             if (acquiredPlayer != null) {
                 val uri =
                     if (url.startsWith("/")) android.net.Uri.fromFile(java.io.File(url))
-                    else android.net.Uri.parse(url)
+                    else url.toUri()
 
                 acquiredPlayer.setMediaSource(
                     androidx.media3.exoplayer.source
@@ -272,7 +256,7 @@ private fun ExoVideoPlayer(
     }
 
     if (exoPlayer != null) {
-        DisposableEffect(exoPlayer, url) {
+        DisposableEffect(exoPlayer, url, playOnce) {
             val listener =
                 object : Player.Listener {
                     override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
@@ -286,26 +270,24 @@ private fun ExoVideoPlayer(
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
-                        if (
-                            error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED ||
-                                error.errorCode ==
-                                    PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
-                                error.errorCode ==
-                                    PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED
-                        ) {
-                            if (!usePool) onSwitchToMpv() else onPlaybackError(error.message)
-                        } else {
-                            onPlaybackError(error.message)
-                        }
+                        onPlaybackError(error.message)
                     }
 
                     override fun onRenderedFirstFrame() {
                         isReady = true
+
                         onReady()
+                    }
+
+                    override fun onPlaybackStateChanged(state: Int) {
+                        if (playOnce && state == Player.STATE_ENDED) exoPlayer.stop()
                     }
                 }
 
             exoPlayer.addListener(listener)
+
+            if (playOnce) exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
+            else if (usePool) exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
 
             if (exoPlayer.isPlaying) {
                 isReady = true
@@ -313,7 +295,10 @@ private fun ExoVideoPlayer(
                 onReady()
             }
 
-            onDispose { exoPlayer.removeListener(listener) }
+            onDispose {
+                exoPlayer.removeListener(listener)
+                exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
+            }
         }
 
         LaunchedEffect(url, dedicatedPlayer) {
@@ -323,7 +308,7 @@ private fun ExoVideoPlayer(
 
                 val uri =
                     if (url.startsWith("/")) android.net.Uri.fromFile(java.io.File(url))
-                    else android.net.Uri.parse(url)
+                    else url.toUri()
 
                 dedicatedPlayer.setMediaSource(
                     androidx.media3.exoplayer.source

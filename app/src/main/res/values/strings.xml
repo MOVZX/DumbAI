@@ -8,6 +8,7 @@
     <string name="nav_feed">Feed</string>
     <string name="nav_favorites">Favorites</string>
     <string name="nav_gallery">Gallery</string>
+    <string name="nav_bookmarks">Bookmarks</string>
 
     <!-- Sidebar Titles & Common Headers -->
     <string name="display_options">Display Options</string>
@@ -44,7 +45,10 @@
     <string name="label_feed_video_autoplay">Feed Video Autoplay</string>
 
     <!-- Selection Mode -->
-    <string name="label_selected_count">%1$d Selected</string>
+    <plurals name="label_selected_count">
+        <item quantity="one">%1$d Selected</item>
+        <item quantity="other">%1$d Selected</item>
+    </plurals>
     <string name="btn_select_all">Select All</string>
 
     <!-- Formats, Labels & Placeholders -->
@@ -64,10 +68,11 @@
     <string name="btn_save_api_key">Save Key</string>
     <string name="btn_choose">Choose</string>
     <string name="btn_reset">Reset</string>
-    <string name="btn_export">Export Data</string>
-    <string name="btn_import">Import Data</string>
+    <string name="btn_export">Export</string>
+    <string name="btn_import">Import</string>
     <string name="btn_clear_image_cache">Clear Cache</string>
     <string name="btn_apply_settings">Apply Settings</string>
+    <string name="btn_apply">Apply</string>
     <string name="btn_close">Close</string>
     <string name="btn_cancel">Cancel</string>
     <string name="btn_confirm">Confirm</string>
@@ -90,6 +95,15 @@
     <string name="dialog_scan_duplicates_msg">Are you sure you want to scan and remove duplicate local files? This will keep only the oldest version of each identical file.</string>
     <string name="dialog_autoplay_title">Enable Video Autoplay?</string>
     <string name="dialog_autoplay_msg">Autoplaying videos in the feed can consume a significant amount of battery and data. Are you sure you want to enable this feature?</string>
+    <string name="dialog_jump_title">Jump to Index</string>
+    <string name="dialog_jump_msg">Current Index: %s</string>
+    <string name="placeholder_target_cursor">Target Index</string>
+    <string name="dialog_bookmark_title">Add Bookmark</string>
+    <string name="placeholder_bookmark_title">Bookmark Title</string>
+    <string name="msg_bookmark_saved">Bookmark saved</string>
+    <string name="dialog_delete_bookmark_title">Delete Bookmark</string>
+    <string name="dialog_delete_bookmark_msg">Are you sure you want to delete this bookmark?</string>
+
 
     <!-- Selectable Options (Filter Chips) -->
     <string name="found_duplicates">Found Duplicates</string>
@@ -132,9 +146,12 @@
     <string name="empty_feed">No contents found matching filters</string>
     <string name="empty_favorites">No liked media yet</string>
     <string name="empty_gallery">No downloaded media found</string>
+    <string name="empty_bookmarks">No bookmarks yet</string>
 
     <!-- Accessibility & Content Descriptions -->
     <string name="desc_refresh">Refresh Feed</string>
+    <string name="desc_jump_to_cursor">Jump to Cursor</string>
+    <string name="desc_add_bookmark">Add Bookmark</string>
     <string name="desc_scroll_to_top">Scroll to Top</string>
     <string name="desc_scroll_to_bottom">Scroll to Bottom</string>
     <string name="desc_load_more">Load More</string>
