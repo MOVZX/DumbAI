@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -172,7 +173,7 @@ fun AppScaffold(
             content(
                 PaddingValues(
                     top = 64.dp + systemBarsPadding.calculateTopPadding(),
-                    bottom = 80.dp + systemBarsPadding.calculateBottomPadding(),
+                    bottom = 64.dp + systemBarsPadding.calculateBottomPadding(),
                 )
             )
         }
@@ -242,9 +243,7 @@ fun AppScaffold(
             }
         }
 
-        val barColor =
-            if (amoledMode) androidx.compose.ui.graphics.Color.Black
-            else MaterialTheme.colorScheme.surface
+        val barColor = MaterialTheme.colorScheme.surface
 
         val barBackgroundAlpha = if (isBarsVisible) 1f else 0f
 
@@ -266,7 +265,7 @@ fun AppScaffold(
                     .align(Alignment.BottomCenter)
                     .graphicsLayer {
                         val bottomBarHeight =
-                            80.dp.toPx() + systemBarsPadding.calculateBottomPadding().toPx()
+                            64.dp.toPx() + systemBarsPadding.calculateBottomPadding().toPx()
 
                         translationY = -(1f - barTranslation) * bottomBarHeight
                     }
@@ -294,18 +293,11 @@ fun AppScaffold(
                     .graphicsLayer { translationY = barTranslation * size.height }
                     .shadow(
                         if (isBarsVisible) 8.dp else 0.dp,
-                        androidx.compose.foundation.shape.RoundedCornerShape(
-                            topStart = 16.dp,
-                            topEnd = 16.dp,
-                        ),
+                        androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
                     )
                     .background(
                         color = barColor.copy(alpha = barBackgroundAlpha),
-                        shape =
-                            androidx.compose.foundation.shape.RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                            ),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
                     )
                     .navigationBarsPadding()
         ) {
@@ -322,7 +314,7 @@ fun AppScaffold(
         if (fabAlpha > 0.01f) {
             val fabModifier =
                 Modifier.padding(16.dp)
-                    .padding(bottom = 80.dp + systemBarsPadding.calculateBottomPadding())
+                    .padding(bottom = 64.dp + systemBarsPadding.calculateBottomPadding())
                     .graphicsLayer {
                         alpha = fabAlpha
                         scaleX = fabAlpha
@@ -398,6 +390,8 @@ fun EmptyState(viewMode: String) {
                     stringResource(R.string.empty_bookmarks) to Icons.Outlined.BookmarkBorder
                 "duplicates" ->
                     stringResource(R.string.msg_no_duplicates_found) to Icons.Default.DeleteSweep
+                "search" ->
+                    stringResource(R.string.empty_search) to Icons.Default.Search
                 else -> stringResource(R.string.empty_feed) to Icons.Default.Search
             }
 

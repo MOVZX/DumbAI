@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-    <!-- Primary: Warm Coral -->
-    <color name="primary">#FF6B6B</color>
-    <color name="primary_variant">#FF8E8E</color>
+    <!-- Primary: Soft Coral -->
+    <color name="primary">#FF9E9E</color>
+    <color name="primary_variant">#FFB3B3</color>
     <color name="onPrimary">#FFFFFF</color>
     <color name="primaryContainer">#FFE5E5</color>
     <color name="onPrimaryContainer">#5C1A1A</color>
 
-    <!-- Secondary: Electric Purple -->
-    <color name="secondary">#8B5CF6</color>
-    <color name="secondary_variant">#A78BFA</color>
+    <!-- Secondary: Soft Purple -->
+    <color name="secondary">#A78BFA</color>
+    <color name="secondary_variant">#C4B5FD</color>
     <color name="onSecondary">#FFFFFF</color>
     <color name="secondaryContainer">#EDE9FE</color>
     <color name="onSecondaryContainer">#3B1D6B</color>
 
-    <!-- Accent: Golden Hour -->
-    <color name="accent">#F59E0B</color>
-    <color name="accent_variant">#FBBF24</color>
+    <!-- Accent: Soft Gold -->
+    <color name="accent">#FBBF24</color>
+    <color name="accent_variant">#FCD34D</color>
     <color name="onAccent">#FFFFFF</color>
     <color name="accentContainer">#FEF3C7</color>
     <color name="onAccentContainer">#78350F</color>
 
-    <!-- Tertiary: Rose (for favorites) -->
-    <color name="tertiary">#F43F5E</color>
-    <color name="tertiary_light">#FB7185</color>
+    <!-- Tertiary: Soft Rose -->
+    <color name="tertiary">#FB7185</color>
+    <color name="tertiary_light">#FDA4AF</color>
     <color name="onTertiary">#FFFFFF</color>
-    <color name="tertiaryContainer">#7F1D1D</color>
-    <color name="onTertiaryContainer">#FEE2E2</color>
+    <color name="tertiaryContainer">#FEE2E2</color>
+    <color name="onTertiaryContainer">#7F1D1D</color>
 
     <!-- Background: Rich Dark -->
     <color name="background">#0A0A0F</color>
@@ -41,7 +41,7 @@
     <color name="outlineVariant">#27272A</color>
 
     <!-- Utility -->
-    <color name="success">#10B981</color>
+    <color name="success">#34D399</color>
     <color name="error">#EF4444</color>
     <color name="pure_black">#000000</color>
     <color name="pure_white">#FFFFFF</color>

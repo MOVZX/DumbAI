@@ -142,6 +142,17 @@ fun MainScreen(imageLoader: ImageLoader) {
         }
     }
 
+    LaunchedEffect(rightDrawerState.targetValue, currentRoute) {
+        if (rightDrawerState.targetValue == DrawerValue.Closed) {
+            rightSidebarType =
+                when (currentRoute) {
+                    "feed" -> RightSidebarType.FILTERS
+                    "search" -> RightSidebarType.SEARCH_FILTERS
+                    else -> RightSidebarType.SETTINGS
+                }
+        }
+    }
+
     val dirPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             uri?.let {

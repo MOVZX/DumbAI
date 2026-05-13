@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Collections
@@ -41,16 +42,26 @@ fun MainBottomBar(
         containerColor = Color.Transparent,
         tonalElevation = 0.dp,
         windowInsets = WindowInsets(0, 0, 0, 0),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(64.dp),
     ) {
         BottomNavItem(
             selected = currentRoute == "feed",
             onClick = { onNavigate("feed") },
-            icon = Icons.Default.Home,
+            icon = Icons.Outlined.Home,
             selectedIcon = Icons.Filled.Home,
             label = stringResource(R.string.nav_feed),
             count = feedCount,
             selectedColor = MaterialTheme.colorScheme.primary,
+        )
+
+        BottomNavItem(
+            selected = currentRoute == "search",
+            onClick = { onNavigate("search") },
+            icon = Icons.Outlined.Search,
+            selectedIcon = Icons.Filled.Search,
+            label = stringResource(R.string.nav_search),
+            count = searchCount,
+            selectedColor = colorResource(R.color.secondary),
         )
 
         BottomNavItem(
@@ -61,16 +72,6 @@ fun MainBottomBar(
             label = stringResource(R.string.nav_favorites),
             count = favoritesCount,
             selectedColor = colorResource(R.color.tertiary),
-        )
-
-        BottomNavItem(
-            selected = currentRoute == "search",
-            onClick = { onNavigate("search") },
-            icon = Icons.Outlined.Search,
-            selectedIcon = Icons.Filled.Search,
-            label = stringResource(R.string.nav_search),
-            count = searchCount,
-            selectedColor = colorResource(R.color.onTertiary),
         )
 
         BottomNavItem(
@@ -131,7 +132,7 @@ private fun RowScope.BottomNavItem(
         selected = selected,
         onClick = { if (!selected) onClick() },
         icon = {
-            Box(modifier = Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
                 if (selected) {
                     androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                         drawCircle(
@@ -172,7 +173,7 @@ private fun RowScope.BottomNavItem(
                             text = formatCount(count),
                             style =
                                 MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
+                                    fontSize = 8.sp,
                                     color =
                                         if (selected) selectedColor.copy(alpha = 0.7f)
                                         else
@@ -192,7 +193,7 @@ private fun RowScope.BottomNavItem(
                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 selectedTextColor = selectedColor,
                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                indicatorColor = selectedColor.copy(alpha = 0.1f),
+                indicatorColor = Color.Transparent,
             ),
     )
 }
