@@ -12,7 +12,7 @@ data class FeedUiState(
     val period: String = "AllTime",
     val type: String = "image",
     val tagIds: String? = null,
-    val pageLimit: Int = 100,
+    val pageLimit: Int = 200,
     override val gridColumns: Int = 3,
     override val scrollIndex: Int = 0,
     override val scrollOffset: Int = 0,

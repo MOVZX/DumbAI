@@ -18,6 +18,7 @@ import org.movzx.dibella.R
 fun SettingsSidebar(
     cacheSize: String,
     apiKey: String,
+    searchApiKey: String,
     downloadPath: String?,
     favoritesPath: String?,
     debugEnabled: Boolean,
@@ -31,6 +32,7 @@ fun SettingsSidebar(
     onDismiss: () -> Unit,
     onClearCache: () -> Unit,
     onSaveApiKey: (String) -> Unit,
+    onSaveBearerToken: (String) -> Unit,
     onSaveBackendUrl: (String) -> Unit,
     onSaveBackendApiKey: (String) -> Unit,
     onUpdateDownloadPath: (String?) -> Unit,
@@ -49,6 +51,7 @@ fun SettingsSidebar(
     onToggleAmoled: (Boolean) -> Unit = {},
 ) {
     var key by remember(apiKey) { mutableStateOf(apiKey) }
+    var bearerToken by remember(searchApiKey) { mutableStateOf(searchApiKey) }
     var bUrl by remember(backendUrl) { mutableStateOf(backendUrl) }
     var bKey by remember(backendApiKey) { mutableStateOf(backendApiKey) }
     var path by remember(downloadPath) { mutableStateOf(downloadPath ?: "") }
@@ -165,6 +168,24 @@ fun SettingsSidebar(
                 Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.btn_save_api_key))
+            }
+
+            OutlinedTextField(
+                value = bearerToken,
+                onValueChange = { bearerToken = it },
+                label = { Text(stringResource(R.string.label_civitai_bearer_token)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+            )
+
+            Button(
+                onClick = { onSaveBearerToken(bearerToken) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+            ) {
+                Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.btn_save_bearer_token))
             }
         }
 

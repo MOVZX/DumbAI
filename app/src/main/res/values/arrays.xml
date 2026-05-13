@@ -7,6 +7,12 @@
         <item>video</item>
     </string-array>
 
+    <!-- Search Content Types -->
+    <string-array name="search_content_types">
+        <item>image</item>
+        <item>video</item>
+    </string-array>
+
     <!-- NSFW Levels -->
     <string-array name="nsfw_levels">
         <item>None</item>
@@ -20,6 +26,16 @@
         <item>Most Reactions</item>
         <item>Most Comments</item>
         <item>Newest</item>
+    </string-array>
+
+    <!-- Search Sort Options -->
+    <string-array name="search_sort_options">
+        <item>Relevancy</item>
+        <item>Newest</item>
+        <item>Most Reactions</item>
+        <item>Most Comments</item>
+        <item>Most Collected</item>
+        <item>Most Buzz</item>
     </string-array>
 
     <!-- Periods -->

@@ -13,6 +13,7 @@ import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.ui.components.*
 import org.movzx.dibella.viewmodel.FavoritesViewModel
 import org.movzx.dibella.viewmodel.FeedViewModel
+import org.movzx.dibella.viewmodel.SearchViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +44,8 @@ fun FeedScreen(
     val bookmarkState by bookmarkViewModel.uiState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val videoPlayerManager = LocalVideoPlayerManager.current
+    val searchViewModel: SearchViewModel = hiltViewModel(activity)
+    val searchCount by searchViewModel.searchResultCount.collectAsState(initial = 0)
 
     LaunchedEffect(uiState.gridColumns) {
         videoPlayerManager?.updateLimit(
@@ -113,6 +116,7 @@ fun FeedScreen(
                 onNavigate = onNavigate,
                 feedCount = feedCount,
                 favoritesCount = favState.images.size,
+                searchCount = searchCount,
                 galleryCount = galleryState.images.size,
                 bookmarkCount = bookmarkState.bookmarkCount,
             )

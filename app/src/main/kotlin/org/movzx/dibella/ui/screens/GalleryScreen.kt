@@ -17,6 +17,7 @@ import org.movzx.dibella.model.CivitaiImage
 import org.movzx.dibella.ui.components.*
 import org.movzx.dibella.viewmodel.FavoritesViewModel
 import org.movzx.dibella.viewmodel.GalleryViewModel
+import org.movzx.dibella.viewmodel.SearchViewModel
 
 @Composable
 fun GalleryScreen(
@@ -48,6 +49,8 @@ fun GalleryScreen(
     val uiState by viewModel.uiState.collectAsState()
     val favoritesState by favViewModel.uiState.collectAsState()
     val videoPlayerManager = LocalVideoPlayerManager.current
+    val searchViewModel: SearchViewModel = hiltViewModel(activity)
+    val searchCount by searchViewModel.searchResultCount.collectAsState(initial = 0)
 
     LaunchedEffect(uiState.gridColumns) {
         videoPlayerManager?.updateLimit(
@@ -118,6 +121,7 @@ fun GalleryScreen(
                 onNavigate = onNavigate,
                 feedCount = feedCount,
                 favoritesCount = favoritesState.images.size,
+                searchCount = searchCount,
                 galleryCount = uiState.images.size,
                 bookmarkCount = bookmarkState.bookmarkCount,
             )

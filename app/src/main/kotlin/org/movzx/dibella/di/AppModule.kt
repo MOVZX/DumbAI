@@ -10,10 +10,13 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
 import org.movzx.dibella.api.CivitaiApi
+import org.movzx.dibella.api.CivitaiBackendRetryInterceptor
+import org.movzx.dibella.api.CivitaiSearchApi
 import org.movzx.dibella.data.AppDatabase
 import org.movzx.dibella.data.FavoriteImageDao
 import org.movzx.dibella.data.FavoritesRepository
@@ -32,7 +35,10 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(interceptor: org.movzx.dibella.api.CivitaiInterceptor): OkHttpClient {
+    fun provideOkHttpClient(
+        civitaiInterceptor: org.movzx.dibella.api.CivitaiInterceptor,
+        backendRetryInterceptor: CivitaiBackendRetryInterceptor,
+    ): OkHttpClient {
         val dispatcher =
             okhttp3.Dispatcher().apply {
                 maxRequests = 64
@@ -41,16 +47,26 @@ object AppModule {
 
         return OkHttpClient.Builder()
             .dispatcher(dispatcher)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .addInterceptor(interceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor(civitaiInterceptor)
+            .addInterceptor(backendRetryInterceptor)
             .addInterceptor(org.movzx.dibella.api.CivitaiThumbnailInterceptor())
             .build()
     }
 
     @Provides
     @Singleton
+    fun provideCivitaiBackendRetryInterceptor(
+        preferencesRepository: UserPreferencesRepository
+    ): CivitaiBackendRetryInterceptor {
+        return CivitaiBackendRetryInterceptor(preferencesRepository)
+    }
+
+    @Provides
+    @Singleton
+    @Named("default")
     fun provideRetrofit(okHttpClient: OkHttpClient, moshi: Moshi): Retrofit {
         return Retrofit.Builder()
             .baseUrl("https://civitai.com/api/v1/")
@@ -61,8 +77,25 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideCivitaiApi(retrofit: Retrofit): CivitaiApi {
+    fun provideCivitaiApi(@Named("default") retrofit: Retrofit): CivitaiApi {
         return retrofit.create(CivitaiApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    @Named("search")
+    fun provideSearchRetrofit(okHttpClient: OkHttpClient, moshi: Moshi): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://search-new.civitai.com/")
+            .client(okHttpClient)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideCivitaiSearchApi(@Named("search") searchRetrofit: Retrofit): CivitaiSearchApi {
+        return searchRetrofit.create(CivitaiSearchApi::class.java)
     }
 
     @Provides

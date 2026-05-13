@@ -52,6 +52,14 @@ class UserPreferencesRepository(private val context: Context) {
         val BACKEND_URL = stringPreferencesKey("backend_url")
         val BACKEND_API_KEY = stringPreferencesKey("backend_api_key")
         val SHOW_NSFW_FAVORITES = booleanPreferencesKey("show_nsfw_favorites")
+        val SEARCH_API_KEY = stringPreferencesKey("SEARCH_API_KEY")
+        val SEARCH_QUERY = stringPreferencesKey("search_query")
+        val SEARCH_TYPE = stringPreferencesKey("search_type")
+        val SEARCH_SORT = stringPreferencesKey("search_sort")
+        val SEARCH_SCROLL_INDEX = intPreferencesKey("search_scroll_index")
+        val SEARCH_SCROLL_OFFSET = intPreferencesKey("search_scroll_offset")
+        val SEARCH_HISTORY_COUNT = intPreferencesKey("search_history_count")
+        val SEARCH_OFFSET = intPreferencesKey("search_offset")
     }
 
     val nsfw: Flow<String> =
@@ -94,6 +102,27 @@ class UserPreferencesRepository(private val context: Context) {
     val apiKey: Flow<String> =
         context.dataStore.data.map { preferences -> preferences[PreferencesKeys.API_KEY] ?: "" }
 
+    val searchApiKey: Flow<String> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SEARCH_API_KEY]
+                ?: "8c46eb2508e21db1e9828a97968d91ab1ca1caa5f70a00e88a2ba1e286603b61"
+        }
+
+    val searchQuery: Flow<String> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SEARCH_QUERY] ?: ""
+        }
+
+    val searchType: Flow<String> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SEARCH_TYPE] ?: "image"
+        }
+
+    val searchSort: Flow<String> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SEARCH_SORT] ?: "Relevancy"
+        }
+
     fun feedScrollIndex(type: String): Flow<Int> =
         context.dataStore.data.map { preferences ->
             when (type) {
@@ -121,7 +150,7 @@ class UserPreferencesRepository(private val context: Context) {
         }
 
     val pageLimit: Flow<Int> =
-        context.dataStore.data.map { preferences -> preferences[PreferencesKeys.PAGE_LIMIT] ?: 100 }
+        context.dataStore.data.map { preferences -> preferences[PreferencesKeys.PAGE_LIMIT] ?: 200 }
 
     val gridColumns: Flow<Int> =
         context.dataStore.data.map { preferences -> preferences[PreferencesKeys.GRID_COLUMNS] ?: 3 }
@@ -227,7 +256,7 @@ class UserPreferencesRepository(private val context: Context) {
             period = prefs[PreferencesKeys.PERIOD] ?: "AllTime",
             type = prefs[PreferencesKeys.TYPE] ?: "image",
             tagIds = prefs[PreferencesKeys.TAG_IDS],
-            pageLimit = prefs[PreferencesKeys.PAGE_LIMIT] ?: 100,
+            pageLimit = prefs[PreferencesKeys.PAGE_LIMIT] ?: 200,
             gridColumns = prefs[PreferencesKeys.GRID_COLUMNS] ?: 3,
             apiKey = prefs[PreferencesKeys.API_KEY]?.takeIf { it.isNotBlank() },
             favoritesPath = prefs[PreferencesKeys.FAVORITES_PATH],
@@ -248,6 +277,7 @@ class UserPreferencesRepository(private val context: Context) {
             galleryScrollOffset = prefs[PreferencesKeys.GALLERY_SCROLL_OFFSET] ?: 0,
             nextCursorImage = prefs[PreferencesKeys.NEXT_CURSOR_IMAGE],
             nextCursorVideo = prefs[PreferencesKeys.NEXT_CURSOR_VIDEO],
+            searchApiKey = prefs[PreferencesKeys.SEARCH_API_KEY],
         )
     }
 
@@ -294,6 +324,8 @@ class UserPreferencesRepository(private val context: Context) {
             if (settings.nextCursorVideo != null)
                 preferences[videoCursorKey] = settings.nextCursorVideo
             else preferences.remove(videoCursorKey)
+
+            settings.searchApiKey?.let { preferences[PreferencesKeys.SEARCH_API_KEY] = it }
         }
     }
 
@@ -391,6 +423,18 @@ class UserPreferencesRepository(private val context: Context) {
         Logger.d("Dibella_Prefs", "updateApiKey: ${if (key.isBlank()) "cleared" else "set"}")
 
         context.dataStore.edit { preferences -> preferences[PreferencesKeys.API_KEY] = key }
+    }
+
+    suspend fun updateSearchApiKey(token: String) {
+        Logger.d(
+            "Dibella_Prefs",
+            "updateSearchApiKey: ${if (token.isBlank()) "cleared" else "set"}",
+        )
+
+        context.dataStore.edit { preferences ->
+            if (token.isBlank()) preferences.remove(PreferencesKeys.SEARCH_API_KEY)
+            else preferences[PreferencesKeys.SEARCH_API_KEY] = token
+        }
     }
 
     suspend fun updateBackendEnabled(enabled: Boolean) {
@@ -495,6 +539,74 @@ class UserPreferencesRepository(private val context: Context) {
 
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHOW_NSFW_FAVORITES] = show
+        }
+    }
+
+    suspend fun updateSearchQuery(query: String) {
+        Logger.d("Dibella_Prefs", "updateSearchQuery: ${if (query.isBlank()) "cleared" else "set"}")
+
+        context.dataStore.edit { preferences ->
+            if (query.isBlank()) {
+                preferences.remove(PreferencesKeys.SEARCH_QUERY)
+            } else {
+                preferences[PreferencesKeys.SEARCH_QUERY] = query
+            }
+        }
+    }
+
+    suspend fun updateSearchFilters(type: String, sort: String) {
+        Logger.d("Dibella_Prefs", "updateSearchFilters: type=$type sort=$sort")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SEARCH_TYPE] = type
+            preferences[PreferencesKeys.SEARCH_SORT] = sort
+        }
+    }
+
+    suspend fun updateSearchScrollPosition(index: Int, offset: Int) {
+        Logger.d("Dibella_Prefs", "updateSearchScrollPosition: index=$index offset=$offset")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SEARCH_SCROLL_INDEX] = index
+            preferences[PreferencesKeys.SEARCH_SCROLL_OFFSET] = offset
+        }
+    }
+
+    fun searchScrollIndex(): Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SEARCH_SCROLL_INDEX] ?: 0
+        }
+
+    fun searchScrollOffset(): Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SEARCH_SCROLL_OFFSET] ?: 0
+        }
+
+    val searchHistoryCount: Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SEARCH_HISTORY_COUNT] ?: 0
+        }
+
+    val searchOffset: Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SEARCH_OFFSET] ?: 0
+        }
+
+    suspend fun incrementSearchHistoryCount() {
+        val current = searchHistoryCount.first()
+
+        Logger.d("Dibella_Prefs", "incrementSearchHistoryCount: $current -> ${current + 1}")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SEARCH_HISTORY_COUNT] = current + 1
+        }
+    }
+
+    suspend fun updateSearchOffset(offset: Int) {
+        Logger.d("Dibella_Prefs", "updateSearchOffset: $offset")
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SEARCH_OFFSET] = offset
         }
     }
 }

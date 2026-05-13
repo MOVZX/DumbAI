@@ -42,17 +42,19 @@ fun ImageGrid(
     autoplayEnabled: Boolean = false,
     isPreviewOpen: Boolean = false,
     isRefreshing: Boolean = false,
+    showVideoIcon: Boolean = true,
 ) {
     var pressedId by remember { mutableStateOf<Long?>(null) }
-    val animatedItems = remember { mutableSetOf<Long>() }
+    val animatedItems = remember { mutableSetOf<Int>() }
     var zoomScale by remember { mutableFloatStateOf(1f) }
+    val uniqueImages = remember(images) { images.distinctBy { "${it.type ?: "image"}:${it.id}" } }
 
     val visibleItemIds by remember {
         derivedStateOf {
             val layoutInfo = state.layoutInfo
             val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
 
-            if (viewportHeight <= 0) return@derivedStateOf emptySet<Long>()
+            if (viewportHeight <= 0) return@derivedStateOf emptySet<Int>()
 
             layoutInfo.visibleItemsInfo
                 .filter { item ->
@@ -65,12 +67,12 @@ fun ImageGrid(
 
                     bottom > 0 && top < viewportHeight
                 }
-                .mapNotNull { it.key as? Long }
+                .mapNotNull { it.key as? Int }
                 .toSet()
         }
     }
 
-    val focusedItemId by remember {
+    val focusedItemIndex by remember {
         derivedStateOf {
             val layoutInfo = state.layoutInfo
 
@@ -78,13 +80,13 @@ fun ImageGrid(
                 (layoutInfo.viewportEndOffset + layoutInfo.viewportStartOffset) / 2f
 
             layoutInfo.visibleItemsInfo
-                .filter { it.key is Long }
+                .filter { it.key is Int }
                 .minByOrNull { item ->
                     val itemCenter = item.offset.y + (item.size.height / 2f)
 
                     Math.abs(itemCenter - viewportCenter)
                 }
-                ?.key as? Long
+                ?.key as? Int
         }
     }
 
@@ -129,17 +131,17 @@ fun ImageGrid(
         verticalItemSpacing = 8.dp,
     ) {
         itemsIndexed(
-            items = images,
-            key = { _, it -> it.id },
+            items = uniqueImages,
+            key = { index, _ -> index },
             contentType = { _, _ -> "civitai_image" },
         ) { index, image ->
-            var isAnimated by
-                remember(image.id) { mutableStateOf(animatedItems.contains(image.id)) }
+            val isAnimated =
+                remember(index.toLong()) { mutableStateOf(animatedItems.contains(index)) }
 
-            if (!isAnimated && visibleItemIds.contains(image.id)) {
-                isAnimated = true
+            if (!isAnimated.value && visibleItemIds.contains(index)) {
+                isAnimated.value = true
 
-                animatedItems.add(image.id)
+                animatedItems.add(index)
             }
 
             ImageCard(
@@ -158,19 +160,20 @@ fun ImageGrid(
                 onEnsureFavoriteResourcesThrottled = onEnsureFavoriteResourcesThrottled,
                 onClick = {
                     pressedId = null
-                    onImageClick(it)
+                    onImageClick(image)
                 },
                 onToggleFavorite = onToggleFavorite,
                 onRetryThumbnail = onRetryThumbnail,
                 onToggleSelection = { onToggleSelection(image.id) },
                 onLongClick = { onLongClick(image.id) },
                 autoplayEnabled = autoplayEnabled && !isPreviewOpen,
-                isVisibleInViewport = visibleItemIds.contains(image.id),
+                isVisibleInViewport = visibleItemIds.contains(index),
                 isScrolling = state.isScrollInProgress,
                 isPreviewOpen = isPreviewOpen,
-                animationIndex = if (isAnimated) -1 else index,
+                animationIndex = if (isAnimated.value) -1 else index,
                 isPressed = pressedId == image.id,
                 onPressChange = { isPressed -> pressedId = if (isPressed) image.id else null },
+                showVideoIcon = showVideoIcon,
             )
         }
 

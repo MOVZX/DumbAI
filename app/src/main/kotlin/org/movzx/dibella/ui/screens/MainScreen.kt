@@ -108,7 +108,9 @@ fun MainScreen(imageLoader: ImageLoader) {
     val favoritesViewModel: FavoritesViewModel = hiltViewModel(activity)
     val galleryViewModel: GalleryViewModel = hiltViewModel(activity)
     val settingsViewModel: SettingsViewModel = hiltViewModel(activity)
+    val searchViewModel: SearchViewModel = hiltViewModel(activity)
     val feedUiState by feedViewModel.uiState.collectAsState()
+    val searchUiState by searchViewModel.uiState.collectAsState()
     val favoritesUiState by favoritesViewModel.uiState.collectAsState()
     val settingsState by settingsViewModel.uiState.collectAsState()
     val leftDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -116,6 +118,7 @@ fun MainScreen(imageLoader: ImageLoader) {
     val feedGridState = rememberLazyStaggeredGridState()
     val favoritesGridState = rememberLazyStaggeredGridState()
     val galleryGridState = rememberLazyStaggeredGridState()
+    val searchGridState = rememberLazyStaggeredGridState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     var favoritesRestored by remember { mutableStateOf(false) }
@@ -229,7 +232,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                     } else if (currentRoute == "favorites") {
                         DisplaySidebar(
                             currentRoute = currentRoute,
-                            pageLimit = 100,
+                            pageLimit = 200,
                             gridColumns = favoritesUiState.gridColumns,
                             type = favoritesUiState.type,
                             amoledMode = settingsState.amoledMode,
@@ -248,7 +251,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                         val galleryUiState by galleryViewModel.uiState.collectAsState()
                         DisplaySidebar(
                             currentRoute = currentRoute,
-                            pageLimit = 100,
+                            pageLimit = 200,
                             gridColumns = galleryUiState.gridColumns,
                             type = galleryUiState.type,
                             amoledMode = settingsState.amoledMode,
@@ -262,6 +265,18 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     leftDrawerState.close()
                                 }
                             },
+                        )
+                    } else if (currentRoute == "search") {
+                        DisplaySidebar(
+                            currentRoute = currentRoute,
+                            pageLimit = feedUiState.pageLimit,
+                            gridColumns = searchUiState.gridColumns,
+                            type = "image",
+                            amoledMode = settingsState.amoledMode,
+                            onDismiss = { scope.launch { leftDrawerState.close() } },
+                            onUpdatePageLimit = { feedViewModel.updatePageLimit(it) },
+                            onUpdateGridColumns = { feedViewModel.updateGridColumns(it) },
+                            onUpdateType = {},
                         )
                     }
                 }
@@ -297,10 +312,30 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         },
                                         onResetFilters = { feedViewModel.resetFilters() },
                                     )
+                                } else if (
+                                    rightSidebarType == RightSidebarType.SEARCH_FILTERS &&
+                                        currentRoute == "search"
+                                ) {
+                                    SearchFilterSidebar(
+                                        type = searchUiState.type,
+                                        sort = searchUiState.sort,
+                                        amoledMode = settingsState.amoledMode,
+                                        onDismiss = { scope.launch { rightDrawerState.close() } },
+                                        onFilterChange = { type, sort ->
+                                            searchViewModel.updateSearchType(type)
+                                            searchViewModel.updateSearchSort(sort)
+                                        },
+                                        onResetFilters = {
+                                            searchViewModel.updateSearchType("image")
+                                            searchViewModel.updateSearchSort("Relevancy")
+                                        },
+                                        onClearSearch = { searchViewModel.clearSearch() },
+                                    )
                                 } else {
                                     SettingsSidebar(
                                         cacheSize = settingsState.cacheSize,
                                         apiKey = settingsState.apiKey,
+                                        searchApiKey = settingsState.searchApiKey,
                                         downloadPath = settingsState.downloadPath,
                                         favoritesPath = settingsState.favoritesPath,
                                         debugEnabled = settingsState.debugEnabled,
@@ -315,6 +350,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         onDismiss = { scope.launch { rightDrawerState.close() } },
                                         onClearCache = { settingsViewModel.clearImageCache() },
                                         onSaveApiKey = { settingsViewModel.updateApiKey(it) },
+                                        onSaveBearerToken = {
+                                            settingsViewModel.updateSearchApiKey(it)
+                                        },
                                         onSaveBackendUrl = {
                                             settingsViewModel.updateBackendUrl(it)
                                         },
@@ -452,6 +490,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     )
                                 }
                             }
+
                             val startDestination = settingsState.lastRoute ?: return@Box
 
                             AppNavigation(
@@ -464,6 +503,10 @@ fun MainScreen(imageLoader: ImageLoader) {
                                 feedGridState = feedGridState,
                                 favoritesGridState = favoritesGridState,
                                 galleryGridState = galleryGridState,
+                                searchGridState = searchGridState,
+                                searchViewModel = searchViewModel,
+                                favoritesViewModel = favoritesViewModel,
+                                galleryViewModel = galleryViewModel,
                                 favoritesRestored = favoritesRestored,
                                 onFavoritesRestored = { favoritesRestored = it },
                                 galleryRestored = galleryRestored,
@@ -481,6 +524,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     fullScreenViewMode = mode
                                 },
                                 onUpdateLastRoute = { settingsViewModel.updateLastRoute(it) },
+                                onUpdateGridColumns = { searchViewModel.updateGridColumns(it) },
                                 leftDrawerState = leftDrawerState,
                                 rightDrawerState = rightDrawerState,
                                 scope = scope,
@@ -598,6 +642,10 @@ fun AppNavigation(
     feedGridState: LazyStaggeredGridState,
     favoritesGridState: LazyStaggeredGridState,
     galleryGridState: LazyStaggeredGridState,
+    searchGridState: LazyStaggeredGridState,
+    searchViewModel: SearchViewModel,
+    favoritesViewModel: FavoritesViewModel,
+    galleryViewModel: GalleryViewModel,
     favoritesRestored: Boolean,
     onFavoritesRestored: (Boolean) -> Unit,
     galleryRestored: Boolean,
@@ -608,6 +656,7 @@ fun AppNavigation(
     onUpdateRightSidebarType: (RightSidebarType) -> Unit,
     onImageClick: (List<CivitaiImage>, Int, String) -> Unit,
     onUpdateLastRoute: (String) -> Unit,
+    onUpdateGridColumns: (Int) -> Unit,
     leftDrawerState: DrawerState,
     rightDrawerState: DrawerState,
     scope: kotlinx.coroutines.CoroutineScope,
@@ -652,6 +701,38 @@ fun AppNavigation(
                 backPressedTime = backPressedTime,
                 onUpdateBackPressedTime = onUpdateBackPressedTime,
                 exitConfirmMsg = exitConfirmMsg,
+            )
+        }
+
+        composable("search") {
+            val favoritesUiState by favoritesViewModel.uiState.collectAsState()
+
+            SearchScreen(
+                imageLoader = imageLoader,
+                gridState = searchGridState,
+                amoledMode = amoledMode,
+                favoritesPath = favoritesPath,
+                onOpenRightSidebar = onOpenRightSidebar,
+                onImageClick = onImageClick,
+                currentRoute = currentRoute,
+                onNavigate = onNavigate,
+                leftDrawerState = leftDrawerState,
+                rightDrawerState = rightDrawerState,
+                scope = scope,
+                selectedImageIndex = selectedImageIndex,
+                backPressedTime = backPressedTime,
+                onUpdateBackPressedTime = onUpdateBackPressedTime,
+                exitConfirmMsg = exitConfirmMsg,
+                favoriteIds = favoritesUiState.favoriteIds,
+                onToggleFavorite = { image -> favoritesViewModel.toggleFavorite(image) },
+                onGetFavoriteFlow = { id -> favoritesViewModel.getFavoriteFlow(id) },
+                onEnsureFavoriteResources = { img, force, progress ->
+                    favoritesViewModel.ensureFavoriteResources(img, force, progress)
+                },
+                onEnsureFavoriteResourcesThrottled = { img, force, progress ->
+                    favoritesViewModel.ensureFavoriteResourcesThrottled(img, force, progress)
+                },
+                onUpdateGridColumns = onUpdateGridColumns,
             )
         }
 

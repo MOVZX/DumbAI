@@ -30,6 +30,7 @@ data class AppSettingsBackup(
     val galleryScrollOffset: Int = 0,
     val nextCursorImage: String? = null,
     val nextCursorVideo: String? = null,
+    val searchApiKey: String? = null,
 )
 
 @JsonClass(generateAdapter = true)

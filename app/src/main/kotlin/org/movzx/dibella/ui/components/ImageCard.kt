@@ -73,6 +73,7 @@ fun ImageCard(
     animationIndex: Int = -1,
     isPressed: Boolean = false,
     onPressChange: (Boolean) -> Unit = {},
+    showVideoIcon: Boolean = true,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -503,7 +504,7 @@ fun ImageCard(
                 )
             }
 
-            if (image.type == "video" && viewMode != "feed") {
+            if (image.type == "video" && viewMode != "feed" && showVideoIcon) {
                 Box(
                     modifier =
                         Modifier.padding(2.dp)

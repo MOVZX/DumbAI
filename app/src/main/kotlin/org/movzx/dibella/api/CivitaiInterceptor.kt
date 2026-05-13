@@ -68,6 +68,17 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
             request = request.newBuilder().url(redirectedUrl).build()
         }
 
+        val isSearchApi = host.contains("search-new.civitai.com") && path.contains("multi-search")
+        val isBackendSearchRedirect = isSearchApi && backendEnabled && backendUrl.isNotBlank()
+
+        if (isBackendSearchRedirect) {
+            val redirectedUrl = CivitaiUrlBuilder.buildBackendSearchUrl(request.url.toString())
+
+            Logger.d("Dibella_Net", "Redirecting search API request to backend: $redirectedUrl")
+
+            request = request.newBuilder().url(redirectedUrl).build()
+        }
+
         val isBackend =
             backendEnabled &&
                 backendUrl.isNotBlank() &&

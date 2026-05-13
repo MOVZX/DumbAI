@@ -106,6 +106,12 @@ object CivitaiUrlBuilder {
         return "${backendUrl.removeSuffix("/")}/api/v1/feeds?$query"
     }
 
+    fun buildBackendSearchUrl(originalUrl: String): String {
+        if (!backendEnabled || backendUrl.isBlank()) return originalUrl
+
+        return "${backendUrl.removeSuffix("/")}/api/v1/search"
+    }
+
     fun getThumbnailUrl(url: String, width: Int): String {
         if (!isCivitaiMediaUrl(url)) return url
 

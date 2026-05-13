@@ -4,9 +4,22 @@
     <!-- General App Information -->
     <string name="app_name">Dibella</string>
 
+    <!-- Search -->
+    <string name="search">Search</string>
+    <string name="search_hint">Search for Something...</string>
+    <string name="label_civitai_bearer_token">Civitai Search API Key</string>
+    <string name="btn_save_bearer_token">Save API Key</string>
+    <string name="msg_bearer_token_saved">API Key updated</string>
+    <string name="opt_most_collected">Most Collected</string>
+    <string name="opt_most_buzz">Most Buzz</string>
+    <string name="opt_relevancy">Relevancy</string>
+    <string name="empty_search">No results found</string>
+    <string name="search_results">Search Results</string>
+
     <!-- Navigation (Bottom Bar & Top Bar) -->
     <string name="nav_feed">Feed</string>
     <string name="nav_favorites">Favorites</string>
+    <string name="nav_search">Search</string>
     <string name="nav_gallery">Gallery</string>
     <string name="nav_bookmarks">Bookmarks</string>
 
@@ -65,7 +78,7 @@
     <string name="format_mb">%.2f MB</string>
 
     <!-- Buttons & Actions -->
-    <string name="btn_save_api_key">Save Key</string>
+    <string name="btn_save_api_key">Save API Key</string>
     <string name="btn_choose">Choose</string>
     <string name="btn_reset">Reset</string>
     <string name="btn_export">Export</string>

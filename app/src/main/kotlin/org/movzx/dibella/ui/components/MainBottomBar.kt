@@ -7,9 +7,11 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +33,7 @@ fun MainBottomBar(
     onNavigate: (String) -> Unit,
     feedCount: Int = 0,
     favoritesCount: Int = 0,
+    searchCount: Int = 0,
     galleryCount: Int = 0,
     bookmarkCount: Int = 0,
 ) {
@@ -58,6 +61,16 @@ fun MainBottomBar(
             label = stringResource(R.string.nav_favorites),
             count = favoritesCount,
             selectedColor = colorResource(R.color.tertiary),
+        )
+
+        BottomNavItem(
+            selected = currentRoute == "search",
+            onClick = { onNavigate("search") },
+            icon = Icons.Outlined.Search,
+            selectedIcon = Icons.Filled.Search,
+            label = stringResource(R.string.nav_search),
+            count = searchCount,
+            selectedColor = colorResource(R.color.onTertiary),
         )
 
         BottomNavItem(

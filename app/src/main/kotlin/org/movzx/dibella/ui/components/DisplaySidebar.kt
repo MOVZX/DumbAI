@@ -44,7 +44,9 @@ fun DisplaySidebar(
                 onClick = {
                     onUpdatePageLimit(currentPageLimit)
                     onUpdateGridColumns(currentGridColumns)
-                    onUpdateType(currentType)
+
+                    if (currentRoute != "search") onUpdateType(currentType)
+
                     onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -60,7 +62,7 @@ fun DisplaySidebar(
             title = stringResource(R.string.section_app_config),
             icon = Icons.Outlined.Palette,
         ) {
-            if (currentRoute == "feed") {
+            if (currentRoute == "feed" || currentRoute == "search") {
                 Text(
                     stringResource(R.string.label_images_per_request),
                     style = MaterialTheme.typography.labelMedium,
@@ -85,7 +87,7 @@ fun DisplaySidebar(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            if (currentRoute != "feed") {
+            if (currentRoute != "feed" && currentRoute != "search") {
                 Text(
                     stringResource(R.string.content_type),
                     style = MaterialTheme.typography.labelMedium,

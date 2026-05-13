@@ -29,6 +29,7 @@ import org.movzx.dibella.viewmodel.BookmarkViewModel
 import org.movzx.dibella.viewmodel.FavoritesViewModel
 import org.movzx.dibella.viewmodel.FeedViewModel
 import org.movzx.dibella.viewmodel.GalleryViewModel
+import org.movzx.dibella.viewmodel.SearchViewModel
 
 private data class CivitaiTag(val id: Int?, val name: String)
 
@@ -59,6 +60,8 @@ fun BookmarkScreen(
     val favState by favViewModel.uiState.collectAsState()
     val galleryState by galleryViewModel.uiState.collectAsState()
     val gridState = rememberLazyStaggeredGridState()
+    val searchViewModel: SearchViewModel = hiltViewModel(activity)
+    val searchCount by searchViewModel.searchResultCount.collectAsState(initial = 0)
     var showDeleteConfirmDialog by remember { mutableStateOf<Bookmark?>(null) }
     var showEditDialog by remember { mutableStateOf<Bookmark?>(null) }
     var editTitle by remember { mutableStateOf("") }
@@ -312,6 +315,7 @@ fun BookmarkScreen(
                 onNavigate = onNavigate,
                 feedCount = feedState.images.size,
                 favoritesCount = favState.images.size,
+                searchCount = searchCount,
                 galleryCount = galleryState.images.size,
                 bookmarkCount = uiState.bookmarkCount,
             )

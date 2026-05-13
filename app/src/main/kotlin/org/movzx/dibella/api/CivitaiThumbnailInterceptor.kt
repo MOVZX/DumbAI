@@ -10,8 +10,8 @@ import org.movzx.dibella.util.Logger
 
 class CivitaiThumbnailInterceptor : Interceptor {
     companion object {
-        const val VIDEO_TIMEOUT_MS = 10_000L
-        const val IMAGE_TIMEOUT_MS = 15_000L
+        const val VIDEO_TIMEOUT_MS = 60_000L
+        const val IMAGE_TIMEOUT_MS = 30_000L
         const val MAX_RETRIES = 3
     }
 

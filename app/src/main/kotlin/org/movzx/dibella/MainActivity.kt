@@ -29,6 +29,7 @@ import org.movzx.dibella.ui.theme.DibellaTheme
 
 enum class RightSidebarType {
     FILTERS,
+    SEARCH_FILTERS,
     SETTINGS,
 }
 

@@ -4,6 +4,7 @@ data class SettingsUiState(
     val lastRoute: String? = null,
     val cacheSize: String = "0 MB",
     val apiKey: String = "",
+    val searchApiKey: String = "",
     val downloadPath: String? = null,
     val favoritesPath: String? = null,
     val effectiveFavoritesPath: String = "",

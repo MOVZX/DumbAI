@@ -36,6 +36,7 @@ constructor(
             combine<Any?, SettingsUiState>(
                     listOf(
                         repository.apiKey,
+                        repository.searchApiKey,
                         repository.downloadPath,
                         repository.favoritesPath,
                         repository.effectiveFavoritesPath,
@@ -47,17 +48,19 @@ constructor(
                     )
                 ) { values ->
                     @Suppress("UNCHECKED_CAST") val apiKey = values[0] as String
-                    @Suppress("UNCHECKED_CAST") val downloadPath = values[1] as? String
-                    @Suppress("UNCHECKED_CAST") val favoritesPath = values[2] as? String
-                    @Suppress("UNCHECKED_CAST") val effectiveFavoritesPath = values[3] as String
-                    @Suppress("UNCHECKED_CAST") val debugEnabled = values[4] as Boolean
-                    @Suppress("UNCHECKED_CAST") val backendEnabled = values[5] as Boolean
-                    @Suppress("UNCHECKED_CAST") val backendUrl = values[6] as String
-                    @Suppress("UNCHECKED_CAST") val backendApiKey = values[7] as String
-                    @Suppress("UNCHECKED_CAST") val lastRoute = values[8] as? String
+                    @Suppress("UNCHECKED_CAST") val searchApiKey = values[1] as String
+                    @Suppress("UNCHECKED_CAST") val downloadPath = values[2] as? String
+                    @Suppress("UNCHECKED_CAST") val favoritesPath = values[3] as? String
+                    @Suppress("UNCHECKED_CAST") val effectiveFavoritesPath = values[4] as String
+                    @Suppress("UNCHECKED_CAST") val debugEnabled = values[5] as Boolean
+                    @Suppress("UNCHECKED_CAST") val backendEnabled = values[6] as Boolean
+                    @Suppress("UNCHECKED_CAST") val backendUrl = values[7] as String
+                    @Suppress("UNCHECKED_CAST") val backendApiKey = values[8] as String
+                    @Suppress("UNCHECKED_CAST") val lastRoute = values[9] as? String
 
                     SettingsUiState(
                         apiKey = apiKey,
+                        searchApiKey = searchApiKey,
                         downloadPath = downloadPath ?: "",
                         favoritesPath = favoritesPath,
                         effectiveFavoritesPath = effectiveFavoritesPath,
@@ -72,6 +75,7 @@ constructor(
                     _uiState.update { state ->
                         state.copy(
                             apiKey = newState.apiKey,
+                            searchApiKey = newState.searchApiKey,
                             downloadPath = newState.downloadPath,
                             favoritesPath = newState.favoritesPath,
                             effectiveFavoritesPath = newState.effectiveFavoritesPath,
@@ -131,6 +135,13 @@ constructor(
         viewModelScope.launch {
             repository.updateApiKey(key)
             sendMessage(R.string.msg_api_key_saved)
+        }
+    }
+
+    fun updateSearchApiKey(token: String) {
+        viewModelScope.launch {
+            repository.updateSearchApiKey(token)
+            sendMessage(R.string.msg_bearer_token_saved)
         }
     }
 

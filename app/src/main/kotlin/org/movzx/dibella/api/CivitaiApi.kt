@@ -7,7 +7,7 @@ import retrofit2.http.Query
 interface CivitaiApi {
     @GET("images")
     suspend fun getImages(
-        @Query("limit") limit: Int = 100,
+        @Query("limit") limit: Int = 200,
         @Query("nsfw") nsfw: String = "None",
         @Query("sort") sort: String = "Most Reactions",
         @Query("period") period: String = "AllTime",
