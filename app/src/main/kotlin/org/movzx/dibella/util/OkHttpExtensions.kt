@@ -26,20 +26,27 @@ private class TimeoutChainWrapper(
     override fun request(): okhttp3.Request = original.request()
 
     override fun proceed(request: okhttp3.Request): okhttp3.Response {
-        val client = OkHttpClient.Builder()
-            .connectTimeout(
-                if (connectTimeout > 0) TimeUnit.MILLISECONDS.convert(connectTimeout, TimeUnit.MILLISECONDS) else original.connectTimeoutMillis().toLong(),
-                TimeUnit.MILLISECONDS
-            )
-            .readTimeout(
-                if (readTimeout > 0) TimeUnit.MILLISECONDS.convert(readTimeout, TimeUnit.MILLISECONDS) else original.readTimeoutMillis().toLong(),
-                TimeUnit.MILLISECONDS
-            )
-            .writeTimeout(
-                if (writeTimeout > 0) TimeUnit.MILLISECONDS.convert(writeTimeout, TimeUnit.MILLISECONDS) else original.writeTimeoutMillis().toLong(),
-                TimeUnit.MILLISECONDS
-            )
-            .build()
+        val client =
+            OkHttpClient.Builder()
+                .connectTimeout(
+                    if (connectTimeout > 0)
+                        TimeUnit.MILLISECONDS.convert(connectTimeout, TimeUnit.MILLISECONDS)
+                    else original.connectTimeoutMillis().toLong(),
+                    TimeUnit.MILLISECONDS,
+                )
+                .readTimeout(
+                    if (readTimeout > 0)
+                        TimeUnit.MILLISECONDS.convert(readTimeout, TimeUnit.MILLISECONDS)
+                    else original.readTimeoutMillis().toLong(),
+                    TimeUnit.MILLISECONDS,
+                )
+                .writeTimeout(
+                    if (writeTimeout > 0)
+                        TimeUnit.MILLISECONDS.convert(writeTimeout, TimeUnit.MILLISECONDS)
+                    else original.writeTimeoutMillis().toLong(),
+                    TimeUnit.MILLISECONDS,
+                )
+                .build()
         return client.newCall(request).execute()
     }
 
@@ -47,21 +54,39 @@ private class TimeoutChainWrapper(
 
     override fun call(): Call = original.call()
 
-    override fun connectTimeoutMillis(): Int = if (connectTimeout > 0) connectTimeout.toInt() else original.connectTimeoutMillis()
+    override fun connectTimeoutMillis(): Int =
+        if (connectTimeout > 0) connectTimeout.toInt() else original.connectTimeoutMillis()
 
-    override fun readTimeoutMillis(): Int = if (readTimeout > 0) readTimeout.toInt() else original.readTimeoutMillis()
+    override fun readTimeoutMillis(): Int =
+        if (readTimeout > 0) readTimeout.toInt() else original.readTimeoutMillis()
 
-    override fun writeTimeoutMillis(): Int = if (writeTimeout > 0) writeTimeout.toInt() else original.writeTimeoutMillis()
+    override fun writeTimeoutMillis(): Int =
+        if (writeTimeout > 0) writeTimeout.toInt() else original.writeTimeoutMillis()
 
     override fun withConnectTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain {
-        return TimeoutChainWrapper(this, connectTimeout = unit.toMillis(timeout.toLong()), readTimeout = readTimeout, writeTimeout = writeTimeout)
+        return TimeoutChainWrapper(
+            this,
+            connectTimeout = unit.toMillis(timeout.toLong()),
+            readTimeout = readTimeout,
+            writeTimeout = writeTimeout,
+        )
     }
 
     override fun withReadTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain {
-        return TimeoutChainWrapper(this, connectTimeout = connectTimeout, readTimeout = unit.toMillis(timeout.toLong()), writeTimeout = writeTimeout)
+        return TimeoutChainWrapper(
+            this,
+            connectTimeout = connectTimeout,
+            readTimeout = unit.toMillis(timeout.toLong()),
+            writeTimeout = writeTimeout,
+        )
     }
 
     override fun withWriteTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain {
-        return TimeoutChainWrapper(this, connectTimeout = connectTimeout, readTimeout = readTimeout, writeTimeout = unit.toMillis(timeout.toLong()))
+        return TimeoutChainWrapper(
+            this,
+            connectTimeout = connectTimeout,
+            readTimeout = readTimeout,
+            writeTimeout = unit.toMillis(timeout.toLong()),
+        )
     }
 }

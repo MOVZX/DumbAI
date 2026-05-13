@@ -201,9 +201,7 @@ fun SearchTopBar(
 ) {
     var searchQuery by remember { mutableStateOf(query) }
 
-    LaunchedEffect(query) {
-        searchQuery = query
-    }
+    LaunchedEffect(query) { searchQuery = query }
 
     val focusManager = LocalFocusManager.current
 
@@ -264,6 +262,7 @@ fun SearchTopBar(
                 IconButton(
                     onClick = {
                         val nextCols = if (gridColumns >= 4) 1 else gridColumns + 1
+
                         onUpdateGridColumns(nextCols)
                     }
                 ) {
@@ -344,10 +343,12 @@ fun SearchResultsGrid(
         onEnsureFavoriteResourcesThrottled = onEnsureFavoriteResourcesThrottled,
         onImageClick = { image ->
             val result = results.find { it.id == image.id }
+
             result?.let { onImageClick(it) }
         },
         onToggleFavorite = { image ->
             val result = results.find { it.id == image.id }
+
             result?.let { onToggleFavorite(it) }
         },
         onUpdateGridColumns = onUpdateGridColumns,

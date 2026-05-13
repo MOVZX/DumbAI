@@ -13,8 +13,8 @@ class CivitaiBackendRetryInterceptor
 @Inject
 constructor(private val repository: UserPreferencesRepository) : Interceptor {
     companion object {
-        const val RETRY_DELAY_SECONDS = 30L
-        const val MAX_RETRIES = 3
+        const val RETRY_DELAY_SECONDS = 15L
+        const val MAX_RETRIES = 5
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {

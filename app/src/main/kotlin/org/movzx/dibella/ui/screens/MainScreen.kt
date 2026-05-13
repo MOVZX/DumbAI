@@ -325,10 +325,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                             searchViewModel.updateSearchType(type)
                                             searchViewModel.updateSearchSort(sort)
                                         },
-                                        onResetFilters = {
-                                            searchViewModel.updateSearchType("image")
-                                            searchViewModel.updateSearchSort("Relevancy")
-                                        },
+                                        onResetFilters = {},
                                         onClearSearch = { searchViewModel.clearSearch() },
                                     )
                                 } else {

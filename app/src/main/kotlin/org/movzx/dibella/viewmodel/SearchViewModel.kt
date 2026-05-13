@@ -80,7 +80,11 @@ constructor(
                 .collect { state ->
                     if (state.query.isBlank()) return@collect
 
-                    val queryChanged = state.query != _uiState.value.query
+                    val prevQuery = _uiState.value.query
+
+                    if (prevQuery.isBlank()) return@collect
+
+                    val queryChanged = state.query != prevQuery
                     val typeChanged = state.type != _uiState.value.type
                     val sortChanged = state.sort != _uiState.value.sort
 
@@ -96,10 +100,7 @@ constructor(
 
                     pageSize = state.pageLimit
 
-                    if (
-                        !isJumping &&
-                            (queryChanged || typeChanged || sortChanged)
-                    ) {
+                    if (!isJumping && (queryChanged || typeChanged || sortChanged)) {
                         currentOffset = 0
 
                         search(state.query, forceNew = true)
@@ -126,6 +127,7 @@ constructor(
             val initialScrollIndex = preferencesRepository.searchScrollIndex().first()
             val initialScrollOffset = preferencesRepository.searchScrollOffset().first()
             val initialOffset = preferencesRepository.searchOffset.first()
+            val initialPageSize = preferencesRepository.pageLimit.first()
 
             _uiState.update {
                 it.copy(
@@ -141,7 +143,10 @@ constructor(
             if (initialQuery.isNotBlank()) {
                 currentOffset = initialOffset
 
-                restoreSearch(initialQuery, initialOffset)
+                val restoreOffset =
+                    maxOf(0, initialScrollIndex - (initialScrollIndex % initialPageSize))
+
+                restoreSearch(initialQuery, restoreOffset)
             }
         }
     }
@@ -170,7 +175,22 @@ constructor(
                             bearerToken = bearerToken,
                         )
 
+                    if (_uiState.value.query.isBlank() || _uiState.value.query != query)
+                        return@launch
+
                     currentOffset = currentSearchOffset + results.size
+
+                    val absoluteScrollIndex = _uiState.value.scrollIndex
+
+                    val relativeScrollIndex =
+                        (absoluteScrollIndex - currentSearchOffset).coerceIn(
+                            0,
+                            maxOf(0, results.size - 1),
+                        )
+
+                    val relativeScrollOffset =
+                        if (relativeScrollIndex != absoluteScrollIndex) 0
+                        else _uiState.value.scrollOffset
 
                     _uiState.update {
                         it.copy(
@@ -179,6 +199,8 @@ constructor(
                             hasMore = results.size == pageSize && currentOffset < totalHits,
                             isLoading = false,
                             currentOffset = currentOffset,
+                            scrollIndex = relativeScrollIndex,
+                            scrollOffset = relativeScrollOffset,
                         )
                     }
 
@@ -203,6 +225,8 @@ constructor(
 
     fun search(query: String, forceNew: Boolean = false) {
         if (query.isBlank()) {
+            searchJob?.cancel()
+
             _uiState.update {
                 it.copy(
                     results = emptyList(),
@@ -210,6 +234,8 @@ constructor(
                     query = "",
                     hasMore = false,
                     isRestored = false,
+                    isLoading = false,
+                    error = null,
                 )
             }
 
@@ -263,6 +289,9 @@ constructor(
                             bearerToken = bearerToken,
                         )
 
+                    if (_uiState.value.query.isBlank() || _uiState.value.query != query)
+                        return@launch
+
                     val newResults =
                         if (currentSearchOffset == 0) results else _uiState.value.results + results
 
@@ -309,14 +338,7 @@ constructor(
     }
 
     fun saveScrollPosition(type: String, index: Int, offset: Int) {
-        viewModelScope.launch {
-            isJumping = true
-
-            preferencesRepository.updateSearchScrollPosition(index, offset)
-            kotlinx.coroutines.delay(500)
-
-            isJumping = false
-        }
+        viewModelScope.launch { preferencesRepository.updateSearchScrollPosition(index, offset) }
     }
 
     fun updateSearchType(type: String) {
@@ -356,10 +378,7 @@ constructor(
 
         currentOffset = 0
 
-        viewModelScope.launch {
-            preferencesRepository.updateSearchQuery("")
-            preferencesRepository.updateSearchOffset(0)
-        }
+        viewModelScope.launch { preferencesRepository.resetSearch() }
 
         _uiState.update { SearchUiState(gridColumns = it.gridColumns) }
     }

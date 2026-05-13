@@ -6,7 +6,7 @@
 
     <!-- Search -->
     <string name="search">Search</string>
-    <string name="search_hint">Search for Something...</string>
+    <string name="search_hint">Search...</string>
     <string name="label_civitai_bearer_token">Civitai Search API Key</string>
     <string name="btn_save_bearer_token">Save API Key</string>
     <string name="msg_bearer_token_saved">API Key updated</string>

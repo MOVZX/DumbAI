@@ -89,8 +89,8 @@ class CivitaiInterceptor @Inject constructor(private val repository: UserPrefere
         if (isBackend) {
             activeChain =
                 chain
-                    .withConnectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                    .withReadTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                    .withConnectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                    .withReadTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
         }
 
         val requestBuilder = request.newBuilder()

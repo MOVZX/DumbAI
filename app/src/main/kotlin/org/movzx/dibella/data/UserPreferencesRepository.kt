@@ -609,4 +609,15 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[PreferencesKeys.SEARCH_OFFSET] = offset
         }
     }
+
+    suspend fun resetSearch() {
+        Logger.d("Dibella_Prefs", "resetSearch")
+
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.SEARCH_QUERY)
+            preferences.remove(PreferencesKeys.SEARCH_OFFSET)
+            preferences[PreferencesKeys.SEARCH_TYPE] = "image"
+            preferences[PreferencesKeys.SEARCH_SORT] = "Relevancy"
+        }
+    }
 }
