@@ -64,6 +64,8 @@ data class BookmarkBackup(
     val nsfw: String,
     val cursor: String,
     val tags: String?,
+    val query: String? = null,
+    val offset: Int? = null,
     val timestamp: Long,
 )
 

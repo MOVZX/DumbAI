@@ -18,8 +18,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.movzx.dibella.R
+import org.movzx.dibella.data.BookmarkRepository
 import org.movzx.dibella.data.SearchRepository
 import org.movzx.dibella.data.UserPreferencesRepository
+import org.movzx.dibella.model.Bookmark
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -28,6 +31,7 @@ class SearchViewModel
 constructor(
     private val searchRepository: SearchRepository,
     private val preferencesRepository: UserPreferencesRepository,
+    private val bookmarkRepository: BookmarkRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
@@ -341,26 +345,10 @@ constructor(
         viewModelScope.launch { preferencesRepository.updateSearchScrollPosition(index, offset) }
     }
 
-    fun updateSearchType(type: String) {
-        _uiState.update { it.copy(type = type) }
+    fun updateSearchFilters(type: String, sort: String) {
+        _uiState.update { it.copy(type = type, sort = sort) }
 
-        viewModelScope.launch {
-            preferencesRepository.updateSearchFilters(type, _uiState.value.sort)
-        }
-
-        if (_uiState.value.query.isNotBlank()) {
-            currentOffset = 0
-
-            search(_uiState.value.query, forceNew = true)
-        }
-    }
-
-    fun updateSearchSort(sort: String) {
-        _uiState.update { it.copy(sort = sort) }
-
-        viewModelScope.launch {
-            preferencesRepository.updateSearchFilters(_uiState.value.type, sort)
-        }
+        viewModelScope.launch { preferencesRepository.updateSearchFilters(type, sort) }
 
         if (_uiState.value.query.isNotBlank()) {
             currentOffset = 0
@@ -385,6 +373,47 @@ constructor(
 
     fun markRestored() {
         _uiState.update { it.copy(isRestored = true) }
+    }
+
+    fun saveSearchBookmark(title: String) {
+        val state = _uiState.value
+
+        viewModelScope.launch {
+            bookmarkRepository.addBookmark(
+                Bookmark(
+                    title = title,
+                    type = state.type,
+                    sort = state.sort,
+                    period = "",
+                    nsfw = "None",
+                    cursor = "",
+                    tags = null,
+                    query = state.query,
+                    offset = currentOffset,
+                )
+            )
+        }
+    }
+
+    fun loadSearchBookmark(bookmark: Bookmark) {
+        viewModelScope.launch {
+            val q = bookmark.query ?: return@launch
+
+            preferencesRepository.updateSearchQuery(q)
+            preferencesRepository.updateSearchFilters(bookmark.type, bookmark.sort)
+
+            _uiState.update {
+                it.copy(
+                    query = q,
+                    type = bookmark.type,
+                    sort = bookmark.sort,
+                )
+            }
+
+            currentOffset = bookmark.offset ?: 0
+
+            search(q, forceNew = true)
+        }
     }
 
     fun jumpToOffset(targetOffset: Int) {

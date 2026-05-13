@@ -50,6 +50,8 @@ constructor(
                             nsfw = bm.nsfw,
                             cursor = bm.cursor,
                             tags = bm.tags,
+                            query = bm.query,
+                            offset = bm.offset,
                             timestamp = bm.timestamp,
                         )
                     }
@@ -127,6 +129,8 @@ constructor(
                                 nsfw = bm.nsfw,
                                 cursor = bm.cursor,
                                 tags = bm.tags,
+                                query = bm.query,
+                                offset = bm.offset,
                                 timestamp = bm.timestamp,
                             )
                         )

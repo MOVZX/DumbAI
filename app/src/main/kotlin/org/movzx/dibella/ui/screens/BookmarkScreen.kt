@@ -342,12 +342,17 @@ fun BookmarkScreen(
                     BookmarkCard(
                         bookmark = bookmark,
                         onLoad = {
-                            feedViewModel.loadBookmark(bookmark)
-                            onNavigate("feed")
+                            if (bookmark.query != null) {
+                                searchViewModel.loadSearchBookmark(bookmark)
+                                onNavigate("search")
+                            } else {
+                                feedViewModel.loadBookmark(bookmark)
+                                onNavigate("feed")
+                            }
                         },
                         onEdit = {
                             editTitle = bookmark.title
-                            editCursor = bookmark.cursor ?: ""
+                            editCursor = bookmark.query ?: bookmark.cursor ?: ""
                             editTags = bookmark.tags ?: ""
                             editSort = bookmark.sort
                             editPeriod = bookmark.period
@@ -421,12 +426,15 @@ fun BookmarkCard(bookmark: Bookmark, onLoad: () -> Unit, onEdit: () -> Unit, onD
 
             Text(
                 text =
-                    "Type: ${bookmark.type.replaceFirstChar { it.uppercase() }} | Cursor: ${bookmark.cursor ?: ""}",
+                    if (bookmark.query != null)
+                        "Query: ${bookmark.query} | Type: ${bookmark.type.replaceFirstChar { it.uppercase() }} | Offset: ${bookmark.offset ?: 0}"
+                    else
+                        "Type: ${bookmark.type.replaceFirstChar { it.uppercase() }} | Cursor: ${bookmark.cursor ?: ""}",
                 style = MaterialTheme.typography.labelSmall,
             )
 
             Text(
-                text = "Sort: ${bookmark.sort} | Period: ${bookmark.period}",
+                text = "Sort: ${bookmark.sort}${if (bookmark.query == null) " | Period: ${bookmark.period}" else ""}",
                 style = MaterialTheme.typography.labelSmall,
             )
 

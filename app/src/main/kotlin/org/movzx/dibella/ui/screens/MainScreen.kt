@@ -322,11 +322,14 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         amoledMode = settingsState.amoledMode,
                                         onDismiss = { scope.launch { rightDrawerState.close() } },
                                         onFilterChange = { type, sort ->
-                                            searchViewModel.updateSearchType(type)
-                                            searchViewModel.updateSearchSort(sort)
+                                            searchViewModel.updateSearchFilters(type, sort)
                                         },
-                                        onResetFilters = {},
-                                        onClearSearch = { searchViewModel.clearSearch() },
+                                        onResetFilters = {
+                                            searchViewModel.updateSearchFilters(
+                                                "image",
+                                                "Relevancy",
+                                            )
+                                        },
                                     )
                                 } else {
                                     SettingsSidebar(

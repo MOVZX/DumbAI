@@ -21,7 +21,6 @@ fun SearchFilterSidebar(
     onDismiss: () -> Unit,
     onFilterChange: (String, String) -> Unit,
     onResetFilters: () -> Unit,
-    onClearSearch: () -> Unit = {},
     amoledMode: Boolean = false,
 ) {
     val contentTypes = stringArrayResource(R.array.search_content_types)
@@ -50,7 +49,6 @@ fun SearchFilterSidebar(
 
                 OutlinedButton(
                     onClick = {
-                        onClearSearch()
                         onResetFilters()
                         onDismiss()
                     },

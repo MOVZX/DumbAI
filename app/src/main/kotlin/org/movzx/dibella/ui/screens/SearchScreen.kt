@@ -78,28 +78,9 @@ fun SearchScreen(
     val bookmarkState by bookmarkViewModel.uiState.collectAsState()
     val searchCount by viewModel.searchResultCount.collectAsState(initial = 0)
     var showJumpDialog by remember { mutableStateOf(false) }
+    var showBookmarkDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedImageIndex) { if (selectedImageIndex != null) focusManager.clearFocus() }
-
-    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
-        if (uiState.isRestored) {
-            kotlinx.coroutines.delay(500)
-
-            viewModel.saveScrollPosition(
-                "search",
-                gridState.firstVisibleItemIndex,
-                gridState.firstVisibleItemScrollOffset,
-            )
-        }
-    }
-
-    LaunchedEffect(uiState.results.isNotEmpty(), uiState.isRestored) {
-        if (!uiState.isRestored && uiState.results.isNotEmpty()) {
-            kotlinx.coroutines.delay(100)
-            gridState.scrollToItem(uiState.scrollIndex, uiState.scrollOffset)
-            viewModel.markRestored()
-        }
-    }
 
     if (showJumpDialog) {
         JumpDialog(
@@ -110,6 +91,24 @@ fun SearchScreen(
             },
             onDismiss = { showJumpDialog = false },
         )
+    }
+
+    if (showBookmarkDialog) {
+        BookmarkDialog(
+            onApply = { title ->
+                showBookmarkDialog = false
+                viewModel.saveSearchBookmark(title)
+            },
+            onDismiss = { showBookmarkDialog = false },
+        )
+    }
+
+    LaunchedEffect(uiState.results.isNotEmpty(), uiState.isRestored) {
+        if (!uiState.isRestored && uiState.results.isNotEmpty()) {
+            kotlinx.coroutines.delay(100)
+            gridState.scrollToItem(uiState.scrollIndex, uiState.scrollOffset)
+            viewModel.markRestored()
+        }
     }
 
     AppScaffold(
@@ -145,12 +144,12 @@ fun SearchScreen(
         isLoading = uiState.isLoading,
         amoledMode = amoledMode,
         hasMore = uiState.hasMore,
-        showRefresh = false,
-        showBookmarkJump = true,
-        onRefresh = {},
+        showRefresh = uiState.results.isNotEmpty(),
+        showBookmarkJump = uiState.results.isNotEmpty(),
+        onRefresh = { viewModel.search(uiState.query, forceNew = true) },
         onLoadMore = { viewModel.loadMore() },
         onJumpClicked = { showJumpDialog = true },
-        onBookmarkClicked = {},
+        onBookmarkClicked = { showBookmarkDialog = true },
     ) { padding ->
         val searchImages = uiState.results.map { it.toCivitaiImage() }
 
@@ -207,48 +206,53 @@ fun SearchTopBar(
 
     CenterAlignedTopAppBar(
         title = {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = {
-                    Text(
-                        stringResource(R.string.search_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions =
-                    KeyboardActions(
-                        onSearch = {
-                            focusManager.clearFocus()
-                            onSearch(searchQuery)
-                        }
-                    ),
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty())
-                        IconButton(
-                            onClick = {
-                                searchQuery = ""
-                                onSearch("")
+            Box(modifier = Modifier.height(48.dp)) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = {
+                        Text(
+                            stringResource(R.string.search_hint),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions =
+                        KeyboardActions(
+                            onSearch = {
+                                focusManager.clearFocus()
+                                onSearch(searchQuery)
                             }
-                        ) {
-                            Icon(
-                                Icons.Default.Clear,
-                                contentDescription = stringResource(R.string.btn_close),
-                            )
-                        }
-                },
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    ),
-            )
+                        ),
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = stringResource(R.string.search),
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty())
+                            IconButton(
+                                onClick = {
+                                    searchQuery = ""
+                                    onSearch("")
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.Clear,
+                                    contentDescription = stringResource(R.string.btn_close),
+                                )
+                            }
+                    },
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        ),
+                )
+            }
         },
         navigationIcon = {
             Row(verticalAlignment = Alignment.CenterVertically) {
