@@ -98,7 +98,7 @@ fun SpeedDialFab(
                             item.onClick()
                         },
                         containerColor = item.containerColor ?: MaterialTheme.colorScheme.primary,
-                        contentColor = item.contentColor ?: Color.White,
+                        contentColor = item.contentColor ?: MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(36.dp),
                     ) {
                         Icon(
@@ -117,7 +117,7 @@ fun SpeedDialFab(
                 expanded = !expanded
             },
             containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = Color.White,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             elevation =
                 FloatingActionButtonDefaults.elevation(
                     defaultElevation = 8.dp,

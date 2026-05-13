@@ -125,7 +125,7 @@ private fun FabButton(
             onClick()
         },
         containerColor = containerColor,
-        contentColor = Color.White,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
         elevation =
             FloatingActionButtonDefaults.elevation(
                 defaultElevation = 6.dp,

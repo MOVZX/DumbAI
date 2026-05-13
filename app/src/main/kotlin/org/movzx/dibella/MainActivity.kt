@@ -19,10 +19,8 @@ import androidx.lifecycle.lifecycleScope
 import coil3.ImageLoader
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.movzx.dibella.data.UserPreferencesRepository
-import org.movzx.dibella.ui.components.SplashScreen
 import org.movzx.dibella.ui.screens.MainScreen
 import org.movzx.dibella.ui.screens.OnboardingScreen
 import org.movzx.dibella.ui.theme.DibellaTheme
@@ -70,7 +68,6 @@ class MainActivity : FragmentActivity() {
 
     private val _permissionsGranted = mutableStateOf(false)
     private val _showOnboarding = mutableStateOf(false)
-    private val _showMain = mutableStateOf(false)
 
     val permissionsGranted: State<Boolean>
         get() = _permissionsGranted
@@ -94,31 +91,18 @@ class MainActivity : FragmentActivity() {
         setContent {
             DibellaTheme {
                 if (_permissionsGranted.value) {
-                    when {
-                        _showOnboarding.value -> {
-                            OnboardingScreen(
-                                onSkip = { _showOnboarding.value = false },
-                                onFinish = {
-                                    lifecycleScope.launch {
-                                        preferencesRepository.updateOnboardingCompleted(true)
-                                        _showOnboarding.value = false
-                                    }
-                                },
-                            )
-                        }
-                        _showMain.value -> {
-                            MainScreen(imageLoader)
-                        }
-                        else -> {
-                            SplashScreen(
-                                onSplashFinished = {
-                                    lifecycleScope.launch {
-                                        delay(500)
-                                        _showMain.value = true
-                                    }
+                    if (_showOnboarding.value) {
+                        OnboardingScreen(
+                            onSkip = { _showOnboarding.value = false },
+                            onFinish = {
+                                lifecycleScope.launch {
+                                    preferencesRepository.updateOnboardingCompleted(true)
+                                    _showOnboarding.value = false
                                 }
-                            )
-                        }
+                            },
+                        )
+                    } else {
+                        MainScreen(imageLoader)
                     }
                 } else
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

@@ -122,7 +122,7 @@ fun FilterSidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
                 }
@@ -151,7 +151,7 @@ fun FilterSidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
                 }
@@ -179,7 +179,7 @@ fun FilterSidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
                 }
@@ -198,7 +198,7 @@ fun FilterSidebar(
                     colors =
                         FilterChipDefaults.filterChipColors(
                             selectedContainerColor = colorResource(R.color.primary),
-                            selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                 )
 
@@ -220,7 +220,7 @@ fun FilterSidebar(
                             colors =
                                 FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = colorResource(R.color.primary),
-                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                                 ),
                         )
                     }
@@ -290,7 +290,7 @@ fun FilterSidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
                 }

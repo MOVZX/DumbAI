@@ -71,7 +71,7 @@ fun ConfirmationDialog(
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = colorResource(R.color.tertiary),
-                            contentColor = androidx.compose.ui.graphics.Color.White,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                     shape = MaterialTheme.shapes.small,
                 ) {

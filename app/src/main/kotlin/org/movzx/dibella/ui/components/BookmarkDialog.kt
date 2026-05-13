@@ -83,7 +83,7 @@ fun BookmarkDialog(onApply: (String) -> Unit, onDismiss: () -> Unit) {
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = colorResource(R.color.tertiary),
-                            contentColor = androidx.compose.ui.graphics.Color.White,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                     shape = MaterialTheme.shapes.small,
                 ) {

@@ -78,7 +78,7 @@ fun DisplaySidebar(
                             colors =
                                 FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = colorResource(R.color.primary),
-                                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                                 ),
                         )
                     }
@@ -102,7 +102,7 @@ fun DisplaySidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
 
@@ -113,7 +113,7 @@ fun DisplaySidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
 
@@ -124,7 +124,7 @@ fun DisplaySidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
                 }
@@ -152,7 +152,7 @@ fun DisplaySidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
                 }
@@ -172,7 +172,7 @@ fun DisplaySidebar(
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = colorResource(R.color.error),
-                            contentColor = androidx.compose.ui.graphics.Color.White,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                 ) {
                     Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp))

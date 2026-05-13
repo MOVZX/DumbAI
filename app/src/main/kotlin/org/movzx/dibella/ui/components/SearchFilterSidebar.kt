@@ -89,7 +89,7 @@ fun SearchFilterSidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
                 }
@@ -121,7 +121,7 @@ fun SearchFilterSidebar(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = colorResource(R.color.primary),
-                                selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                     )
                 }

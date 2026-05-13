@@ -429,7 +429,7 @@ fun FullScreenImage(
                         Text(
                             text = "$currentFps FPS",
                             color = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                            fontSize = 12.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         )
                     }
@@ -509,7 +509,7 @@ fun FullScreenImage(
                         Text(
                             text = org.movzx.dibella.util.formatDuration(videoProgress),
                             color = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                            fontSize = 10.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Left,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             modifier = Modifier.width(48.dp),
@@ -541,7 +541,7 @@ fun FullScreenImage(
                         Text(
                             text = org.movzx.dibella.util.formatDuration(videoDuration),
                             color = androidx.compose.ui.res.colorResource(R.color.pure_white),
-                            fontSize = 10.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Right,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             modifier = Modifier.width(48.dp),
@@ -619,7 +619,7 @@ fun FullScreenImage(
                             Text(
                                 text = "${playbackSpeed}x",
                                 color = colorResource(R.color.pure_white),
-                                fontSize = 14.sp,
+                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             )
                         }

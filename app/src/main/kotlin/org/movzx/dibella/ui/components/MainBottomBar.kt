@@ -173,7 +173,7 @@ private fun RowScope.BottomNavItem(
                             text = formatCount(count),
                             style =
                                 MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 8.sp,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     color =
                                         if (selected) selectedColor.copy(alpha = 0.7f)
                                         else

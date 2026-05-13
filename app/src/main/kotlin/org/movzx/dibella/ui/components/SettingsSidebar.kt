@@ -362,7 +362,7 @@ fun SettingsSidebar(
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = colorResource(R.color.success),
-                            contentColor = androidx.compose.ui.graphics.Color.White,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                 ) {
                     Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
@@ -377,7 +377,7 @@ fun SettingsSidebar(
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = colorResource(R.color.error),
-                            contentColor = androidx.compose.ui.graphics.Color.White,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                 ) {
                     Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
@@ -425,7 +425,7 @@ fun SettingsSidebar(
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.error),
-                        contentColor = androidx.compose.ui.graphics.Color.White,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
