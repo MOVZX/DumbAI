@@ -560,18 +560,18 @@ fun MainScreen(imageLoader: ImageLoader) {
                             AnimatedVisibility(
                                 visible = selectedImageIndex != null,
                                 enter =
-                                    fadeIn(animationSpec = tween(400)) +
+                                    fadeIn(animationSpec = tween(250)) +
                                         scaleIn(
-                                            initialScale = 0.9f,
+                                            initialScale = 0.3f,
                                             animationSpec =
-                                                spring(dampingRatio = 0.8f, stiffness = 300f),
+                                                spring(dampingRatio = 0.5f, stiffness = 200f),
                                         ),
                                 exit =
-                                    fadeOut(animationSpec = tween(300)) +
+                                    fadeOut(animationSpec = tween(200)) +
                                         scaleOut(
-                                            targetScale = 0.9f,
+                                            targetScale = 0.5f,
                                             animationSpec =
-                                                spring(dampingRatio = 0.8f, stiffness = 300f),
+                                                spring(dampingRatio = 0.7f, stiffness = 300f),
                                         ),
                             ) {
                                 val targetIndex = selectedImageIndex ?: 0

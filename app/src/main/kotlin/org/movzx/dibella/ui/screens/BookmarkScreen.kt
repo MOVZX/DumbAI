@@ -328,13 +328,19 @@ fun BookmarkScreen(
         if (uiState.isLoading && uiState.bookmarks.isEmpty()) {
             SkeletonGrid(columnCount = 1)
         } else if (uiState.bookmarks.isEmpty() && !uiState.isLoading) {
-            EmptyState("bookmarks")
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) { EmptyState("bookmarks") }
         } else {
             LazyVerticalStaggeredGrid(
                 columns = StaggeredGridCells.Fixed(1),
                 state = gridState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = padding,
+                contentPadding =
+                    PaddingValues(
+                        start = 8.dp,
+                        end = 8.dp,
+                        top = padding.calculateTopPadding(),
+                        bottom = padding.calculateBottomPadding(),
+                    ),
                 verticalItemSpacing = 8.dp,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -434,7 +440,8 @@ fun BookmarkCard(bookmark: Bookmark, onLoad: () -> Unit, onEdit: () -> Unit, onD
             )
 
             Text(
-                text = "Sort: ${bookmark.sort}${if (bookmark.query == null) " | Period: ${bookmark.period}" else ""}",
+                text =
+                    "Sort: ${bookmark.sort}${if (bookmark.query == null) " | Period: ${bookmark.period}" else ""}",
                 style = MaterialTheme.typography.labelSmall,
             )
 
