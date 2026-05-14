@@ -60,6 +60,35 @@ fun FilterSidebar(
             nsfwTagNames.mapIndexed { index, name -> CivitaiTag(nsfwTagIdsArray[index], name) }
         }
 
+    var showApplyConfirm by remember { mutableStateOf(false) }
+    var showResetConfirm by remember { mutableStateOf(false) }
+
+    if (showApplyConfirm) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_apply_filters_title),
+            message = stringResource(R.string.dialog_apply_filters_msg),
+            onConfirm = {
+                onFilterChange(currentNsfw, currentSort, currentPeriod, currentType, currentTagIds)
+                onDismiss()
+                showApplyConfirm = false
+            },
+            onDismiss = { showApplyConfirm = false },
+        )
+    }
+
+    if (showResetConfirm) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_reset_filters_title),
+            message = stringResource(R.string.dialog_reset_filters_msg),
+            onConfirm = {
+                onResetFilters()
+                onDismiss()
+                showResetConfirm = false
+            },
+            onDismiss = { showResetConfirm = false },
+        )
+    }
+
     BaseSidebar(
         title = stringResource(R.string.filters),
         onDismiss = onDismiss,
@@ -67,16 +96,7 @@ fun FilterSidebar(
         footer = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(
-                    onClick = {
-                        onFilterChange(
-                            currentNsfw,
-                            currentSort,
-                            currentPeriod,
-                            currentType,
-                            currentTagIds,
-                        )
-                        onDismiss()
-                    },
+                    onClick = { showApplyConfirm = true },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.small,
                     colors =
@@ -91,10 +111,7 @@ fun FilterSidebar(
                 }
 
                 Button(
-                    onClick = {
-                        onResetFilters()
-                        onDismiss()
-                    },
+                    onClick = { showResetConfirm = true },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.small,
                     colors =

@@ -26,6 +26,10 @@
     <!-- Sidebar Titles & Common Headers -->
     <string name="display_options">Display Options</string>
     <string name="filters">Filters</string>
+    <string name="dialog_apply_filters_title">Apply Filters</string>
+    <string name="dialog_apply_filters_msg">This will refresh your current results with the new filters. Continue?</string>
+    <string name="dialog_reset_filters_title">Reset Filters</string>
+    <string name="dialog_reset_filters_msg">This will reset all filters to their defaults. Continue?</string>
     <string name="settings">Settings</string>
     <string name="nsfw">NSFW Level</string>
     <string name="sort">Sort By</string>

@@ -27,6 +27,34 @@ fun SearchFilterSidebar(
     val sortOptions = stringArrayResource(R.array.search_sort_options)
     var currentType by remember(type) { mutableStateOf(type) }
     var currentSort by remember(sort) { mutableStateOf(sort) }
+    var showApplyConfirm by remember { mutableStateOf(false) }
+    var showResetConfirm by remember { mutableStateOf(false) }
+
+    if (showApplyConfirm) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_apply_filters_title),
+            message = stringResource(R.string.dialog_apply_filters_msg),
+            onConfirm = {
+                onFilterChange(currentType, currentSort)
+                onDismiss()
+                showApplyConfirm = false
+            },
+            onDismiss = { showApplyConfirm = false },
+        )
+    }
+
+    if (showResetConfirm) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_reset_filters_title),
+            message = stringResource(R.string.dialog_reset_filters_msg),
+            onConfirm = {
+                onResetFilters()
+                onDismiss()
+                showResetConfirm = false
+            },
+            onDismiss = { showResetConfirm = false },
+        )
+    }
 
     BaseSidebar(
         title = stringResource(R.string.filters),
@@ -35,10 +63,7 @@ fun SearchFilterSidebar(
         footer = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(
-                    onClick = {
-                        onFilterChange(currentType, currentSort)
-                        onDismiss()
-                    },
+                    onClick = { showApplyConfirm = true },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.small,
                     colors =
@@ -53,10 +78,7 @@ fun SearchFilterSidebar(
                 }
 
                 Button(
-                    onClick = {
-                        onResetFilters()
-                        onDismiss()
-                    },
+                    onClick = { showResetConfirm = true },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.small,
                     colors =
