@@ -53,8 +53,8 @@ fun AppScaffold(
     var isBarsVisible by remember { mutableStateOf(true) }
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
     var pullOffset by remember { mutableFloatStateOf(0f) }
-    val pullThreshold = 50.dp
-    val pullLimit = 150.dp
+    val pullThreshold = 80.dp
+    val pullLimit = 180.dp
     val density = androidx.compose.ui.platform.LocalDensity.current
     val pullThresholdPx = with(density) { pullThreshold.toPx() }
     val pullLimitPx = with(density) { pullLimit.toPx() }
@@ -95,7 +95,7 @@ fun AppScaffold(
                         val resistance = 1f - progress
 
                         pullOffset =
-                            (pullOffset + available.y * 0.5f * resistance).coerceAtMost(pullLimitPx)
+                            (pullOffset + available.y * 0.3f * resistance).coerceAtMost(pullLimitPx)
 
                         return Offset(0f, available.y)
                     }
@@ -105,7 +105,7 @@ fun AppScaffold(
                         val resistance = 1f - progress
 
                         pullOffset =
-                            (pullOffset + available.y * 0.5f * resistance).coerceAtLeast(
+                            (pullOffset + available.y * 0.3f * resistance).coerceAtLeast(
                                 -pullLimitPx
                             )
 
