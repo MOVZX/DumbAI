@@ -26,6 +26,7 @@ fun DisplaySidebar(
     onUpdateGridColumns: (Int) -> Unit,
     onUpdateType: (String) -> Unit,
     onScanDuplicates: (() -> Unit)? = null,
+    hasItems: Boolean = true,
     amoledMode: Boolean = false,
 ) {
 
@@ -163,7 +164,7 @@ fun DisplaySidebar(
                 }
             }
 
-            if (currentRoute == "favorites" || currentRoute == "gallery") {
+            if ((currentRoute == "favorites" || currentRoute == "gallery") && hasItems) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
