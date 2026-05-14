@@ -94,6 +94,8 @@ object CivitaiUrlBuilder {
     }
 
     fun toBackendUrl(type: String, quality: String, uuid: String): String {
+        if (backendUrl.isBlank()) return "${URL_PREFIX}$uuid/original=true/$uuid.jpg"
+
         return "${backendUrl.removeSuffix("/")}/api/v1/$type/$quality/$uuid"
     }
 

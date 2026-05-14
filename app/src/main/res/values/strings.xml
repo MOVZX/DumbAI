@@ -105,6 +105,12 @@
     <string name="dialog_delete_msg">Are you sure you want to permanently delete this file from your storage?</string>
     <string name="dialog_redownload_title">Redownload Media</string>
     <string name="dialog_redownload_msg">Are you sure you want to force a redownload of this media? Current cache will be overwritten.</string>
+    <string name="dialog_clear_cache_title">Clear Image Cache</string>
+    <string name="dialog_clear_cache_msg">This will delete all cached images/videos and data. They will be re-downloaded as needed.</string>
+    <string name="dialog_import_title">Import Data</string>
+    <string name="dialog_import_msg">This will overwrite your current favorites, bookmark, and settings. The app will restart. Continue?</string>
+    <string name="dialog_hd_title">Enable HD Mode</string>
+    <string name="dialog_hd_msg">HD mode will always request original quality images/videos, which may use more data and bandwidth. Continue?</string>
     <string name="dialog_batch_unfavorite_title">Unfavorite items?</string>
     <string name="dialog_batch_unfavorite_msg">Unfavorite %1$d items?</string>
     <string name="dialog_batch_delete_title">Delete items?</string>

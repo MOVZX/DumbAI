@@ -57,6 +57,9 @@ fun SettingsSidebar(
     var path by remember(downloadPath) { mutableStateOf(downloadPath ?: "") }
     var favPath by remember(favoritesPath) { mutableStateOf(favoritesPath ?: "") }
     var showAutoplayDialog by remember { mutableStateOf(false) }
+    var showHDDialog by remember { mutableStateOf(false) }
+    var showClearCacheConfirm by remember { mutableStateOf(false) }
+    var showImportConfirm by remember { mutableStateOf(false) }
 
     if (showAutoplayDialog) {
         ConfirmationDialog(
@@ -67,6 +70,42 @@ fun SettingsSidebar(
                 showAutoplayDialog = false
             },
             onDismiss = { showAutoplayDialog = false },
+        )
+    }
+
+    if (showHDDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_hd_title),
+            message = stringResource(R.string.dialog_hd_msg),
+            onConfirm = {
+                onAlwaysEnableHD(true)
+                showHDDialog = false
+            },
+            onDismiss = { showHDDialog = false },
+        )
+    }
+
+    if (showClearCacheConfirm) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_clear_cache_title),
+            message = stringResource(R.string.dialog_clear_cache_msg),
+            onConfirm = {
+                onClearCache()
+                showClearCacheConfirm = false
+            },
+            onDismiss = { showClearCacheConfirm = false },
+        )
+    }
+
+    if (showImportConfirm) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_import_title),
+            message = stringResource(R.string.dialog_import_msg),
+            onConfirm = {
+                onImport()
+                showImportConfirm = false
+            },
+            onDismiss = { showImportConfirm = false },
         )
     }
 
@@ -117,7 +156,12 @@ fun SettingsSidebar(
                     stringResource(R.string.label_always_enable_hd),
                     style = MaterialTheme.typography.bodyLarge,
                 )
-                Switch(checked = alwaysEnableHD, onCheckedChange = onAlwaysEnableHD)
+                Switch(
+                    checked = alwaysEnableHD,
+                    onCheckedChange = { checked ->
+                        if (checked) showHDDialog = true else onAlwaysEnableHD(false)
+                    },
+                )
             }
 
             Row(
@@ -164,6 +208,7 @@ fun SettingsSidebar(
                 onClick = { onSaveApiKey(key) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
+                enabled = key.isNotBlank(),
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.success),
@@ -187,6 +232,7 @@ fun SettingsSidebar(
                 onClick = { onSaveBearerToken(bearerToken) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
+                enabled = bearerToken.isNotBlank(),
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.success),
@@ -229,7 +275,7 @@ fun SettingsSidebar(
                 onClick = { onSaveBackendApiKey(bKey) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
-                enabled = backendEnabled,
+                enabled = backendEnabled && bKey.isNotBlank(),
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.success),
@@ -255,7 +301,7 @@ fun SettingsSidebar(
                 onClick = { onSaveBackendUrl(bUrl) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
-                enabled = backendEnabled,
+                enabled = backendEnabled && bUrl.isNotBlank(),
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.success),
@@ -311,6 +357,12 @@ fun SettingsSidebar(
                     },
                     modifier = Modifier.weight(1f),
                     shape = MaterialTheme.shapes.small,
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = colorResource(R.color.error)
+                        ),
+                    border =
+                        androidx.compose.foundation.BorderStroke(1.dp, colorResource(R.color.error)),
                 ) {
                     Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -359,6 +411,12 @@ fun SettingsSidebar(
                     },
                     modifier = Modifier.weight(1f),
                     shape = MaterialTheme.shapes.small,
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = colorResource(R.color.error)
+                        ),
+                    border =
+                        androidx.compose.foundation.BorderStroke(1.dp, colorResource(R.color.error)),
                 ) {
                     Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -376,7 +434,7 @@ fun SettingsSidebar(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Button(
-                    onClick = onImport,
+                    onClick = { showImportConfirm = true },
                     modifier = Modifier.weight(1f),
                     shape = MaterialTheme.shapes.small,
                     colors =
@@ -441,7 +499,7 @@ fun SettingsSidebar(
             }
 
             Button(
-                onClick = { onClearCache() },
+                onClick = { showClearCacheConfirm = true },
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.error),
