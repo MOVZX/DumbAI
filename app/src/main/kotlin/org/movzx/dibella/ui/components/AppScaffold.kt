@@ -66,9 +66,14 @@ fun AppScaffold(
                     if (available.y > 0 && pullOffset < 0) {
                         val consumed =
                             if (available.y + pullOffset > 0) -pullOffset else available.y
-
                         pullOffset += consumed
+                        return Offset(0f, consumed)
+                    }
 
+                    if (available.y < 0 && pullOffset > 0) {
+                        val consumed =
+                            if (available.y + pullOffset < 0) -pullOffset else available.y
+                        pullOffset += consumed
                         return Offset(0f, consumed)
                     }
 
