@@ -79,13 +79,18 @@ fun FilterSidebar(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.small,
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.success),
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
                 ) {
                     Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.btn_apply_settings))
                 }
 
-                OutlinedButton(
+                Button(
                     onClick = {
                         onResetFilters()
                         onDismiss()
@@ -93,8 +98,9 @@ fun FilterSidebar(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.small,
                     colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = androidx.compose.ui.res.colorResource(R.color.error)
+                        ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.error),
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                 ) {
                     Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
@@ -260,8 +266,7 @@ fun FilterSidebar(
                                 colors =
                                     FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = colorResource(R.color.primary),
-                                        selectedLabelColor =
-                                            androidx.compose.ui.graphics.Color.White,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                                     ),
                             )
                         }

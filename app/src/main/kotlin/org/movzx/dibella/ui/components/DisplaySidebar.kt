@@ -51,6 +51,11 @@ fun DisplaySidebar(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.success),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             ) {
                 Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))

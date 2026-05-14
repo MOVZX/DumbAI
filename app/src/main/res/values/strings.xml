@@ -48,6 +48,7 @@
     <string name="placeholder_backend_url">http://192.168.1.10:5000</string>
     <string name="btn_save_backend_url">Save Proxy URL</string>
     <string name="msg_backend_url_saved">Proxy URL updated</string>
+    <string name="msg_backend_api_key_saved">Proxy API key updated</string>
     <string name="section_cache">Storage &amp; Cache</string>
     <string name="section_app_config">App Configuration</string>
 
@@ -114,8 +115,13 @@
     <string name="dialog_bookmark_title">Add Bookmark</string>
     <string name="placeholder_bookmark_title">Bookmark Title</string>
     <string name="msg_bookmark_saved">Bookmark saved</string>
+    <string name="msg_bookmark_deleted">Bookmark deleted</string>
+    <string name="msg_bookmark_edited">Bookmark updated</string>
+    <string name="msg_bookmark_loaded">Bookmark loaded</string>
     <string name="dialog_delete_bookmark_title">Delete Bookmark</string>
     <string name="dialog_delete_bookmark_msg">Are you sure you want to delete this bookmark?</string>
+    <string name="dialog_load_bookmark_title">Load Bookmark</string>
+    <string name="dialog_load_bookmark_msg">Are you sure you want to load this bookmark? This will reset your current feed.</string>
 
 
     <!-- Selectable Options (Filter Chips) -->
@@ -160,6 +166,7 @@
     <string name="empty_favorites">No liked media yet</string>
     <string name="empty_gallery">No downloaded media found</string>
     <string name="empty_bookmarks">No bookmarks yet</string>
+    <string name="search_bookmarks_placeholder">Search bookmarks…</string>
 
     <!-- Accessibility & Content Descriptions -->
     <string name="desc_refresh">Refresh Feed</string>

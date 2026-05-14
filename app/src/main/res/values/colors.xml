@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-    <!-- Primary: Soft Coral -->
-    <color name="primary">#FF9E9E</color>
-    <color name="primary_variant">#FFB3B3</color>
+    <!-- Primary: Pastel Blush Pink -->
+    <color name="primary">#FFB5C2</color>
+    <color name="primary_variant">#FFCBD6</color>
     <color name="onPrimary">#FFFFFF</color>
-    <color name="primaryContainer">#FFE5E5</color>
-    <color name="onPrimaryContainer">#5C1A1A</color>
+    <color name="primaryContainer">#FFF0F3</color>
+    <color name="onPrimaryContainer">#5C2A2A</color>
 
-    <!-- Secondary: Soft Purple -->
-    <color name="secondary">#A78BFA</color>
-    <color name="secondary_variant">#C4B5FD</color>
+    <!-- Secondary: Pastel Lavender -->
+    <color name="secondary">#C5B4E3</color>
+    <color name="secondary_variant">#D8CCF0</color>
     <color name="onSecondary">#FFFFFF</color>
-    <color name="secondaryContainer">#EDE9FE</color>
+    <color name="secondaryContainer">#F3EEFA</color>
     <color name="onSecondaryContainer">#3B1D6B</color>
 
-    <!-- Accent: Soft Gold -->
-    <color name="accent">#FBBF24</color>
-    <color name="accent_variant">#FCD34D</color>
+    <!-- Accent: Pastel Butter -->
+    <color name="accent">#F2E2A0</color>
+    <color name="accent_variant">#F7EBBF</color>
     <color name="onAccent">#FFFFFF</color>
-    <color name="accentContainer">#FEF3C7</color>
-    <color name="onAccentContainer">#78350F</color>
+    <color name="accentContainer">#FEF9E7</color>
+    <color name="onAccentContainer">#5C4A0F</color>
 
-    <!-- Tertiary: Soft Rose -->
-    <color name="tertiary">#FB7185</color>
-    <color name="tertiary_light">#FDA4AF</color>
+    <!-- Tertiary: Pastel Rose -->
+    <color name="tertiary">#F5C6D6</color>
+    <color name="tertiary_light">#F9D8E4</color>
     <color name="onTertiary">#FFFFFF</color>
-    <color name="tertiaryContainer">#FEE2E2</color>
-    <color name="onTertiaryContainer">#7F1D1D</color>
+    <color name="tertiaryContainer">#FDEEF4</color>
+    <color name="onTertiaryContainer">#7F1D2A</color>
 
     <!-- Background: Rich Dark -->
     <color name="background">#0A0A0F</color>
@@ -41,8 +41,8 @@
     <color name="outlineVariant">#27272A</color>
 
     <!-- Utility -->
-    <color name="success">#34D399</color>
-    <color name="error">#EF4444</color>
+    <color name="success">#A8E6CF</color>
+    <color name="error">#FF8A8A</color>
     <color name="pure_black">#000000</color>
     <color name="pure_white">#FFFFFF</color>
 </resources>

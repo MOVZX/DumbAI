@@ -162,11 +162,17 @@ constructor(
     }
 
     fun updateBackendUrl(url: String) {
-        viewModelScope.launch { repository.updateBackendUrl(url) }
+        viewModelScope.launch {
+            repository.updateBackendUrl(url)
+            sendMessage(R.string.msg_backend_url_saved)
+        }
     }
 
     fun updateBackendApiKey(key: String) {
-        viewModelScope.launch { repository.updateBackendApiKey(key) }
+        viewModelScope.launch {
+            repository.updateBackendApiKey(key)
+            sendMessage(R.string.msg_backend_api_key_saved)
+        }
     }
 
     fun updateHidePlayerControls(enabled: Boolean) {

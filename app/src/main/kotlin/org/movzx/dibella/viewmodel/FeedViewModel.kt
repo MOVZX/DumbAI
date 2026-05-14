@@ -190,7 +190,7 @@ constructor(
         }
     }
 
-    fun jumpToCursor(cursor: String) {
+    fun jumpToCursor(cursor: String?) {
         if (_uiState.value.isLoading) return
 
         Logger.d("Dibella_Cache", "Jumping to Cursor: $cursor")
@@ -334,11 +334,14 @@ constructor(
                 sort = bookmark.sort,
                 period = bookmark.period,
                 type = bookmark.type,
-                tagIds = bookmark.tags,
+                tagIds = bookmark.tags?.ifEmpty { null },
             )
 
-            repository.updateNextCursor(bookmark.type, bookmark.cursor)
-            jumpToCursor(bookmark.cursor)
+            val cursor = bookmark.cursor.ifEmpty { null }
+
+            repository.updateNextCursor(bookmark.type, cursor)
+            jumpToCursor(cursor)
+            sendMessage(R.string.msg_bookmark_loaded)
             kotlinx.coroutines.delay(500)
 
             isJumping = false

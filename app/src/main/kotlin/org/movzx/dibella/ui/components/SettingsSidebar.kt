@@ -164,6 +164,11 @@ fun SettingsSidebar(
                 onClick = { onSaveApiKey(key) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.success),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             ) {
                 Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
@@ -182,6 +187,11 @@ fun SettingsSidebar(
                 onClick = { onSaveBearerToken(bearerToken) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.success),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             ) {
                 Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
@@ -220,6 +230,11 @@ fun SettingsSidebar(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
                 enabled = backendEnabled,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.success),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             ) {
                 Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
@@ -241,6 +256,11 @@ fun SettingsSidebar(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
                 enabled = backendEnabled,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.success),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             ) {
                 Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))

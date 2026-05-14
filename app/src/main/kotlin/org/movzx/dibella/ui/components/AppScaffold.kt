@@ -1,5 +1,6 @@
 package org.movzx.dibella.ui.components
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -25,6 +26,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Velocity
@@ -47,6 +49,7 @@ fun AppScaffold(
     onBookmarkClicked: () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    val view = LocalView.current
     var isBarsVisible by remember { mutableStateOf(true) }
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
     var pullOffset by remember { mutableFloatStateOf(0f) }
@@ -115,8 +118,13 @@ fun AppScaffold(
                     consumed: Velocity,
                     available: Velocity,
                 ): Velocity {
-                    if (pullOffset > pullThresholdPx) onRefresh()
-                    else if (pullOffset < -pullThresholdPx) onLoadMore()
+                    if (pullOffset > pullThresholdPx) {
+                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        onRefresh()
+                    } else if (pullOffset < -pullThresholdPx) {
+                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        onLoadMore()
+                    }
 
                     pullOffset = 0f
 
@@ -390,8 +398,7 @@ fun EmptyState(viewMode: String) {
                     stringResource(R.string.empty_bookmarks) to Icons.Outlined.BookmarkBorder
                 "duplicates" ->
                     stringResource(R.string.msg_no_duplicates_found) to Icons.Default.DeleteSweep
-                "search" ->
-                    stringResource(R.string.empty_search) to Icons.Default.Search
+                "search" -> stringResource(R.string.empty_search) to Icons.Default.Search
                 else -> stringResource(R.string.empty_feed) to Icons.Default.Search
             }
 

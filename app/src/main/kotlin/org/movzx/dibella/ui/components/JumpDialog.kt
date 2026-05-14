@@ -76,8 +76,8 @@ fun JumpDialog(currentCursor: String?, onApply: (String) -> Unit, onDismiss: () 
                     modifier = Modifier.weight(1f),
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            containerColor = colorResource(R.color.error),
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                     shape = MaterialTheme.shapes.small,
                 ) {
@@ -95,7 +95,7 @@ fun JumpDialog(currentCursor: String?, onApply: (String) -> Unit, onDismiss: () 
                     modifier = Modifier.weight(1f),
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor = colorResource(R.color.tertiary),
+                            containerColor = colorResource(R.color.success),
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                     shape = MaterialTheme.shapes.small,

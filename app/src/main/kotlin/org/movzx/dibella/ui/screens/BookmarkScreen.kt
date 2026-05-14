@@ -2,6 +2,7 @@
 
 package org.movzx.dibella.ui.screens
 
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -16,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.integerArrayResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -56,14 +58,29 @@ fun BookmarkScreen(
     val favViewModel: FavoritesViewModel = hiltViewModel(activity)
     val galleryViewModel: GalleryViewModel = hiltViewModel(activity)
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(viewModel) {
+        viewModel.uiMessage.collect { resId ->
+            Toast.makeText(activity, resId, Toast.LENGTH_SHORT).show()
+        }
+    }
     val feedState by feedViewModel.uiState.collectAsState()
     val favState by favViewModel.uiState.collectAsState()
     val galleryState by galleryViewModel.uiState.collectAsState()
     val gridState = rememberLazyStaggeredGridState()
     val searchViewModel: SearchViewModel = hiltViewModel(activity)
     val searchCount by searchViewModel.searchResultCount.collectAsState(initial = 0)
+    var showLoadConfirmDialog by remember { mutableStateOf<Bookmark?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf<Bookmark?>(null) }
     var showEditDialog by remember { mutableStateOf<Bookmark?>(null) }
+    var bookmarkSearch by remember { mutableStateOf("") }
+
+    val filteredBookmarks =
+        remember(uiState.bookmarks, bookmarkSearch) {
+            if (bookmarkSearch.isBlank()) uiState.bookmarks
+            else uiState.bookmarks.filter { it.title.contains(bookmarkSearch, ignoreCase = true) }
+        }
+
     var editTitle by remember { mutableStateOf("") }
     var editCursor by remember { mutableStateOf("") }
     var editTags by remember { mutableStateOf("") }
@@ -81,6 +98,27 @@ fun BookmarkScreen(
                 showDeleteConfirmDialog = null
             },
             onDismiss = { showDeleteConfirmDialog = null },
+        )
+    }
+
+    if (showLoadConfirmDialog != null) {
+        ConfirmationDialog(
+            title = stringResource(R.string.dialog_load_bookmark_title),
+            message = stringResource(R.string.dialog_load_bookmark_msg),
+            onConfirm = {
+                val bookmark = showLoadConfirmDialog!!
+
+                if (bookmark.query != null) {
+                    searchViewModel.loadSearchBookmark(bookmark)
+                    onNavigate("search")
+                } else {
+                    feedViewModel.loadBookmark(bookmark)
+                    onNavigate("feed")
+                }
+
+                showLoadConfirmDialog = null
+            },
+            onDismiss = { showLoadConfirmDialog = null },
         )
     }
 
@@ -278,24 +316,54 @@ fun BookmarkScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        val original = showEditDialog!!
+
+                        val filtersChanged =
+                            original.sort != editSort ||
+                                original.period != editPeriod ||
+                                original.nsfw != editNsfw ||
+                                original.tags != editTags
+
+                        val finalCursor = if (filtersChanged) "" else editCursor
+
+                        val finalOffset = if (filtersChanged) null else original.offset
+
                         viewModel.updateBookmarkTitle(
-                            showEditDialog!!.copy(
+                            original.copy(
                                 title = editTitle,
-                                cursor = editCursor,
+                                cursor = finalCursor,
                                 tags = editTags,
                                 sort = editSort,
                                 period = editPeriod,
                                 nsfw = editNsfw,
+                                offset = finalOffset,
                             ),
                             editTitle,
                         )
+
                         showEditDialog = null
-                    }
+                    },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.success),
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
                 ) {
                     Text("Save")
                 }
             },
-            dismissButton = { TextButton(onClick = { showEditDialog = null }) { Text("Cancel") } },
+            dismissButton = {
+                Button(
+                    onClick = { showEditDialog = null },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.error),
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                ) {
+                    Text("Cancel")
+                }
+            },
         )
     }
 
@@ -327,46 +395,58 @@ fun BookmarkScreen(
     ) { padding ->
         if (uiState.isLoading && uiState.bookmarks.isEmpty()) {
             SkeletonGrid(columnCount = 1)
-        } else if (uiState.bookmarks.isEmpty() && !uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding)) { EmptyState("bookmarks") }
         } else {
-            LazyVerticalStaggeredGrid(
-                columns = StaggeredGridCells.Fixed(1),
-                state = gridState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding =
-                    PaddingValues(
-                        start = 8.dp,
-                        end = 8.dp,
-                        top = padding.calculateTopPadding(),
-                        bottom = padding.calculateBottomPadding(),
-                    ),
-                verticalItemSpacing = 8.dp,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(uiState.bookmarks, key = { it.id }) { bookmark ->
-                    BookmarkCard(
-                        bookmark = bookmark,
-                        onLoad = {
-                            if (bookmark.query != null) {
-                                searchViewModel.loadSearchBookmark(bookmark)
-                                onNavigate("search")
-                            } else {
-                                feedViewModel.loadBookmark(bookmark)
-                                onNavigate("feed")
-                            }
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                if (uiState.bookmarks.isNotEmpty()) {
+                    OutlinedTextField(
+                        value = bookmarkSearch,
+                        onValueChange = { bookmarkSearch = it },
+                        placeholder = {
+                            Text(stringResource(R.string.search_bookmarks_placeholder))
                         },
-                        onEdit = {
-                            editTitle = bookmark.title
-                            editCursor = bookmark.query ?: bookmark.cursor ?: ""
-                            editTags = bookmark.tags ?: ""
-                            editSort = bookmark.sort
-                            editPeriod = bookmark.period
-                            editNsfw = bookmark.nsfw
-                            showEditDialog = bookmark
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
                         },
-                        onDelete = { showDeleteConfirmDialog = bookmark },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        shape = MaterialTheme.shapes.small,
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                if (filteredBookmarks.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize()) { EmptyState("bookmarks") }
+                } else {
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Fixed(1),
+                        state = gridState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 8.dp, end = 8.dp),
+                        verticalItemSpacing = 8.dp,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(filteredBookmarks, key = { it.id }) { bookmark ->
+                            BookmarkCard(
+                                bookmark = bookmark,
+                                onLoad = { showLoadConfirmDialog = bookmark },
+                                onEdit = {
+                                    editTitle = bookmark.title
+                                    editCursor = bookmark.query ?: bookmark.cursor
+                                    editTags = bookmark.tags ?: ""
+                                    editSort = bookmark.sort
+                                    editPeriod = bookmark.period
+                                    editNsfw = bookmark.nsfw
+                                    showEditDialog = bookmark
+                                },
+                                onDelete = { showDeleteConfirmDialog = bookmark },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -435,7 +515,7 @@ fun BookmarkCard(bookmark: Bookmark, onLoad: () -> Unit, onEdit: () -> Unit, onD
                     if (bookmark.query != null)
                         "Query: ${bookmark.query} | Type: ${bookmark.type.replaceFirstChar { it.uppercase() }} | Offset: ${bookmark.offset ?: 0}"
                     else
-                        "Type: ${bookmark.type.replaceFirstChar { it.uppercase() }} | Cursor: ${bookmark.cursor ?: ""}",
+                        "Type: ${bookmark.type.replaceFirstChar { it.uppercase() }} | Cursor: ${bookmark.cursor}",
                 style = MaterialTheme.typography.labelSmall,
             )
 
@@ -490,7 +570,15 @@ fun BookmarkCard(bookmark: Bookmark, onLoad: () -> Unit, onEdit: () -> Unit, onD
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Button(onClick = onLoad, modifier = Modifier.weight(1f)) {
+                Button(
+                    onClick = onLoad,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.success),
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                ) {
                     Icon(
                         Icons.Default.PlayArrow,
                         contentDescription = null,
@@ -514,17 +602,13 @@ fun BookmarkCard(bookmark: Bookmark, onLoad: () -> Unit, onEdit: () -> Unit, onD
                     Text(text = "Edit", style = MaterialTheme.typography.labelSmall)
                 }
 
-                OutlinedButton(
+                Button(
                     onClick = onDelete,
                     modifier = Modifier.weight(1f),
                     colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
-                    border =
-                        androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.error,
+                        ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.error),
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                 ) {
                     Icon(
