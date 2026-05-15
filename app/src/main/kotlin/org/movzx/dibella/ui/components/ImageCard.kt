@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -358,16 +359,17 @@ fun ImageCard(
                         onLongClick()
                     },
                 ),
-        shape = MaterialTheme.shapes.small,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border =
             androidx.compose.foundation.BorderStroke(
-                1.5.dp,
-                if (showGradientBorder) MaterialTheme.colorScheme.primary else Color.Transparent,
+                1.dp,
+                if (showGradientBorder) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                else Color.Transparent,
             ),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
             ),
     ) {
         var isError by remember { mutableStateOf(false) }
@@ -376,7 +378,10 @@ fun ImageCard(
         var isVideoReady by remember(image.id, videoData == null) { mutableStateOf(false) }
 
         Box(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
+            modifier =
+                Modifier.fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clip(RoundedCornerShape(12.dp))
         ) {
             val currentVideoData = videoData
             if (
@@ -450,6 +455,23 @@ fun ImageCard(
 
             if (isError) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier =
+                            Modifier.fillMaxSize()
+                                .background(
+                                    Brush.linearGradient(
+                                        colors =
+                                            listOf(
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                    alpha = 0.5f
+                                                ),
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                    alpha = 0.3f
+                                                ),
+                                            )
+                                    )
+                                )
+                    )
                     Icon(
                         imageVector = Icons.Default.BrokenImage,
                         contentDescription = "Failed to load",
@@ -470,7 +492,9 @@ fun ImageCard(
                                     listOf(
                                         androidx.compose.ui.graphics.Color.Transparent,
                                         colorResource(org.movzx.dibella.R.color.pure_black)
-                                            .copy(alpha = 0.5f),
+                                            .copy(alpha = 0.3f),
+                                        colorResource(org.movzx.dibella.R.color.pure_black)
+                                            .copy(alpha = 0.6f),
                                     )
                             )
                         )
@@ -524,104 +548,113 @@ fun ImageCard(
             }
 
             if (showFavorite && !isLoading) {
-                IconButton(
-                    onClick = {
-                        if (isRetrying) return@IconButton
-
-                        if (isError) {
-                            isRetrying = true
-
-                            onRetryThumbnail(imageData) {
-                                retryCount++
-
-                                isError = false
-                                isLoading = true
-                                isRetrying = false
-                            }
-                        } else if (viewMode == "favorites") {
-                            showRedownloadDialog = true
-                        } else {
-                            if (isFavorite) {
-                                view.performHapticFeedback(
-                                    android.view.HapticFeedbackConstants.LONG_PRESS
-                                )
-
-                                showUnfavoriteDialog = true
-                            } else {
-                                view.performHapticFeedback(
-                                    android.view.HapticFeedbackConstants.VIRTUAL_KEY
-                                )
-
-                                onToggleFavorite(image)
-                            }
-                        }
+                AnimatedContent(
+                    targetState = isFavorite,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(200)) togetherWith
+                            fadeOut(animationSpec = tween(200))
                     },
-                    modifier =
-                        Modifier.align(Alignment.BottomEnd)
-                            .padding(4.dp)
-                            .size(21.dp)
-                            .background(
-                                androidx.compose.ui.res
-                                    .colorResource(org.movzx.dibella.R.color.pure_white)
-                                    .copy(alpha = 0.4f),
-                                androidx.compose.foundation.shape.CircleShape,
-                            )
-                            .clip(androidx.compose.foundation.shape.CircleShape),
-                ) {
-                    if (isRetrying) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 1.5.dp,
-                            modifier = Modifier.size(12.dp),
-                        )
-                    } else if (isError) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Retry",
-                            tint =
-                                androidx.compose.ui.res.colorResource(
-                                    org.movzx.dibella.R.color.pure_white
-                                ),
-                            modifier = Modifier.size(12.dp),
-                        )
-                    } else if (viewMode == "favorites") {
-                        val cloudColor =
-                            if (isThumbnailCached && isPreviewCached) Color.Green else Color.Yellow
+                    label = "FavoriteIcon",
+                ) { isFav ->
+                    IconButton(
+                        onClick = {
+                            if (isRetrying) return@IconButton
 
-                        val progress = manualProgress ?: downloadProgresses[image.id]
+                            if (isError) {
+                                isRetrying = true
 
-                        if (progress != null) {
+                                onRetryThumbnail(imageData) {
+                                    retryCount++
+
+                                    isError = false
+                                    isLoading = true
+                                    isRetrying = false
+                                }
+                            } else if (viewMode == "favorites") {
+                                showRedownloadDialog = true
+                            } else {
+                                if (isFav) {
+                                    view.performHapticFeedback(
+                                        android.view.HapticFeedbackConstants.LONG_PRESS
+                                    )
+
+                                    showUnfavoriteDialog = true
+                                } else {
+                                    view.performHapticFeedback(
+                                        android.view.HapticFeedbackConstants.VIRTUAL_KEY
+                                    )
+
+                                    onToggleFavorite(image)
+                                }
+                            }
+                        },
+                        modifier =
+                            Modifier.align(Alignment.BottomEnd)
+                                .padding(4.dp)
+                                .size(21.dp)
+                                .background(
+                                    androidx.compose.ui.res
+                                        .colorResource(org.movzx.dibella.R.color.pure_white)
+                                        .copy(alpha = 0.4f),
+                                    androidx.compose.foundation.shape.CircleShape,
+                                )
+                                .clip(androidx.compose.foundation.shape.CircleShape),
+                    ) {
+                        if (isRetrying) {
                             CircularProgressIndicator(
-                                progress = { progress },
-                                color = cloudColor,
+                                color = MaterialTheme.colorScheme.primary,
                                 strokeWidth = 1.5.dp,
                                 modifier = Modifier.size(12.dp),
                             )
-                        } else {
+                        } else if (isError) {
                             Icon(
-                                Icons.Default.CloudDownload,
-                                contentDescription = "Cache Status",
-                                tint = cloudColor,
-                                modifier = Modifier.size(12.dp),
-                            )
-                        }
-                    } else {
-                        Icon(
-                            if (isFavorite) Icons.Filled.Favorite
-                            else Icons.Outlined.FavoriteBorder,
-                            contentDescription =
-                                stringResource(org.movzx.dibella.R.string.nav_favorites),
-                            tint =
-                                if (isFavorite)
-                                    androidx.compose.ui.res.colorResource(
-                                        org.movzx.dibella.R.color.error
-                                    )
-                                else
+                                Icons.Default.Refresh,
+                                contentDescription = "Retry",
+                                tint =
                                     androidx.compose.ui.res.colorResource(
                                         org.movzx.dibella.R.color.pure_white
                                     ),
-                            modifier = Modifier.size(12.dp),
-                        )
+                                modifier = Modifier.size(12.dp),
+                            )
+                        } else if (viewMode == "favorites") {
+                            val cloudColor =
+                                if (isThumbnailCached && isPreviewCached) Color.Green
+                                else Color.Yellow
+
+                            val progress = manualProgress ?: downloadProgresses[image.id]
+
+                            if (progress != null) {
+                                CircularProgressIndicator(
+                                    progress = { progress },
+                                    color = cloudColor,
+                                    strokeWidth = 1.5.dp,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.CloudDownload,
+                                    contentDescription = "Cache Status",
+                                    tint = cloudColor,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                            }
+                        } else {
+                            Icon(
+                                if (isFav) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription =
+                                    stringResource(org.movzx.dibella.R.string.nav_favorites),
+                                tint =
+                                    if (isFav)
+                                        androidx.compose.ui.res.colorResource(
+                                            org.movzx.dibella.R.color.error
+                                        )
+                                    else
+                                        androidx.compose.ui.res.colorResource(
+                                            org.movzx.dibella.R.color.pure_white
+                                        ),
+                                modifier = Modifier.size(12.dp),
+                            )
+                        }
                     }
                 }
             }
