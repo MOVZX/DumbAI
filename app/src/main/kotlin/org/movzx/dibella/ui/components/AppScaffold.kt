@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
@@ -39,6 +40,7 @@ fun AppScaffold(
     bottomBar: @Composable () -> Unit,
     gridState: LazyStaggeredGridState,
     isLoading: Boolean = false,
+    isRefreshing: Boolean = false,
     amoledMode: Boolean = false,
     hasMore: Boolean = false,
     showRefresh: Boolean = false,
@@ -53,11 +55,27 @@ fun AppScaffold(
     var isBarsVisible by remember { mutableStateOf(true) }
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
     var pullOffset by remember { mutableFloatStateOf(0f) }
+    var showCompletion by remember { mutableStateOf(false) }
+    var refreshTriggered by remember { mutableStateOf(false) }
     val pullThreshold = 80.dp
     val pullLimit = 180.dp
     val density = androidx.compose.ui.platform.LocalDensity.current
     val pullThresholdPx = with(density) { pullThreshold.toPx() }
     val pullLimitPx = with(density) { pullLimit.toPx() }
+
+    LaunchedEffect(isRefreshing) {
+        if (!isRefreshing && showRefresh && refreshTriggered) {
+            showCompletion = true
+            refreshTriggered = false
+        }
+    }
+
+    LaunchedEffect(showCompletion) {
+        if (showCompletion) {
+            kotlinx.coroutines.delay(800)
+            showCompletion = false
+        }
+    }
 
     val nestedScrollConnection =
         remember(isBarsVisible, hasMore, isLoading, showRefresh) {
@@ -125,6 +143,7 @@ fun AppScaffold(
                 ): Velocity {
                     if (pullOffset > pullThresholdPx) {
                         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        refreshTriggered = true
                         onRefresh()
                     } else if (pullOffset < -pullThresholdPx) {
                         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -191,9 +210,10 @@ fun AppScaffold(
             )
         }
 
-        if (pullOffset != 0f && !isLoading) {
+        if (pullOffset != 0f || showCompletion) {
             val isTop = pullOffset > 0
             val rawProgress = (Math.abs(pullOffset) / pullThresholdPx).coerceIn(0f, 1.5f)
+            val isPastThreshold = Math.abs(pullOffset) >= pullThresholdPx
             val bounceTransition = rememberInfiniteTransition(label = "refreshBounce")
 
             val bounceOffset by
@@ -208,6 +228,20 @@ fun AppScaffold(
                     label = "bounce",
                 )
 
+            val completionAlpha by
+                animateFloatAsState(
+                    targetValue = if (showCompletion) 1f else 0f,
+                    animationSpec = tween(200, easing = FastOutSlowInEasing),
+                    label = "completionAlpha",
+                )
+
+            val completionScale by
+                animateFloatAsState(
+                    targetValue = if (showCompletion) 1f else 0.3f,
+                    animationSpec = spring(dampingRatio = 0.6f),
+                    label = "completionScale",
+                )
+
             Box(
                 modifier =
                     Modifier.align(if (isTop) Alignment.TopCenter else Alignment.BottomCenter)
@@ -220,9 +254,15 @@ fun AppScaffold(
                                 else 0.dp,
                         )
                         .graphicsLayer {
-                            alpha = (rawProgress / 1f).coerceIn(0f, 1f)
-                            scaleX = rawProgress.coerceIn(0.5f, 1.2f)
-                            scaleY = rawProgress.coerceIn(0.5f, 1.2f)
+                            alpha =
+                                if (showCompletion) completionAlpha
+                                else (rawProgress / 1f).coerceIn(0f, 1f)
+                            scaleX =
+                                if (showCompletion) completionScale
+                                else rawProgress.coerceIn(0.5f, 1.2f)
+                            scaleY =
+                                if (showCompletion) completionScale
+                                else rawProgress.coerceIn(0.5f, 1.2f)
 
                             translationY =
                                 animatedPullOffset * 0.4f +
@@ -230,28 +270,62 @@ fun AppScaffold(
                         },
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(
-                    progress = { (rawProgress).coerceIn(0f, 1f) },
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 3.dp,
-                    modifier = Modifier.size(42.dp),
-                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                )
-
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    shadowElevation = 4.dp,
-                ) {
-                    Icon(
-                        Icons.Default.KeyboardDoubleArrowDown,
-                        contentDescription = null,
-                        modifier =
-                            Modifier.padding(6.dp).size(20.dp).graphicsLayer {
-                                rotationZ = if (isTop) 0f else 180f
-                            },
-                        tint = MaterialTheme.colorScheme.primary,
+                if (!showCompletion) {
+                    CircularProgressIndicator(
+                        progress = { rawProgress.coerceIn(0f, 1f) },
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(42.dp),
+                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                     )
+
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        shadowElevation = 4.dp,
+                    ) {
+                        Icon(
+                            Icons.Default.KeyboardDoubleArrowDown,
+                            contentDescription = null,
+                            modifier =
+                                Modifier.padding(6.dp).size(20.dp).graphicsLayer {
+                                    rotationZ = if (isTop) 0f else 180f
+                                },
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    if (isPastThreshold) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                        ) {
+                            Box(
+                                modifier = Modifier.size(52.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(
+                                    progress = { 1f },
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(52.dp),
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        shadowElevation = 6.dp,
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.padding(8.dp).size(24.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
                 }
             }
         }

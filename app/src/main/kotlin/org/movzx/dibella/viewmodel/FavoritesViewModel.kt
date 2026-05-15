@@ -262,6 +262,16 @@ constructor(
         }
     }
 
+    fun refresh() {
+        viewModelScope.launch {
+            Logger.d("Dibella_DB", "Favorites refresh triggered")
+
+            _uiState.update { it.copy(isRefreshing = true) }
+            kotlinx.coroutines.delay(600)
+            _uiState.update { it.copy(isRefreshing = false) }
+        }
+    }
+
     fun markRestored() {
         _uiState.update { it.copy(isRestored = true) }
     }

@@ -123,6 +123,7 @@ fun FeedScreen(
         },
         gridState = gridState,
         isLoading = uiState.isLoading,
+        isRefreshing = uiState.isRefreshing,
         amoledMode = amoledMode,
         hasMore = uiState.hasMore,
         showRefresh = true,

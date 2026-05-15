@@ -129,8 +129,11 @@ fun FavoritesScreen(
         },
         gridState = gridState,
         isLoading = uiState.isLoading,
+        isRefreshing = uiState.isRefreshing,
         amoledMode = amoledMode,
+        showRefresh = true,
         showBookmarkJump = false,
+        onRefresh = { viewModel.refresh() },
     ) { padding ->
         ImageGrid(
             images =
