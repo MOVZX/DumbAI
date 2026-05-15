@@ -701,7 +701,10 @@ fun HeartParticles(modifier: Modifier = Modifier, onFinished: () -> Unit) {
                             translationY = (Math.sin(rad) * distance.toPx()).toFloat()
                             this.alpha = alpha
                         }
-                        .background(MaterialTheme.colorScheme.onPrimary, androidx.compose.foundation.shape.CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.onPrimary,
+                            androidx.compose.foundation.shape.CircleShape,
+                        )
             )
         }
     }

@@ -195,6 +195,7 @@ fun MainScreen(imageLoader: ImageLoader) {
     UiMessageEffect(feedViewModel.uiMessage)
     UiMessageEffect(favoritesViewModel.uiMessage)
     UiMessageEffect(galleryViewModel.uiMessage)
+    UiMessageEffect(searchViewModel.uiMessage)
 
     val leftParallax by
         animateFloatAsState(

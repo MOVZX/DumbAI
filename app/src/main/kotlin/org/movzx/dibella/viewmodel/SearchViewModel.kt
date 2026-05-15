@@ -7,9 +7,11 @@ import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.movzx.dibella.R
 import org.movzx.dibella.data.BookmarkRepository
 import org.movzx.dibella.data.SearchRepository
 import org.movzx.dibella.data.UserPreferencesRepository
@@ -34,12 +37,15 @@ constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
+    private val _uiMessage = MutableSharedFlow<Int>()
+    val uiMessage = _uiMessage.asSharedFlow()
 
     val searchResultCount: StateFlow<Int> =
         _uiState.map { it.results.size }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     private var searchJob: Job? = null
     private var currentOffset = 0
+    private var currentPageStartOffset = 0
     private var pageSize = 200
     private var isJumping = false
 
@@ -105,6 +111,7 @@ constructor(
 
                     if (!isJumping && (queryChanged || typeChanged || sortChanged)) {
                         currentOffset = 0
+                        currentPageStartOffset = 0
 
                         search(state.query, forceNew = true)
                     }
@@ -170,7 +177,7 @@ constructor(
 
                     val (results, totalHits) =
                         searchRepository.search(
-                            query = query,
+                            query = _uiState.value.query,
                             type = type,
                             sort = sort,
                             limit = pageSize,
@@ -178,10 +185,7 @@ constructor(
                             bearerToken = bearerToken,
                         )
 
-                    if (_uiState.value.query.isBlank() || _uiState.value.query != query)
-                        return@launch
-
-                    currentOffset = currentSearchOffset + results.size
+                    currentPageStartOffset = currentSearchOffset
 
                     val absoluteScrollIndex = _uiState.value.scrollIndex
 
@@ -299,6 +303,7 @@ constructor(
                     val newResults =
                         if (currentSearchOffset == 0) results else _uiState.value.results + results
 
+                    currentPageStartOffset = currentSearchOffset
                     currentOffset = currentSearchOffset + results.size
 
                     viewModelScope.launch {
@@ -352,6 +357,7 @@ constructor(
 
         if (_uiState.value.query.isNotBlank()) {
             currentOffset = 0
+            currentPageStartOffset = 0
 
             search(_uiState.value.query, forceNew = true)
         }
@@ -375,6 +381,10 @@ constructor(
         _uiState.update { it.copy(isRestored = true) }
     }
 
+    private fun sendMessage(@androidx.annotation.StringRes resId: Int) {
+        viewModelScope.launch { _uiMessage.emit(resId) }
+    }
+
     fun saveSearchBookmark(title: String) {
         val state = _uiState.value
 
@@ -389,9 +399,11 @@ constructor(
                     cursor = "",
                     tags = null,
                     query = state.query,
-                    offset = currentOffset,
+                    offset = currentPageStartOffset,
                 )
             )
+
+            sendMessage(R.string.msg_bookmark_saved)
         }
     }
 
@@ -403,6 +415,7 @@ constructor(
             preferencesRepository.updateSearchFilters(bookmark.type, bookmark.sort)
             _uiState.update { it.copy(query = q, type = bookmark.type, sort = bookmark.sort) }
             search(q, forceNew = true, startOffset = bookmark.offset ?: 0)
+            sendMessage(R.string.msg_bookmark_loaded)
         }
     }
 
@@ -441,6 +454,7 @@ constructor(
                             bearerToken = bearerToken,
                         )
 
+                    currentPageStartOffset = currentSearchOffset
                     currentOffset = currentSearchOffset + results.size
 
                     _uiState.update {

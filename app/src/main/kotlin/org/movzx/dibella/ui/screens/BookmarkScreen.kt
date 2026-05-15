@@ -87,6 +87,8 @@ fun BookmarkScreen(
     var editSort by remember { mutableStateOf("") }
     var editPeriod by remember { mutableStateOf("") }
     var editNsfw by remember { mutableStateOf("") }
+    var editQuery by remember { mutableStateOf("") }
+    var editOffset by remember { mutableStateOf(0) }
     var showTagDialog by remember { mutableStateOf(false) }
 
     if (showDeleteConfirmDialog != null) {
@@ -176,7 +178,12 @@ fun BookmarkScreen(
     }
 
     if (showEditDialog != null) {
-        val sortOptions = stringArrayResource(R.array.sort_options)
+        val isSearchBookmark = showEditDialog!!.query != null
+
+        val sortOptions =
+            if (isSearchBookmark) stringArrayResource(R.array.search_sort_options)
+            else stringArrayResource(R.array.sort_options)
+
         val periodOptions = stringArrayResource(R.array.periods)
         val nsfwLevels = stringArrayResource(R.array.nsfw_levels)
 
@@ -194,19 +201,39 @@ fun BookmarkScreen(
                         label = { Text("Title") },
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    OutlinedTextField(
-                        value = editCursor,
-                        onValueChange = { editCursor = it },
-                        label = { Text("Cursor") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedButton(
-                        onClick = { showTagDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(if (editTags.isBlank()) "Select Tags" else "Tags: $editTags")
+
+                    if (isSearchBookmark) {
+                        OutlinedTextField(
+                            value = editQuery,
+                            onValueChange = { editQuery = it },
+                            label = { Text("Query") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        OutlinedTextField(
+                            value = editOffset.toString(),
+                            onValueChange = { editOffset = it.toIntOrNull() ?: 0 },
+                            label = { Text("Offset") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        OutlinedTextField(
+                            value = editCursor,
+                            onValueChange = { editCursor = it },
+                            label = { Text("Cursor") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        OutlinedButton(
+                            onClick = { showTagDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (editTags.isBlank()) "Select Tags" else "Tags: $editTags")
+                        }
                     }
+
                     var sortExpanded by remember { mutableStateOf(false) }
+
                     ExposedDropdownMenuBox(
                         expanded = sortExpanded,
                         onExpandedChange = { sortExpanded = !sortExpanded },
@@ -226,6 +253,7 @@ fun BookmarkScreen(
                                     )
                                     .fillMaxWidth(),
                         )
+
                         ExposedDropdownMenu(
                             expanded = sortExpanded,
                             onDismissRequest = { sortExpanded = false },
@@ -241,73 +269,85 @@ fun BookmarkScreen(
                             }
                         }
                     }
-                    var periodExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = periodExpanded,
-                        onExpandedChange = { periodExpanded = !periodExpanded },
-                    ) {
-                        OutlinedTextField(
-                            value = editPeriod,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Period") },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = periodExpanded)
-                            },
-                            modifier =
-                                Modifier.menuAnchor(
-                                        ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                                        true,
-                                    )
-                                    .fillMaxWidth(),
-                        )
-                        ExposedDropdownMenu(
+
+                    if (!isSearchBookmark) {
+                        var periodExpanded by remember { mutableStateOf(false) }
+
+                        ExposedDropdownMenuBox(
                             expanded = periodExpanded,
-                            onDismissRequest = { periodExpanded = false },
+                            onExpandedChange = { periodExpanded = !periodExpanded },
                         ) {
-                            periodOptions.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option) },
-                                    onClick = {
-                                        editPeriod = option
-                                        periodExpanded = false
-                                    },
-                                )
+                            OutlinedTextField(
+                                value = editPeriod,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Period") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(
+                                        expanded = periodExpanded
+                                    )
+                                },
+                                modifier =
+                                    Modifier.menuAnchor(
+                                            ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                            true,
+                                        )
+                                        .fillMaxWidth(),
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = periodExpanded,
+                                onDismissRequest = { periodExpanded = false },
+                            ) {
+                                periodOptions.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option) },
+                                        onClick = {
+                                            editPeriod = option
+                                            periodExpanded = false
+                                        },
+                                    )
+                                }
                             }
                         }
-                    }
-                    var nsfwExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = nsfwExpanded,
-                        onExpandedChange = { nsfwExpanded = !nsfwExpanded },
-                    ) {
-                        OutlinedTextField(
-                            value = editNsfw,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("NSFW Level") },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = nsfwExpanded)
-                            },
-                            modifier =
-                                Modifier.menuAnchor(
-                                        ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                                        true,
-                                    )
-                                    .fillMaxWidth(),
-                        )
-                        ExposedDropdownMenu(
+
+                        var nsfwExpanded by remember { mutableStateOf(false) }
+
+                        ExposedDropdownMenuBox(
                             expanded = nsfwExpanded,
-                            onDismissRequest = { nsfwExpanded = false },
+                            onExpandedChange = { nsfwExpanded = !nsfwExpanded },
                         ) {
-                            nsfwLevels.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option) },
-                                    onClick = {
-                                        editNsfw = option
-                                        nsfwExpanded = false
-                                    },
-                                )
+                            OutlinedTextField(
+                                value = editNsfw,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("NSFW Level") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(
+                                        expanded = nsfwExpanded
+                                    )
+                                },
+                                modifier =
+                                    Modifier.menuAnchor(
+                                            ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                            true,
+                                        )
+                                        .fillMaxWidth(),
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = nsfwExpanded,
+                                onDismissRequest = { nsfwExpanded = false },
+                            ) {
+                                nsfwLevels.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option) },
+                                        onClick = {
+                                            editNsfw = option
+                                            nsfwExpanded = false
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -318,28 +358,40 @@ fun BookmarkScreen(
                     onClick = {
                         val original = showEditDialog!!
 
-                        val filtersChanged =
-                            original.sort != editSort ||
-                                original.period != editPeriod ||
-                                original.nsfw != editNsfw ||
-                                original.tags != editTags
+                        if (isSearchBookmark) {
+                            viewModel.updateBookmarkTitle(
+                                original.copy(
+                                    title = editTitle,
+                                    query = editQuery,
+                                    offset = editOffset,
+                                    sort = editSort,
+                                ),
+                                editTitle,
+                            )
+                        } else {
+                            val filtersChanged =
+                                original.sort != editSort ||
+                                    original.period != editPeriod ||
+                                    original.nsfw != editNsfw ||
+                                    original.tags != editTags
 
-                        val finalCursor = if (filtersChanged) "" else editCursor
+                            val finalCursor = if (filtersChanged) "" else editCursor
 
-                        val finalOffset = if (filtersChanged) null else original.offset
+                            val finalOffset = if (filtersChanged) null else original.offset
 
-                        viewModel.updateBookmarkTitle(
-                            original.copy(
-                                title = editTitle,
-                                cursor = finalCursor,
-                                tags = editTags,
-                                sort = editSort,
-                                period = editPeriod,
-                                nsfw = editNsfw,
-                                offset = finalOffset,
-                            ),
-                            editTitle,
-                        )
+                            viewModel.updateBookmarkTitle(
+                                original.copy(
+                                    title = editTitle,
+                                    cursor = finalCursor,
+                                    tags = editTags,
+                                    sort = editSort,
+                                    period = editPeriod,
+                                    nsfw = editNsfw,
+                                    offset = finalOffset,
+                                ),
+                                editTitle,
+                            )
+                        }
 
                         showEditDialog = null
                     },
@@ -436,11 +488,19 @@ fun BookmarkScreen(
                                 onLoad = { showLoadConfirmDialog = bookmark },
                                 onEdit = {
                                     editTitle = bookmark.title
-                                    editCursor = bookmark.query ?: bookmark.cursor
-                                    editTags = bookmark.tags ?: ""
-                                    editSort = bookmark.sort
-                                    editPeriod = bookmark.period
-                                    editNsfw = bookmark.nsfw
+
+                                    if (bookmark.query != null) {
+                                        editQuery = bookmark.query
+                                        editOffset = bookmark.offset ?: 0
+                                        editSort = bookmark.sort
+                                    } else {
+                                        editCursor = bookmark.cursor
+                                        editTags = bookmark.tags ?: ""
+                                        editSort = bookmark.sort
+                                        editPeriod = bookmark.period
+                                        editNsfw = bookmark.nsfw
+                                    }
+
                                     showEditDialog = bookmark
                                 },
                                 onDelete = { showDeleteConfirmDialog = bookmark },
