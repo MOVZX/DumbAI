@@ -4,17 +4,14 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import org.movzx.dibella.R
 
 @Composable
@@ -33,77 +30,33 @@ fun JumpDialog(currentCursor: String?, onApply: (String) -> Unit, onDismiss: () 
             label = "dialogScale",
         )
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(R.string.dialog_jump_title),
-                style = MaterialTheme.typography.titleLarge,
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(
-                    text =
-                        String.format(
-                            stringResource(R.string.dialog_jump_msg),
-                            currentCursor ?: "N/A",
-                        ),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+    ModernDialog(
+        title = stringResource(R.string.dialog_jump_title),
+        icon = Icons.Default.ArrowForward,
+        message = String.format(stringResource(R.string.dialog_jump_msg), currentCursor ?: "N/A"),
+        onConfirm = {
+            view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
 
-                OutlinedTextField(
-                    value = targetCursor,
-                    onValueChange = { targetCursor = it },
-                    placeholder = { Text(stringResource(R.string.placeholder_target_cursor)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            if (targetCursor.isNotBlank()) onApply(targetCursor)
         },
-        confirmButton = {
-            Row(
+        confirmText = stringResource(R.string.btn_apply),
+        confirmIcon = Icons.Default.Check,
+        confirmEnabled = targetCursor.isNotBlank(),
+        onDismiss = {
+            view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+            onDismiss()
+        },
+        dismissText = stringResource(R.string.btn_cancel),
+        dismissIcon = Icons.Default.Close,
+        customContent = {
+            OutlinedTextField(
+                value = targetCursor,
+                onValueChange = { targetCursor = it },
+                placeholder = { Text(stringResource(R.string.placeholder_target_cursor)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Button(
-                    onClick = {
-                        view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
-                        onDismiss()
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = colorResource(R.color.error),
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(text = stringResource(R.string.btn_cancel))
-                }
-
-                Button(
-                    onClick = {
-                        view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
-
-                        if (targetCursor.isNotBlank()) onApply(targetCursor)
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = colorResource(R.color.success),
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(text = stringResource(R.string.btn_apply))
-                }
-            }
+            )
         },
         modifier =
             Modifier.graphicsLayer {

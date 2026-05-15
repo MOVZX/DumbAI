@@ -9,8 +9,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -73,6 +71,7 @@ fun BookmarkScreen(
     var showLoadConfirmDialog by remember { mutableStateOf<Bookmark?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf<Bookmark?>(null) }
     var showEditDialog by remember { mutableStateOf<Bookmark?>(null) }
+    val isSearchBookmark by derivedStateOf { showEditDialog?.query != null }
     var bookmarkSearch by remember { mutableStateOf("") }
 
     val filteredBookmarks =
@@ -133,289 +132,70 @@ fun BookmarkScreen(
             val tagIds = context.resources.getIntArray(R.array.tag_ids)
             val tags =
                 tagNames
-                    .mapIndexed { index, name -> CivitaiTag(tagIds[index], name) }
+                    .mapIndexed { index, name -> TagOption(tagIds[index], name) }
                     .toMutableList()
             if (editNsfw != "None") {
                 tags.addAll(
-                    nsfwTagNames.mapIndexed { index, name -> CivitaiTag(nsfwTagIds[index], name) }
+                    nsfwTagNames.mapIndexed { index, name -> TagOption(nsfwTagIds[index], name) }
                 )
             }
             tags
         }
 
     if (showTagDialog) {
-        AlertDialog(
-            onDismissRequest = { showTagDialog = false },
-            title = { Text("Select Tags") },
-            text = {
-                val selectedIds = editTags.split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
-                ) {
-                    allTags.forEach { tag ->
-                        val isSelected = selectedIds.contains(tag.id)
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = {
-                                val currentIds =
-                                    editTags
-                                        .split(",")
-                                        .mapNotNull { it.trim().toIntOrNull() }
-                                        .toMutableSet()
-                                if (isSelected) currentIds.remove(tag.id)
-                                else currentIds.add(tag.id!!)
-                                editTags = currentIds.joinToString(",")
-                            },
-                            label = { Text(tag.name) },
-                        )
-                    }
-                }
+        TagSelectionDialog(
+            allTags = allTags,
+            initialTags = editTags,
+            onConfirm = { newTags ->
+                editTags = newTags
+                showTagDialog = false
             },
-            confirmButton = { TextButton(onClick = { showTagDialog = false }) { Text("OK") } },
+            onDismiss = { showTagDialog = false },
         )
     }
 
     if (showEditDialog != null) {
-        val isSearchBookmark = showEditDialog!!.query != null
-
-        val sortOptions =
-            if (isSearchBookmark) stringArrayResource(R.array.search_sort_options)
-            else stringArrayResource(R.array.sort_options)
-
-        val periodOptions = stringArrayResource(R.array.periods)
-        val nsfwLevels = stringArrayResource(R.array.nsfw_levels)
-
-        AlertDialog(
-            onDismissRequest = { showEditDialog = null },
-            title = { Text(text = "Edit Bookmark") },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                ) {
-                    OutlinedTextField(
-                        value = editTitle,
-                        onValueChange = { editTitle = it },
-                        label = { Text("Title") },
-                        modifier = Modifier.fillMaxWidth(),
+        BookmarkEditDialog(
+            bookmark = showEditDialog!!,
+            onConfirm = { updatedBookmark ->
+                if (isSearchBookmark) {
+                    viewModel.updateBookmarkTitle(
+                        updatedBookmark.copy(
+                            title = editTitle,
+                            query = editQuery,
+                            offset = editOffset,
+                            sort = editSort,
+                        ),
+                        editTitle,
                     )
+                } else {
+                    val filtersChanged =
+                        showEditDialog!!.sort != editSort ||
+                            showEditDialog!!.period != editPeriod ||
+                            showEditDialog!!.nsfw != editNsfw ||
+                            showEditDialog!!.tags != editTags
 
-                    if (isSearchBookmark) {
-                        OutlinedTextField(
-                            value = editQuery,
-                            onValueChange = { editQuery = it },
-                            label = { Text("Query") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                    val finalCursor = if (filtersChanged) "" else editCursor
+                    val finalOffset = if (filtersChanged) null else showEditDialog!!.offset
 
-                        OutlinedTextField(
-                            value = editOffset.toString(),
-                            onValueChange = { editOffset = it.toIntOrNull() ?: 0 },
-                            label = { Text("Offset") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        OutlinedTextField(
-                            value = editCursor,
-                            onValueChange = { editCursor = it },
-                            label = { Text("Cursor") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-
-                        OutlinedButton(
-                            onClick = { showTagDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(if (editTags.isBlank()) "Select Tags" else "Tags: $editTags")
-                        }
-                    }
-
-                    var sortExpanded by remember { mutableStateOf(false) }
-
-                    ExposedDropdownMenuBox(
-                        expanded = sortExpanded,
-                        onExpandedChange = { sortExpanded = !sortExpanded },
-                    ) {
-                        OutlinedTextField(
-                            value = editSort,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Sort") },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = sortExpanded)
-                            },
-                            modifier =
-                                Modifier.menuAnchor(
-                                        ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                                        true,
-                                    )
-                                    .fillMaxWidth(),
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = sortExpanded,
-                            onDismissRequest = { sortExpanded = false },
-                        ) {
-                            sortOptions.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option) },
-                                    onClick = {
-                                        editSort = option
-                                        sortExpanded = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-
-                    if (!isSearchBookmark) {
-                        var periodExpanded by remember { mutableStateOf(false) }
-
-                        ExposedDropdownMenuBox(
-                            expanded = periodExpanded,
-                            onExpandedChange = { periodExpanded = !periodExpanded },
-                        ) {
-                            OutlinedTextField(
-                                value = editPeriod,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Period") },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(
-                                        expanded = periodExpanded
-                                    )
-                                },
-                                modifier =
-                                    Modifier.menuAnchor(
-                                            ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                                            true,
-                                        )
-                                        .fillMaxWidth(),
-                            )
-
-                            ExposedDropdownMenu(
-                                expanded = periodExpanded,
-                                onDismissRequest = { periodExpanded = false },
-                            ) {
-                                periodOptions.forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text(option) },
-                                        onClick = {
-                                            editPeriod = option
-                                            periodExpanded = false
-                                        },
-                                    )
-                                }
-                            }
-                        }
-
-                        var nsfwExpanded by remember { mutableStateOf(false) }
-
-                        ExposedDropdownMenuBox(
-                            expanded = nsfwExpanded,
-                            onExpandedChange = { nsfwExpanded = !nsfwExpanded },
-                        ) {
-                            OutlinedTextField(
-                                value = editNsfw,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("NSFW Level") },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(
-                                        expanded = nsfwExpanded
-                                    )
-                                },
-                                modifier =
-                                    Modifier.menuAnchor(
-                                            ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                                            true,
-                                        )
-                                        .fillMaxWidth(),
-                            )
-
-                            ExposedDropdownMenu(
-                                expanded = nsfwExpanded,
-                                onDismissRequest = { nsfwExpanded = false },
-                            ) {
-                                nsfwLevels.forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text(option) },
-                                        onClick = {
-                                            editNsfw = option
-                                            nsfwExpanded = false
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val original = showEditDialog!!
-
-                        if (isSearchBookmark) {
-                            viewModel.updateBookmarkTitle(
-                                original.copy(
-                                    title = editTitle,
-                                    query = editQuery,
-                                    offset = editOffset,
-                                    sort = editSort,
-                                ),
-                                editTitle,
-                            )
-                        } else {
-                            val filtersChanged =
-                                original.sort != editSort ||
-                                    original.period != editPeriod ||
-                                    original.nsfw != editNsfw ||
-                                    original.tags != editTags
-
-                            val finalCursor = if (filtersChanged) "" else editCursor
-
-                            val finalOffset = if (filtersChanged) null else original.offset
-
-                            viewModel.updateBookmarkTitle(
-                                original.copy(
-                                    title = editTitle,
-                                    cursor = finalCursor,
-                                    tags = editTags,
-                                    sort = editSort,
-                                    period = editPeriod,
-                                    nsfw = editNsfw,
-                                    offset = finalOffset,
-                                ),
-                                editTitle,
-                            )
-                        }
-
-                        showEditDialog = null
-                    },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = colorResource(R.color.success),
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                    viewModel.updateBookmarkTitle(
+                        updatedBookmark.copy(
+                            title = editTitle,
+                            cursor = finalCursor,
+                            tags = editTags,
+                            sort = editSort,
+                            period = editPeriod,
+                            nsfw = editNsfw,
+                            offset = finalOffset,
                         ),
-                ) {
-                    Text("Save")
+                        editTitle,
+                    )
                 }
+
+                showEditDialog = null
             },
-            dismissButton = {
-                Button(
-                    onClick = { showEditDialog = null },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = colorResource(R.color.error),
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                ) {
-                    Text("Cancel")
-                }
-            },
+            onDismiss = { showEditDialog = null },
+            showTagSelection = { showTagDialog = true },
         )
     }
 
