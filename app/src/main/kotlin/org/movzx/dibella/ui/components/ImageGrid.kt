@@ -1,12 +1,20 @@
 package org.movzx.dibella.ui.components
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.*
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
@@ -42,12 +50,13 @@ fun ImageGrid(
     autoplayEnabled: Boolean = false,
     isPreviewOpen: Boolean = false,
     isRefreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
     showVideoIcon: Boolean = true,
 ) {
     var pressedId by remember { mutableStateOf<Long?>(null) }
     val animatedItems = remember { mutableSetOf<Int>() }
-    var zoomScale by remember { mutableFloatStateOf(1f) }
     val uniqueImages = remember(images) { images.distinctBy { "${it.type ?: "image"}:${it.id}" } }
+    val pullRefreshState = rememberPullToRefreshState()
 
     val visibleItemIds by remember {
         derivedStateOf {
@@ -90,6 +99,131 @@ fun ImageGrid(
         }
     }
 
+    if (onRefresh != null) {
+        PullToRefreshBox(
+            state = pullRefreshState,
+            isRefreshing = isRefreshing,
+            onRefresh = { onRefresh() },
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            GridContent(
+                images = uniqueImages,
+                imageLoader = imageLoader,
+                state = state,
+                isLoading = isLoading,
+                favoriteIds = favoriteIds,
+                downloadProgresses = downloadProgresses,
+                columnCount = columnCount,
+                showFavorite = showFavorite,
+                viewMode = viewMode,
+                favoritesPath = favoritesPath,
+                isSelected = isSelected,
+                isSelectionMode = isSelectionMode,
+                selectedIds = selectedIds,
+                contentPadding = contentPadding,
+                onGetFavoriteFlow = onGetFavoriteFlow,
+                onEnsureFavoriteResources = onEnsureFavoriteResources,
+                onEnsureFavoriteResourcesThrottled = onEnsureFavoriteResourcesThrottled,
+                onImageClick = onImageClick,
+                onToggleFavorite = onToggleFavorite,
+                onRetryThumbnail = onRetryThumbnail,
+                onToggleSelection = onToggleSelection,
+                onLongClick = onLongClick,
+                onUpdateGridColumns = onUpdateGridColumns,
+                autoplayEnabled = autoplayEnabled,
+                isPreviewOpen = isPreviewOpen,
+                isRefreshing = isRefreshing,
+                showVideoIcon = showVideoIcon,
+                pressedId = pressedId,
+                animatedItems = animatedItems,
+                visibleItemIds = visibleItemIds,
+                focusedItemIndex = focusedItemIndex,
+                pressedIdState = { pressedId },
+                pressedIdChange = { pressedId = it },
+            )
+        }
+    } else {
+        GridContent(
+            images = uniqueImages,
+            imageLoader = imageLoader,
+            state = state,
+            isLoading = isLoading,
+            favoriteIds = favoriteIds,
+            downloadProgresses = downloadProgresses,
+            columnCount = columnCount,
+            showFavorite = showFavorite,
+            viewMode = viewMode,
+            favoritesPath = favoritesPath,
+            isSelected = isSelected,
+            isSelectionMode = isSelectionMode,
+            selectedIds = selectedIds,
+            contentPadding = contentPadding,
+            onGetFavoriteFlow = onGetFavoriteFlow,
+            onEnsureFavoriteResources = onEnsureFavoriteResources,
+            onEnsureFavoriteResourcesThrottled = onEnsureFavoriteResourcesThrottled,
+            onImageClick = onImageClick,
+            onToggleFavorite = onToggleFavorite,
+            onRetryThumbnail = onRetryThumbnail,
+            onToggleSelection = onToggleSelection,
+            onLongClick = onLongClick,
+            onUpdateGridColumns = onUpdateGridColumns,
+            autoplayEnabled = autoplayEnabled,
+            isPreviewOpen = isPreviewOpen,
+            isRefreshing = isRefreshing,
+            showVideoIcon = showVideoIcon,
+            pressedId = pressedId,
+            animatedItems = animatedItems,
+            visibleItemIds = visibleItemIds,
+            focusedItemIndex = focusedItemIndex,
+            pressedIdState = { pressedId },
+            pressedIdChange = { pressedId = it },
+        )
+    }
+}
+
+@Composable
+private fun GridContent(
+    images: List<CivitaiImage>,
+    imageLoader: ImageLoader,
+    state: LazyStaggeredGridState,
+    isLoading: Boolean,
+    favoriteIds: Set<Long>,
+    downloadProgresses: Map<Long, Float>,
+    columnCount: Int,
+    showFavorite: Boolean,
+    viewMode: String,
+    favoritesPath: String? = null,
+    isSelected: (Long) -> Boolean = { false },
+    isSelectionMode: Boolean = false,
+    selectedIds: Set<Long> = emptySet(),
+    contentPadding: PaddingValues = PaddingValues(8.dp),
+    onGetFavoriteFlow: (Long) -> Flow<FavoriteImage?>,
+    onEnsureFavoriteResources: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
+    onEnsureFavoriteResourcesThrottled: suspend (CivitaiImage, Boolean, (Float) -> Unit) -> Unit,
+    onImageClick: (CivitaiImage) -> Unit,
+    onToggleFavorite: (CivitaiImage) -> Unit,
+    onRetryThumbnail: (String, () -> Unit) -> Unit = { _, _ -> },
+    onToggleSelection: (Long) -> Unit = {},
+    onLongClick: (Long) -> Unit = {},
+    onUpdateGridColumns: (Int) -> Unit = {},
+    autoplayEnabled: Boolean = false,
+    isPreviewOpen: Boolean = false,
+    isRefreshing: Boolean = false,
+    showVideoIcon: Boolean = true,
+    pressedId: Long?,
+    animatedItems: MutableSet<Int>,
+    visibleItemIds: Set<Int>,
+    focusedItemIndex: Int?,
+    pressedIdState: () -> Long?,
+    pressedIdChange: (Long?) -> Unit,
+) {
+    val shimmerColors =
+        listOf(
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        )
+
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(columnCount),
         state = state,
@@ -131,7 +265,7 @@ fun ImageGrid(
         verticalItemSpacing = 8.dp,
     ) {
         itemsIndexed(
-            items = uniqueImages,
+            items = images,
             key = { index, _ -> index },
             contentType = { _, _ -> "civitai_image" },
         ) { index, image ->
@@ -143,6 +277,15 @@ fun ImageGrid(
 
                 animatedItems.add(index)
             }
+
+            val itemScale by
+                animateFloatAsState(
+                    targetValue = if (focusedItemIndex == index) 1.02f else 1f,
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 100f),
+                    label = "ItemScale",
+                )
+
+            val isVisible = isAnimated.value || visibleItemIds.contains(index)
 
             ImageCard(
                 image = image,
@@ -159,7 +302,7 @@ fun ImageGrid(
                 onEnsureFavoriteResources = onEnsureFavoriteResources,
                 onEnsureFavoriteResourcesThrottled = onEnsureFavoriteResourcesThrottled,
                 onClick = {
-                    pressedId = null
+                    pressedIdState()
                     onImageClick(image)
                 },
                 onToggleFavorite = onToggleFavorite,
@@ -171,8 +314,8 @@ fun ImageGrid(
                 isScrolling = state.isScrollInProgress,
                 isPreviewOpen = isPreviewOpen,
                 animationIndex = if (isAnimated.value) -1 else index,
-                isPressed = pressedId == image.id,
-                onPressChange = { isPressed -> pressedId = if (isPressed) image.id else null },
+                isPressed = pressedIdState() == image.id,
+                onPressChange = { isPressed -> pressedIdChange(if (isPressed) image.id else null) },
                 showVideoIcon = showVideoIcon,
             )
         }
@@ -184,8 +327,15 @@ fun ImageGrid(
                         Modifier.fillMaxWidth()
                             .aspectRatio(1f)
                             .clip(MaterialTheme.shapes.small)
-                            .shimmerBackground()
-                )
+                            .background(Brush.linearGradient(colors = shimmerColors))
+                            .graphicsLayer { alpha = 0.5f }
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp).align(Alignment.Center),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                    )
+                }
             }
     }
 }
