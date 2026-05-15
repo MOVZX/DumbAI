@@ -180,7 +180,8 @@ fun SearchScreen(
         if (uiState.isLoading && uiState.results.isEmpty())
             SkeletonGrid(columnCount = uiState.gridColumns)
 
-        if (uiState.results.isEmpty() && !uiState.isLoading) EmptyState("search")
+        if (uiState.results.isEmpty() && !uiState.isLoading)
+            ModernEmptyState(type = EmptyStateType.SEARCH)
     }
 }
 

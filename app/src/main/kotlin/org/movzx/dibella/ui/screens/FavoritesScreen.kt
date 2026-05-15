@@ -175,8 +175,8 @@ fun FavoritesScreen(
         )
 
         if (uiState.isShowingDuplicates && uiState.duplicateGroups.isEmpty() && !uiState.isLoading)
-            EmptyState("duplicates")
+            ModernEmptyState(type = EmptyStateType.DUPLICATES)
         else if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)
-            EmptyState("favorites")
+            ModernEmptyState(type = EmptyStateType.FAVORITES, onAction = { onNavigate("feed") })
     }
 }

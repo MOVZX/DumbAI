@@ -176,6 +176,13 @@
     <string name="empty_favorites">No liked media yet</string>
     <string name="empty_gallery">No downloaded media found</string>
     <string name="empty_bookmarks">No bookmarks yet</string>
+    <string name="empty_feed_hint">Try adjusting your filters or pull down to refresh</string>
+    <string name="empty_favorites_hint">Browse the feed and tap the heart icon to save media</string>
+    <string name="empty_gallery_hint">Browse the feed and download media you want to keep</string>
+    <string name="empty_search_hint">Try a different search term or adjust filters</string>
+    <string name="empty_bookmarks_hint">Use the bookmark button to save your feed position</string>
+    <string name="btn_refresh_feed">Refresh Feed</string>
+    <string name="btn_browse_feed">Browse Feed</string>
     <string name="search_bookmarks_placeholder">Search bookmarks…</string>
 
     <!-- Accessibility & Content Descriptions -->

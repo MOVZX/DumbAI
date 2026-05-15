@@ -167,6 +167,7 @@ fun FeedScreen(
         if (uiState.isLoading && uiState.images.isEmpty())
             SkeletonGrid(columnCount = uiState.gridColumns)
 
-        if (uiState.images.isEmpty() && !uiState.isLoading) EmptyState("feed")
+        if (uiState.images.isEmpty() && !uiState.isLoading)
+            ModernEmptyState(type = EmptyStateType.FEED, onAction = { viewModel.refresh() })
     }
 }

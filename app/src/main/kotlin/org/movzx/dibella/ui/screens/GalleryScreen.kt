@@ -173,8 +173,8 @@ fun GalleryScreen(
         )
 
         if (uiState.isShowingDuplicates && uiState.duplicateGroups.isEmpty() && !uiState.isLoading)
-            EmptyState("duplicates")
+            ModernEmptyState(type = EmptyStateType.DUPLICATES)
         else if (!uiState.isShowingDuplicates && uiState.images.isEmpty() && !uiState.isLoading)
-            EmptyState("gallery")
+            ModernEmptyState(type = EmptyStateType.GALLERY, onAction = { onNavigate("feed") })
     }
 }
