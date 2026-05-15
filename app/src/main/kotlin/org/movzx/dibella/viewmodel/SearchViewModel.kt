@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.movzx.dibella.R
 import org.movzx.dibella.data.BookmarkRepository
 import org.movzx.dibella.data.SearchRepository
 import org.movzx.dibella.data.UserPreferencesRepository
@@ -227,7 +226,7 @@ constructor(
         }
     }
 
-    fun search(query: String, forceNew: Boolean = false) {
+    fun search(query: String, forceNew: Boolean = false, startOffset: Int? = null) {
         if (query.isBlank()) {
             searchJob?.cancel()
 
@@ -252,7 +251,7 @@ constructor(
         }
 
         if (forceNew) {
-            currentOffset = 0
+            currentOffset = startOffset ?: 0
 
             _uiState.update { it.copy(results = emptyList(), hasMore = false) }
         }
@@ -261,12 +260,13 @@ constructor(
         val shouldStartNew = forceNew || currentQuery != query
 
         if (shouldStartNew) {
-            currentOffset = 0
+            currentOffset = startOffset ?: 0
 
             _uiState.update { it.copy(query = query, results = emptyList(), hasMore = false) }
             viewModelScope.launch {
                 preferencesRepository.updateSearchQuery(query)
-                preferencesRepository.updateSearchOffset(0)
+
+                if (startOffset == null) preferencesRepository.updateSearchOffset(0)
             }
         }
 
@@ -401,18 +401,8 @@ constructor(
 
             preferencesRepository.updateSearchQuery(q)
             preferencesRepository.updateSearchFilters(bookmark.type, bookmark.sort)
-
-            _uiState.update {
-                it.copy(
-                    query = q,
-                    type = bookmark.type,
-                    sort = bookmark.sort,
-                )
-            }
-
-            currentOffset = bookmark.offset ?: 0
-
-            search(q, forceNew = true)
+            _uiState.update { it.copy(query = q, type = bookmark.type, sort = bookmark.sort) }
+            search(q, forceNew = true, startOffset = bookmark.offset ?: 0)
         }
     }
 
