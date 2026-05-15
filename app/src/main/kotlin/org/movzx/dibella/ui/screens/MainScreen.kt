@@ -225,7 +225,7 @@ fun MainScreen(imageLoader: ImageLoader) {
             gesturesEnabled = selectedImageIndex == null && currentRoute != "bookmarks",
             drawerContent = {
                 ModalDrawerSheet(
-                    modifier = Modifier.width(300.dp).fillMaxHeight(),
+                    modifier = Modifier.width(320.dp).fillMaxHeight(),
                     drawerContainerColor = sidebarColor,
                     drawerShape = androidx.compose.ui.graphics.RectangleShape,
                 ) {
@@ -302,7 +302,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                     gesturesEnabled = selectedImageIndex == null && leftDrawerState.isClosed,
                     drawerContent = {
                         ModalDrawerSheet(
-                            modifier = Modifier.width(300.dp).fillMaxHeight(),
+                            modifier = Modifier.width(320.dp).fillMaxHeight(),
                             drawerContainerColor = sidebarColor,
                             drawerShape = androidx.compose.ui.graphics.RectangleShape,
                         ) {

@@ -23,7 +23,7 @@ fun BaseSidebar(
 
     ModalDrawerSheet(
         modifier =
-            Modifier.width(320.dp).fillMaxHeight().windowInsetsPadding(WindowInsets.safeDrawing),
+            Modifier.width(340.dp).fillMaxHeight().windowInsetsPadding(WindowInsets.safeDrawing),
         drawerContainerColor =
             if (amoledMode) androidx.compose.ui.graphics.Color.Black
             else MaterialTheme.colorScheme.surface,
