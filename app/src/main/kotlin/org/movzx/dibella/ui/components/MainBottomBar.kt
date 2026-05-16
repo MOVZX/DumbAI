@@ -131,7 +131,7 @@ private fun RowScope.BottomNavItem(
         selected = selected,
         onClick = { if (!selected) onClick() },
         icon = {
-            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                 if (selected) {
                     androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                         drawCircle(
@@ -161,7 +161,10 @@ private fun RowScope.BottomNavItem(
             ) {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelSmall,
+                    style =
+                        MaterialTheme.typography.labelSmall.copy(
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f
+                        ),
                     color =
                         if (selected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -172,7 +175,7 @@ private fun RowScope.BottomNavItem(
                             text = formatCount(count),
                             style =
                                 MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.9f,
                                     color =
                                         if (selected) selectedColor.copy(alpha = 0.7f)
                                         else
