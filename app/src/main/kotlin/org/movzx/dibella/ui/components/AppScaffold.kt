@@ -203,10 +203,10 @@ fun AppScaffold(
                     }
         ) {
             val contentTopPadding =
-                (64.dp + systemBarsPadding.calculateTopPadding()) * (1f - barTranslation)
+                64.dp * (1f - barTranslation) + systemBarsPadding.calculateTopPadding()
 
             val contentBottomPadding =
-                (64.dp + systemBarsPadding.calculateBottomPadding()) * (1f - barTranslation)
+                64.dp * (1f - barTranslation) + systemBarsPadding.calculateBottomPadding()
 
             content(PaddingValues(top = contentTopPadding, bottom = contentBottomPadding))
         }
