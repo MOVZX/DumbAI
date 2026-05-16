@@ -192,7 +192,7 @@ fun SearchScreen(
         )
 
         if (uiState.isLoading && uiState.results.isEmpty())
-            SkeletonGrid(columnCount = uiState.gridColumns)
+            SkeletonGrid(columnCount = uiState.gridColumns, modifier = Modifier.padding(padding))
 
         if (uiState.results.isEmpty() && !uiState.isLoading)
             ModernEmptyState(type = EmptyStateType.SEARCH)
@@ -228,9 +228,10 @@ fun SearchTopBar(
                     placeholder = {
                         Text(
                             stringResource(R.string.search_hint),
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelSmall,
                         )
                     },
+                    textStyle = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),

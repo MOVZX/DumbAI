@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.ImageLoader
@@ -166,7 +167,7 @@ fun FeedScreen(
         )
 
         if (uiState.isLoading && uiState.images.isEmpty())
-            SkeletonGrid(columnCount = uiState.gridColumns)
+            SkeletonGrid(columnCount = uiState.gridColumns, modifier = Modifier.padding(padding))
 
         if (uiState.images.isEmpty() && !uiState.isLoading)
             ModernEmptyState(type = EmptyStateType.FEED, onAction = { viewModel.refresh() })

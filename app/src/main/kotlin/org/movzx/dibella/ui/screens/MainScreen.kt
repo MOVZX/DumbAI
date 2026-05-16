@@ -626,7 +626,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     autoplayEnabled = settingsState.feedVideoAutoplay,
                                     onGetFavoriteFlow = { favoritesViewModel.getFavoriteFlow(it) },
                                     onEnsureFavoriteResources = { img, force, onProgress ->
-                                        activeViewModel.ensureFavoriteResourcesThrottled(
+                                        activeViewModel.ensureFavoriteResources(
                                             img,
                                             force,
                                             onProgress,

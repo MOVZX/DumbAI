@@ -131,7 +131,7 @@ fun FavoritesScreen(
         isLoading = uiState.isLoading,
         isRefreshing = uiState.isRefreshing,
         amoledMode = amoledMode,
-        showRefresh = true,
+        showRefresh = false,
         showBookmarkJump = false,
         onRefresh = { viewModel.refresh() },
     ) { padding ->

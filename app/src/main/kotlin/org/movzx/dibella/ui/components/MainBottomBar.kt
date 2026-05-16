@@ -41,7 +41,7 @@ fun MainBottomBar(
         containerColor = Color.Transparent,
         tonalElevation = 0.dp,
         windowInsets = WindowInsets(0, 0, 0, 0),
-        modifier = Modifier.fillMaxWidth().height(64.dp).padding(top = 4.dp),
+        modifier = Modifier.fillMaxWidth().height(64.dp),
     ) {
         BottomNavItem(
             selected = currentRoute == "feed",

@@ -10,7 +10,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SkeletonGrid(columnCount: Int) {
+fun SkeletonGrid(columnCount: Int, modifier: Modifier = Modifier) {
     val itemCount =
         when (columnCount) {
             1 -> 2
@@ -22,7 +22,7 @@ fun SkeletonGrid(columnCount: Int) {
 
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(columnCount),
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalItemSpacing = 8.dp,

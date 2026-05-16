@@ -331,7 +331,9 @@ fun AppScaffold(
             }
         }
 
-        val barColor = MaterialTheme.colorScheme.surface
+        val barColor =
+            if (amoledMode) androidx.compose.ui.graphics.Color.Black
+            else MaterialTheme.colorScheme.surface
 
         val barBackgroundAlpha = if (isBarsVisible) 1f else 0f
 

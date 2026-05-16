@@ -226,66 +226,75 @@ fun BookmarkScreen(
         amoledMode = amoledMode,
         showBookmarkJump = false,
     ) { padding ->
-        if (uiState.isLoading && uiState.bookmarks.isEmpty()) {
-            SkeletonGrid(columnCount = 1)
-        } else {
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                if (uiState.bookmarks.isNotEmpty()) {
-                    OutlinedTextField(
-                        value = bookmarkSearch,
-                        onValueChange = { bookmarkSearch = it },
-                        placeholder = {
-                            Text(stringResource(R.string.search_bookmarks_placeholder))
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                        shape = MaterialTheme.shapes.small,
-                    )
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (uiState.isLoading && uiState.bookmarks.isEmpty()) {
+                SkeletonGrid(columnCount = 1)
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (uiState.bookmarks.isNotEmpty()) {
+                        OutlinedTextField(
+                            value = bookmarkSearch,
+                            onValueChange = { bookmarkSearch = it },
+                            placeholder = {
+                                Text(
+                                    stringResource(R.string.search_bookmarks_placeholder),
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            },
+                            textStyle =
+                                MaterialTheme.typography.labelSmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                            shape = MaterialTheme.shapes.small,
+                        )
 
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
 
-                if (filteredBookmarks.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize()) { EmptyState("bookmarks") }
-                } else {
-                    LazyVerticalStaggeredGrid(
-                        columns = StaggeredGridCells.Fixed(1),
-                        state = gridState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 8.dp, end = 8.dp),
-                        verticalItemSpacing = 8.dp,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(filteredBookmarks, key = { it.id }) { bookmark ->
-                            BookmarkCard(
-                                bookmark = bookmark,
-                                onLoad = { showLoadConfirmDialog = bookmark },
-                                onEdit = {
-                                    editTitle = bookmark.title
+                    if (filteredBookmarks.isEmpty()) {
+                        ModernEmptyState(type = EmptyStateType.BOOKMARKS)
+                    } else {
+                        LazyVerticalStaggeredGrid(
+                            columns = StaggeredGridCells.Fixed(1),
+                            state = gridState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(start = 8.dp, end = 8.dp),
+                            verticalItemSpacing = 8.dp,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(filteredBookmarks, key = { it.id }) { bookmark ->
+                                BookmarkCard(
+                                    bookmark = bookmark,
+                                    onLoad = { showLoadConfirmDialog = bookmark },
+                                    onEdit = {
+                                        editTitle = bookmark.title
 
-                                    if (bookmark.query != null) {
-                                        editQuery = bookmark.query
-                                        editOffset = bookmark.offset ?: 0
-                                        editSort = bookmark.sort
-                                    } else {
-                                        editCursor = bookmark.cursor
-                                        editTags = bookmark.tags ?: ""
-                                        editSort = bookmark.sort
-                                        editPeriod = bookmark.period
-                                        editNsfw = bookmark.nsfw
-                                    }
+                                        if (bookmark.query != null) {
+                                            editQuery = bookmark.query
+                                            editOffset = bookmark.offset ?: 0
+                                            editSort = bookmark.sort
+                                        } else {
+                                            editCursor = bookmark.cursor
+                                            editTags = bookmark.tags ?: ""
+                                            editSort = bookmark.sort
+                                            editPeriod = bookmark.period
+                                            editNsfw = bookmark.nsfw
+                                        }
 
-                                    showEditDialog = bookmark
-                                },
-                                onDelete = { showDeleteConfirmDialog = bookmark },
-                            )
+                                        showEditDialog = bookmark
+                                    },
+                                    onDelete = { showDeleteConfirmDialog = bookmark },
+                                )
+                            }
                         }
                     }
                 }
