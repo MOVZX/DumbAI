@@ -16,4 +16,5 @@ data class SearchUiState(
     val scrollIndex: Int = 0,
     val scrollOffset: Int = 0,
     val currentOffset: Int = 0,
+    val currentPageStartOffset: Int = 0,
 )

@@ -103,6 +103,20 @@ fun SearchScreen(
         )
     }
 
+    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
+        if (uiState.isRestored) {
+            kotlinx.coroutines.delay(500)
+
+            val absoluteIndex = uiState.currentPageStartOffset + gridState.firstVisibleItemIndex
+
+            viewModel.saveScrollPosition(
+                "search",
+                absoluteIndex,
+                gridState.firstVisibleItemScrollOffset,
+            )
+        }
+    }
+
     LaunchedEffect(uiState.results.isNotEmpty(), uiState.isRestored) {
         if (!uiState.isRestored && uiState.results.isNotEmpty()) {
             kotlinx.coroutines.delay(100)

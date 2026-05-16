@@ -139,6 +139,9 @@ constructor(
             val initialOffset = preferencesRepository.searchOffset.first()
             val initialPageSize = preferencesRepository.pageLimit.first()
 
+            val restoreOffset =
+                maxOf(0, initialScrollIndex - (initialScrollIndex % initialPageSize))
+
             _uiState.update {
                 it.copy(
                     query = initialQuery,
@@ -147,14 +150,13 @@ constructor(
                     scrollIndex = initialScrollIndex,
                     scrollOffset = initialScrollOffset,
                     currentOffset = initialOffset,
+                    currentPageStartOffset = restoreOffset,
                 )
             }
 
             if (initialQuery.isNotBlank()) {
                 currentOffset = initialOffset
-
-                val restoreOffset =
-                    maxOf(0, initialScrollIndex - (initialScrollIndex % initialPageSize))
+                pageSize = initialPageSize
 
                 restoreSearch(initialQuery, restoreOffset)
             }
@@ -208,6 +210,7 @@ constructor(
                             currentOffset = currentOffset,
                             scrollIndex = relativeScrollIndex,
                             scrollOffset = relativeScrollOffset,
+                            currentPageStartOffset = currentPageStartOffset,
                         )
                     }
 
@@ -317,6 +320,7 @@ constructor(
                             hasMore = results.size == pageSize && currentOffset < totalHits,
                             isLoading = false,
                             currentOffset = currentOffset,
+                            currentPageStartOffset = currentPageStartOffset,
                         )
                     }
                     return@launch
@@ -428,7 +432,12 @@ constructor(
         viewModelScope.launch { preferencesRepository.updateSearchOffset(targetOffset) }
 
         _uiState.update {
-            it.copy(results = emptyList(), hasMore = false, currentOffset = targetOffset)
+            it.copy(
+                results = emptyList(),
+                hasMore = false,
+                currentOffset = targetOffset,
+                currentPageStartOffset = targetOffset,
+            )
         }
 
         searchJob?.cancel()
@@ -464,6 +473,7 @@ constructor(
                             hasMore = results.size == pageSize && currentOffset < totalHits,
                             isLoading = false,
                             currentOffset = currentOffset,
+                            currentPageStartOffset = currentPageStartOffset,
                         )
                     }
 
