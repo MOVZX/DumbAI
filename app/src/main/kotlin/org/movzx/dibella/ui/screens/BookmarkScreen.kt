@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -317,88 +318,81 @@ fun BookmarkCard(bookmark: Bookmark, onLoad: () -> Unit, onEdit: () -> Unit, onD
             }
         }
 
+    val resolvedTags =
+        remember(bookmark.tags, tagMap) {
+            bookmark.tags?.split(",")?.mapNotNull {
+                val id = it.trim()
+
+                if (id.isNotEmpty()) tagMap[id] ?: id else null
+            } ?: emptyList()
+        }
+
+    val dateFormat = remember {
+        java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+    }
+
+    val dateStr =
+        remember(bookmark.timestamp) { dateFormat.format(java.util.Date(bookmark.timestamp)) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
-            val dateFormat = remember {
-                java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = dateStr,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = bookmark.title,
+                    style =
+                        MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        ),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
             }
 
-            val dateStr =
-                remember(bookmark.timestamp) {
-                    dateFormat.format(java.util.Date(bookmark.timestamp))
-                }
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = dateStr,
+                text = buildMetadataString(bookmark),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = bookmark.title,
-                modifier = Modifier.padding(vertical = 4.dp),
-                style =
-                    MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    ),
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text =
-                    if (bookmark.query != null)
-                        "Query: ${bookmark.query} | Type: ${bookmark.type.replaceFirstChar { it.uppercase() }} | Offset: ${bookmark.offset ?: 0}"
-                    else
-                        "Type: ${bookmark.type.replaceFirstChar { it.uppercase() }} | Cursor: ${bookmark.cursor}",
-                style = MaterialTheme.typography.labelSmall,
-            )
-
-            Text(
-                text =
-                    "Sort: ${bookmark.sort}${if (bookmark.query == null) " | Period: ${bookmark.period}" else ""}",
-                style = MaterialTheme.typography.labelSmall,
-            )
-
-            if (!bookmark.tags.isNullOrBlank()) {
+            if (resolvedTags.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val resolvedTags =
-                    remember(bookmark.tags, tagMap) {
-                        bookmark.tags.split(",").mapNotNull {
-                            val id = it.trim()
-
-                            if (id.isNotEmpty()) tagMap[id] ?: id else null
-                        }
-                    }
-
-                if (resolvedTags.isNotEmpty()) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        resolvedTags.forEach { tagName ->
-                            Surface(
-                                shape = MaterialTheme.shapes.small,
-                                border =
-                                    androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.outlineVariant,
-                                    ),
-                                color = androidx.compose.ui.graphics.Color.Transparent,
-                            ) {
-                                Text(
-                                    text = tagName,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
-                            }
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    resolvedTags.forEach { tagName ->
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            border =
+                                androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant,
+                                ),
+                            color = androidx.compose.ui.graphics.Color.Transparent,
+                        ) {
+                            Text(
+                                text = tagName,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
                         }
                     }
                 }
@@ -464,4 +458,21 @@ fun BookmarkCard(bookmark: Bookmark, onLoad: () -> Unit, onEdit: () -> Unit, onD
             }
         }
     }
+}
+
+private fun buildMetadataString(bookmark: Bookmark): String {
+    val parts = mutableListOf<String>()
+
+    parts.add("Type: ${bookmark.type.replaceFirstChar { it.uppercase() }}")
+    parts.add("Sort: ${bookmark.sort}")
+
+    if (bookmark.query != null) {
+        parts.add("Query: ${bookmark.query}")
+        parts.add("Offset: ${bookmark.offset ?: 0}")
+    } else {
+        parts.add("Period: ${bookmark.period}")
+        parts.add("Cursor: ${bookmark.cursor}")
+    }
+
+    return parts.joinToString(" | ")
 }
