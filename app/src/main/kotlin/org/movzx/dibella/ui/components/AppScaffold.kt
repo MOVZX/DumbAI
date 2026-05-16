@@ -202,12 +202,13 @@ fun AppScaffold(
                         )
                     }
         ) {
-            content(
-                PaddingValues(
-                    top = 64.dp + systemBarsPadding.calculateTopPadding(),
-                    bottom = 64.dp + systemBarsPadding.calculateBottomPadding(),
-                )
-            )
+            val contentTopPadding =
+                (64.dp + systemBarsPadding.calculateTopPadding()) * (1f - barTranslation)
+
+            val contentBottomPadding =
+                (64.dp + systemBarsPadding.calculateBottomPadding()) * (1f - barTranslation)
+
+            content(PaddingValues(top = contentTopPadding, bottom = contentBottomPadding))
         }
 
         if (pullOffset != 0f || showCompletion) {
