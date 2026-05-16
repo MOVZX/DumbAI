@@ -52,11 +52,21 @@ constructor(
         }
     }
 
+    override fun setActiveRoute(route: String?) {
+        val wasInactive = activeRoute != "gallery"
+
+        super.setActiveRoute(route)
+
+        if (route == "gallery" && wasInactive) refresh()
+    }
+
     fun refresh() {
         viewModelScope.launch { performRefresh() }
     }
 
     private suspend fun performRefresh() {
+        if (activeRoute != null && activeRoute != "gallery") return
+
         _uiState.update { it.copy(isLoading = true, isRefreshing = true) }
 
         val images = galleryRepository.scanDirectory(_uiState.value.downloadPath)

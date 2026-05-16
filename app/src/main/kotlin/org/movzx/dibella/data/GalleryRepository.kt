@@ -11,6 +11,7 @@ import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -84,6 +85,8 @@ constructor(
             val ids = mutableSetOf<Long>()
 
             for (file in files) {
+                ensureActive()
+
                 if (file.isFile) {
                     val ext = file.extension.lowercase()
                     val isVideo = ext in FileUtils.VIDEO_EXTENSIONS

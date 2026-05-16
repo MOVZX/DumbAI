@@ -109,9 +109,6 @@ fun MainScreen(imageLoader: ImageLoader) {
     val galleryViewModel: GalleryViewModel = hiltViewModel(activity)
     val settingsViewModel: SettingsViewModel = hiltViewModel(activity)
     val searchViewModel: SearchViewModel = hiltViewModel(activity)
-    val feedUiState by feedViewModel.uiState.collectAsState()
-    val searchUiState by searchViewModel.uiState.collectAsState()
-    val favoritesUiState by favoritesViewModel.uiState.collectAsState()
     val settingsState by settingsViewModel.uiState.collectAsState()
     val leftDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val rightDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -197,6 +194,12 @@ fun MainScreen(imageLoader: ImageLoader) {
     UiMessageEffect(galleryViewModel.uiMessage)
     UiMessageEffect(searchViewModel.uiMessage)
 
+    LaunchedEffect(currentRoute) {
+        feedViewModel.setActiveRoute(currentRoute)
+        galleryViewModel.setActiveRoute(currentRoute)
+        favoritesViewModel.setActiveRoute(currentRoute)
+    }
+
     val leftParallax by
         animateFloatAsState(
             targetValue = if (leftDrawerState.targetValue == DrawerValue.Open) 40f else 0f,
@@ -230,6 +233,8 @@ fun MainScreen(imageLoader: ImageLoader) {
                     drawerShape = androidx.compose.ui.graphics.RectangleShape,
                 ) {
                     if (currentRoute == "feed") {
+                        val feedUiState by feedViewModel.uiState.collectAsState()
+
                         DisplaySidebar(
                             currentRoute = currentRoute,
                             pageLimit = feedUiState.pageLimit,
@@ -242,6 +247,8 @@ fun MainScreen(imageLoader: ImageLoader) {
                             onUpdateType = {},
                         )
                     } else if (currentRoute == "favorites") {
+                        val favoritesUiState by favoritesViewModel.uiState.collectAsState()
+
                         DisplaySidebar(
                             currentRoute = currentRoute,
                             pageLimit = 200,
@@ -281,6 +288,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                             },
                         )
                     } else if (currentRoute == "search") {
+                        val feedUiState by feedViewModel.uiState.collectAsState()
+                        val searchUiState by searchViewModel.uiState.collectAsState()
+
                         DisplaySidebar(
                             currentRoute = currentRoute,
                             pageLimit = feedUiState.pageLimit,
@@ -313,6 +323,8 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     rightSidebarType == RightSidebarType.FILTERS &&
                                         currentRoute == "feed"
                                 ) {
+                                    val feedUiState by feedViewModel.uiState.collectAsState()
+
                                     FilterSidebar(
                                         nsfw = feedUiState.nsfw,
                                         sort = feedUiState.sort,
@@ -330,6 +342,8 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     rightSidebarType == RightSidebarType.SEARCH_FILTERS &&
                                         currentRoute == "search"
                                 ) {
+                                    val searchUiState by searchViewModel.uiState.collectAsState()
+
                                     SearchFilterSidebar(
                                         type = searchUiState.type,
                                         sort = searchUiState.sort,
@@ -578,6 +592,9 @@ fun MainScreen(imageLoader: ImageLoader) {
                                         ),
                             ) {
                                 val targetIndex = selectedImageIndex ?: 0
+                                val feedUiState by feedViewModel.uiState.collectAsState()
+                                val favoritesUiState by favoritesViewModel.uiState.collectAsState()
+                                val galleryUiState by galleryViewModel.uiState.collectAsState()
 
                                 val activeViewModel: org.movzx.dibella.viewmodel.BaseViewModel =
                                     when (fullScreenViewMode) {
@@ -590,11 +607,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     when (fullScreenViewMode) {
                                         "feed" -> feedUiState.downloadProgresses
                                         "favorites" -> favoritesUiState.downloadProgresses
-                                        "gallery" ->
-                                            galleryViewModel.uiState
-                                                .collectAsState()
-                                                .value
-                                                .downloadProgresses
+                                        "gallery" -> galleryUiState.downloadProgresses
                                         else -> emptyMap()
                                     }
 
@@ -603,11 +616,7 @@ fun MainScreen(imageLoader: ImageLoader) {
                                     initialIndex = targetIndex,
                                     imageLoader = imageLoader,
                                     favoriteIds = favoritesUiState.favoriteIds,
-                                    downloadedIds =
-                                        galleryViewModel.uiState
-                                            .collectAsState()
-                                            .value
-                                            .downloadedIds,
+                                    downloadedIds = galleryUiState.downloadedIds,
                                     downloadProgresses = currentDownloadProgresses,
                                     viewMode = fullScreenViewMode,
                                     favoritesPath = settingsState.effectiveFavoritesPath,

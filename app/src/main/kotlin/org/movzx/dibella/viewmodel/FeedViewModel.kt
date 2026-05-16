@@ -149,6 +149,14 @@ constructor(
         }
     }
 
+    override fun setActiveRoute(route: String?) {
+        val wasInactive = activeRoute != "feed"
+
+        super.setActiveRoute(route)
+
+        if (route == "feed" && wasInactive) if (_uiState.value.images.isEmpty()) refresh()
+    }
+
     fun refresh() {
         _uiState.update {
             it.copy(
@@ -204,6 +212,7 @@ constructor(
     }
 
     private fun loadImages(isNew: Boolean, cursorOverride: String? = null) {
+        if (activeRoute != null && activeRoute != "feed") return
         if (_uiState.value.isLoading && !isNew) return
 
         loadingJob?.cancel()

@@ -23,6 +23,15 @@ abstract class BaseViewModel(
         @Volatile var isImporting: Boolean = false
     }
 
+    @Volatile private var _activeRoute: String? = null
+
+    open fun setActiveRoute(route: String?) {
+        _activeRoute = route
+    }
+
+    protected val activeRoute: String?
+        get() = _activeRoute
+
     private val _uiMessage = MutableSharedFlow<Int>()
     val uiMessage = _uiMessage.asSharedFlow()
     private val restrictedDispatcher = Dispatchers.IO
