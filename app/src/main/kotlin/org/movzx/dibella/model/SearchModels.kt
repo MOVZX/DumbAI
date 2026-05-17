@@ -10,49 +10,8 @@ data class CivitaiSearchResult(
     val url: String,
     val width: Int?,
     val height: Int?,
-    val nsfwLevel: Any?,
+    val nsfwLevel: Int,
     val type: String?,
-    val name: String?,
-    val createdAt: String?,
-    val user: SearchUser?,
-    val stats: SearchStats?,
-    val hash: String?,
-    val metadata: SearchMetadata?,
-    val postId: Long?,
-) {
-    fun getNsfwLevelInt(): Int? {
-        return when (nsfwLevel) {
-            is Int -> nsfwLevel
-            is Double -> nsfwLevel.toInt()
-            is List<*> -> {
-                (nsfwLevel as? List<Number>)?.firstOrNull()?.toInt()
-            }
-            else -> null
-        }
-    }
-}
-
-@Immutable
-@JsonClass(generateAdapter = true)
-data class SearchUser(val id: Long, val username: String?)
-
-@Immutable
-@JsonClass(generateAdapter = true)
-data class SearchStats(
-    val reactionCountAllTime: Int = 0,
-    val commentCountAllTime: Int = 0,
-    val collectedCountAllTime: Int = 0,
-    val tippedAmountCountAllTime: Int = 0,
-)
-
-@Immutable
-@JsonClass(generateAdapter = true)
-data class SearchMetadata(
-    val hash: String? = null,
-    val size: Long? = null,
-    val width: Int? = null,
-    val height: Int? = null,
-    val duration: Double? = null,
 )
 
 @JsonClass(generateAdapter = true)

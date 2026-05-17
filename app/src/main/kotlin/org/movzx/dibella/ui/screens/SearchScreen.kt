@@ -381,7 +381,7 @@ fun org.movzx.dibella.model.CivitaiSearchResult.toCivitaiImage(): CivitaiImage {
     return CivitaiImage(
         id = this.id,
         url = CivitaiUrlBuilder.expandUrl(this.url, this.type),
-        nsfw = this.getNsfwLevelInt()?.let { it > 4 },
+        nsfw = this.nsfwLevel > 4,
         width = this.width,
         height = this.height,
         type = this.type,
