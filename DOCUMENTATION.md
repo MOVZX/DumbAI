@@ -118,7 +118,7 @@ Dibella/
 
 ### MVVM with Centralized Logic
 
-All ViewModels extend `BaseViewModel`, which centralizes shared behavior:
+Most ViewModels extend `BaseViewModel`, which centralizes shared behavior (`SearchViewModel` and `BookmarkViewModel` extend `ViewModel` directly but still expose the same shared action pattern):
 
 | Shared Feature             | Location                                                                                           |
 | -------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -169,25 +169,25 @@ Unidirectional Data Flow (UDF):
 
 #### `DibellaApplication.kt`
 
-- `L3`: `class DibellaApplication` — Application class with Hilt and `SingletonImageLoader` factory
-- `L5`: `imageLoader: ImageLoader` — Injected Coil image loader
-- `L6`: `favoritesRepository: FavoritesRepository` — Injected favorites repository
-- `L8`: `override fun newImageLoader(context: PlatformContext)` — Returns singleton Coil image loader
-- `L12`: `override fun onTerminate()` — Closes `FavoritesRepository` on app termination
+- `L13`: `class DibellaApplication` — Application class with Hilt and `SingletonImageLoader` factory
+- `L14`: `imageLoader: ImageLoader` — Injected Coil image loader
+- `L15`: `favoritesRepository: FavoritesRepository` — Injected favorites repository
+- `L17`: `override fun newImageLoader(context: PlatformContext)` — Returns singleton Coil image loader
+- `L21`: `override fun onTerminate()` — Closes `FavoritesRepository` on app termination
 
 #### `MainActivity.kt`
 
-- `L29`: `enum class RightSidebarType` — Right sidebar modes: `FILTERS`, `SEARCH_FILTERS`, `SETTINGS`
+- `L28`: `enum class RightSidebarType` — Right sidebar modes: `FILTERS`, `SEARCH_FILTERS`, `SETTINGS`
 - `L35`: `class MainActivity` — Main activity entry point (FragmentActivity + Hilt)
 - `L36`: `imageLoader: ImageLoader` — Injected Coil image loader
 - `L37`: `preferencesRepository: UserPreferencesRepository` — Injected preferences repository
 - `L39`: `permissionsToRequest` — Runtime permissions list (READ_MEDIA_IMAGES/VIDEO or READ_EXTERNAL_STORAGE)
 - `L48`: `permissionLauncher` — Activity result launcher for permissions
-- `L69-71`: `_permissionsGranted`, `_showOnboarding` — Mutable state flows
-- `L73`: `permissionsGranted: State<Boolean>` — Public permission state
+- `L69-70`: `_permissionsGranted`, `_showOnboarding` — Mutable state flows
+- `L72`: `permissionsGranted: State<Boolean>` — Public permission state
 - `L75`: `override fun onCreate(savedInstanceState: Bundle?)` — Edge-to-edge UI, permissions, onboarding, content
-- `L86`: `lifecycleScope.launch` — Collects `onboardingCompleted` flow to show onboarding
-- `L92`: `setContent { ... }` — Compose content: theme → splash → onboarding → MainScreen
+- `L85`: `lifecycleScope.launch` — Collects `onboardingCompleted` flow to show onboarding
+- `L91`: `setContent { ... }` — Compose content: theme → splash → onboarding → MainScreen
 
 ---
 
@@ -201,7 +201,7 @@ Unidirectional Data Flow (UDF):
 #### `CivitaiSearchApi.kt`
 
 - `L9`: `interface CivitaiSearchApi` — Retrofit service for multi-search API
-- `L10`: `suspend fun search(request, authorization)` — POSTs `SearchRequest` to multi-search endpoint
+- `L11`: `suspend fun search(request, authorization)` — POSTs `SearchRequest` to multi-search endpoint
 
 #### `CivitaiInterceptor.kt`
 
@@ -211,11 +211,11 @@ Unidirectional Data Flow (UDF):
 #### `CivitaiThumbnailInterceptor.kt`
 
 - `L11`: `class CivitaiThumbnailInterceptor` — Handles 404/403 fallbacks for thumbnails
-- `L12-14`: `companion object` — Constants: `VIDEO_TIMEOUT_MS`, `IMAGE_TIMEOUT_MS`, `MAX_RETRIES`
-- `L16-18`: `videoThumbnailTimeout`, `imageThumbnailTimeout`, `maxRetries` — Instance copies
-- `L20`: `private fun cacheable(response)` — Adds Cache-Control to successful responses
-- `L26`: `private fun Response?.closeQuietly()` — Safely closes OkHttp response
-- `L34`: `private fun safeProceed(chain, request, url, timeoutMs)` — Executes with timeout, returns null on failure
+- `L13-15`: `companion object` — Constants: `VIDEO_TIMEOUT_MS`, `IMAGE_TIMEOUT_MS`, `MAX_RETRIES`
+- `L18-20`: `videoThumbnailTimeout`, `imageThumbnailTimeout`, `maxRetries` — Instance copies
+- `L22`: `private fun cacheable(response)` — Adds Cache-Control to successful responses
+- `L28`: `private fun Response?.closeQuietly()` — Safely closes OkHttp response
+- `L36`: `private fun safeProceed(chain, request, url, timeoutMs)` — Executes with timeout, returns null on failure
 - `L56`: `override fun intercept(chain)` — Tries fallback chain with retry, caches valid responses
 - `L96`: `private fun isValidMedia(response)` — Validates real image/video data (magic bytes + content-type)
 
@@ -224,7 +224,7 @@ Unidirectional Data Flow (UDF):
 - `L12`: `class CivitaiBackendRetryInterceptor` — Retries backend requests on 5xx/4xx errors
 - `L15`: `companion object` — Constants: `RETRY_DELAY_SECONDS = 15L`, `MAX_RETRIES = 5`
 - `L20`: `override fun intercept(chain)` — Retries backend requests with 15s delay between attempts
-- `L88`: `private fun isBackendRequest(url)` — Checks if URL matches backend URL prefix
+- `L87`: `private fun isBackendRequest(url)` — Checks if URL matches backend URL prefix
 
 ---
 
@@ -236,7 +236,7 @@ Unidirectional Data Flow (UDF):
 - `L17`: `abstract fun favoriteImageDao()` — DAO for `favorite_images`
 - `L19`: `abstract fun feedCacheDao()` — DAO for `feed_cache`
 - `L21`: `abstract fun bookmarkDao()` — DAO for `bookmarks`
-- `L23-43`: `companion object` — Singleton with volatile `INSTANCE` and `getDatabase()`
+- `L23-42`: `companion object` — Singleton with volatile `INSTANCE` and `getDatabase()`
 - `L26`: `fun getDatabase(context)` — Thread-safe singleton DB provider
 
 #### `FavoriteImageDao.kt`
@@ -244,37 +244,37 @@ Unidirectional Data Flow (UDF):
 - `L9`: `interface FavoriteImageDao` — Room DAO for `favorite_images`
 - `L11`: `fun getAllFavorites()` — Flow of all favorites ordered by timestamp DESC
 - `L13`: `suspend fun _getAllFavoritesSync()` — Blocking fetch (internal)
-- `L15`: `suspend fun getAllFavoritesSync()` — Blocking fetch with logging
-- `L17`: `suspend fun _insertFavorite(image)` — Insert/replace single favorite (internal)
-- `L19`: `suspend fun insertFavorite(image)` — Insert with logging
-- `L21`: `suspend fun _insertFavorites(images)` — Bulk insert (internal)
-- `L23`: `suspend fun insertFavorites(images)` — Bulk insert with logging
-- `L25`: `suspend fun _deleteFavorite(image)` — Delete single favorite (internal)
-- `L27`: `suspend fun deleteFavorite(image)` — Delete with logging
-- `L29`: `fun isFavorite(id)` — Flow<Boolean> checking if ID is favorited
-- `L31`: `suspend fun isFavoriteDirect(id)` — Blocking favorite check
-- `L33`: `fun getAllFavoriteIds()` — Flow of all favorite IDs
-- `L35`: `suspend fun getFavorite(id)` — Fetch single favorite by ID
-- `L37`: `fun getFavoriteFlow(id)` — Flow of single favorite by ID
+- `L16`: `suspend fun getAllFavoritesSync()` — Blocking fetch with logging
+- `L24`: `suspend fun _insertFavorite(image)` — Insert/replace single favorite (internal)
+- `L27`: `suspend fun insertFavorite(image)` — Insert with logging
+- `L34`: `suspend fun _insertFavorites(images)` — Bulk insert (internal)
+- `L37`: `suspend fun insertFavorites(images)` — Bulk insert with logging
+- `L44`: `suspend fun _deleteFavorite(image)` — Delete single favorite (internal)
+- `L46`: `suspend fun deleteFavorite(image)` — Delete with logging
+- `L53`: `fun isFavorite(id)` — Flow<Boolean> checking if ID is favorited
+- `L56`: `suspend fun isFavoriteDirect(id)` — Blocking favorite check
+- `L59`: `fun getAllFavoriteIds()` — Flow of all favorite IDs
+- `L61`: `suspend fun getFavorite(id)` — Fetch single favorite by ID
+- `L64`: `fun getFavoriteFlow(id)` — Flow of single favorite by ID
 
 #### `FeedCacheDao.kt`
 
 - `L8`: `interface FeedCacheDao` — Room DAO for `feed_cache`
 - `L10`: `suspend fun getFeed(feedType)` — Fetch cached feed by type
-- `L12`: `suspend fun insertFeed(items)` — Cache feed items
-- `L14`: `suspend fun clearFeed(feedType)` — Clear cache for feed type
-- `L16`: `suspend fun replaceFeed(feedType, items)` — Atomic replace (clear + insert)
-- `L18`: `suspend fun insertOrUpdateFeed(items)` — Upsert existing items
+- `L13`: `suspend fun getAllFeedItemsSync()` — Blocking fetch of all cached items
+- `L18`: `suspend fun clearFeed(feedType)` — Clear cache for feed type
+- `L21`: `suspend fun replaceFeed(feedType, items)` — Atomic replace (clear + insert)
+- `L29`: `suspend fun insertOrUpdateFeed(items)` — Upsert existing items
 
 #### `BookmarkDao.kt`
 
 - `L8`: `interface BookmarkDao` — Room DAO for `bookmarks`
 - `L10`: `fun getAllBookmarks()` — Flow of all bookmarks
 - `L12`: `suspend fun getAllBookmarksSync()` — Blocking fetch
-- `L14`: `suspend fun insertBookmark(bookmark)` — Insert or replace bookmark
-- `L16`: `suspend fun updateBookmark(bookmark)` — Update existing bookmark
-- `L18`: `suspend fun deleteBookmark(bookmark)` — Delete bookmark
-- `L20`: `suspend fun clearAll()` — Delete all bookmarks
+- `L15`: `suspend fun insertBookmark(bookmark)` — Insert or replace bookmark
+- `L17`: `suspend fun updateBookmark(bookmark)` — Update existing bookmark
+- `L19`: `suspend fun deleteBookmark(bookmark)` — Delete bookmark
+- `L21`: `suspend fun clearAll()` — Delete all bookmarks
 
 #### `BookmarkRepository.kt`
 
@@ -303,99 +303,99 @@ Unidirectional Data Flow (UDF):
 - `L46`: `private fun getDownloadMutex(id)` — Gets or creates per-image download mutex
 - `L50`: `suspend fun refreshDownloadedIds()` — Rescans download directory for IDs
 - `L77`: `suspend fun scanDirectory(path)` — Scans for media files, extracts metadata (dimensions, rotation)
-- `L183`: `suspend fun deleteLocalFile(image)` — Deletes local file and updates state
-- `L207`: `suspend fun downloadImage(image, onProgress)` — Downloads image/video with progress and fallback URLs
-- `L355`: `suspend fun findDuplicateGroups()` — Finds duplicate images in download directory
-- `L374`: `suspend fun removeDuplicates(duplicateGroups)` — Removes duplicate groups
-- `L381`: `private fun getDownloadDir(path)` — Resolves download directory
+- `L184`: `suspend fun deleteLocalFile(image)` — Deletes local file and updates state
+- `L208`: `suspend fun downloadImage(image, onProgress)` — Downloads image/video with progress and fallback URLs
+- `L356`: `suspend fun findDuplicateGroups()` — Finds duplicate images in download directory
+- `L375`: `suspend fun removeDuplicates(duplicateGroups)` — Removes duplicate groups
+- `L382`: `private fun getDownloadDir(path)` — Resolves download directory
 
 #### `SearchRepository.kt`
 
 - `L13`: `class SearchRepository` — Handles search API queries with retry
-- `L27`: `suspend fun search(query, type, sort, limit, offset, bearerToken)` — Executes multi-search with 3-attempt retry, returns `(List<CivitaiSearchResult>, totalHits)`
+- `L19`: `suspend fun search(query, type, sort, limit, offset, bearerToken)` — Executes multi-search with 3-attempt retry, returns `(List<CivitaiSearchResult>, totalHits)`
 
 #### `BackupRepository.kt`
 
 - `L18`: `class BackupRepository` — JSON import/export of favorites, bookmarks, settings
-- `L31`: `suspend fun exportData(uri)` — Streams favorites, bookmarks, settings to JSON via Okio
-- `L84`: `suspend fun importData(uri)` — Imports JSON backup (settings, favorites, bookmarks)
+- `L28`: `suspend fun exportData(uri)` — Streams favorites, bookmarks, settings to JSON via Okio
+- `L96`: `suspend fun importData(uri)` — Imports JSON backup (settings, favorites, bookmarks)
 
 #### `UserPreferencesRepository.kt`
 
 - `L15`: `val Context.dataStore` — Extension property providing DataStore instance
 - `L17`: `class UserPreferencesRepository` — Jetpack DataStore for all settings
 - `L18`: `scope: CoroutineScope` — CoroutineScope for StateFlow operations
-- `L20-55`: `object PreferencesKeys` — All preference keys (NSFW, SORT, PERIOD, TYPE, TAG_IDS, API_KEY, SEARCH_API_KEY, scroll positions, cursors, page limit, grid columns, paths, debug, player settings, backend, onboarding, NSFW favorites, search state)
-- `L57`: `val nsfw: Flow<String>` — NSFW filter setting
-- `L60`: `val backendEnabled: Flow<Boolean>` — Backend enabled setting
-- `L65`: `val backendUrl: Flow<String>` — Backend URL setting
-- `L68`: `val backendApiKey: Flow<String>` — Backend API key setting
-- `L73`: `val lastRoute: Flow<String>` — Last visited navigation route
-- `L78`: `val sort: Flow<String>` — Sort setting
-- `L83`: `val period: Flow<String>` — Period setting
-- `L88`: `val type: Flow<String>` — Media type setting
-- `L91`: `val tagIds: Flow<String?>` — Tag IDs setting
-- `L94`: `val apiKey: Flow<String>` — API key setting
-- `L97`: `val searchApiKey: Flow<String>` — Search API bearer token
-- `L102`: `val searchQuery: Flow<String>` — Current search query
-- `L107`: `val searchType: Flow<String>` — Search content type
-- `L112`: `val searchSort: Flow<String>` — Search sort order
-- `L117`: `fun feedScrollIndex(type)` — Flow of scroll index for feed type
-- `L127`: `fun feedScrollOffset(type)` — Flow of scroll offset for feed type
-- `L137`: `fun nextCursor(type)` — Flow of pagination cursor for feed type
-- `L143`: `val pageLimit: Flow<Int>` — Page limit setting
-- `L146`: `val gridColumns: Flow<Int>` — Grid column count
-- `L149`: `val downloadPath: Flow<String?>` — Download directory path
-- `L152`: `val favoritesPath: Flow<String?>` — Favorites directory path
-- `L155`: `val effectiveFavoritesPath: Flow<String>` — With fallback to external files dir
-- `L166`: `val debugEnabled: Flow<Boolean>` — Debug logging setting
-- `L171`: `val favoritesType: Flow<String>` — Favorites media type filter
-- `L176`: `val galleryType: Flow<String>` — Gallery media type filter
-- `L181`: `val hidePlayerControls: Flow<Boolean>` — Player controls visibility
-- `L186`: `val alwaysEnableHD: Flow<Boolean>` — HD media preference
-- `L191`: `val alwaysMuteVideo: Flow<Boolean>` — Video mute preference
-- `L196`: `val feedVideoAutoplay: Flow<Boolean>` — Video autoplay in feed
-- `L201`: `val amoledMode: Flow<Boolean>` — AMOLED black background mode
-- `L206`: `val onboardingCompleted: Flow<Boolean>` — Onboarding completion
-- `L211`: `data class InterceptorSettings` — Combined interceptor settings (apiKey, debug, backend)
-- `L219-221`: `_interceptorSettings`, `interceptorSettings: StateFlow<InterceptorSettings>` — Combined settings
-- `L223-239`: `init block` — Combines flows into interceptorSettings, updates `CivitaiUrlBuilder`
-- `L241`: `suspend fun getCurrentSettings()` — Snapshot of all settings for backup
-- `L274`: `suspend fun importSettings(settings)` — Bulk update settings from backup
-- `L318`: `suspend fun updateFilters(nsfw, sort, period, type, tagIds)` — Updates feed filter params
-- `L341`: `suspend fun updateScrollPosition(type, index, offset)` — Debounced scroll position save
-- `L364`: `suspend fun updateNextCursor(type, cursor)` — Updates pagination cursor
-- `L376`: `suspend fun updatePageLimit(limit)` — Updates page limit
-- `L382`: `suspend fun updateGridColumns(columns)` — Updates grid column count
-- `L390`: `suspend fun updateDownloadPath(path)` — Updates download directory
-- `L399`: `suspend fun updateFavoritesPath(path)` — Updates favorites directory
-- `L408`: `suspend fun updateApiKey(key)` — Updates Civitai API key
-- `L414`: `suspend fun updateSearchApiKey(token)` — Updates search API bearer token
-- `L422`: `suspend fun updateBackendEnabled(enabled)` — Toggles backend enabled
-- `L430`: `suspend fun updateBackendUrl(url)` — Updates backend URL
-- `L436`: `suspend fun updateBackendApiKey(key)` — Updates backend API key
-- `L442`: `suspend fun updateDebugEnabled(enabled)` — Toggles debug logging
-- `L450`: `suspend fun updateFavoritesType(type)` — Updates favorites media type filter
-- `L456`: `suspend fun updateGalleryType(type)` — Updates gallery media type filter
-- `L462`: `suspend fun updateLastRoute(route)` — Tracks last visited navigation route
-- `L468`: `suspend fun updateHidePlayerControls(enabled)` — Toggles player controls visibility
-- `L476`: `suspend fun updateAlwaysEnableHD(enabled)` — Toggles HD media preference
-- `L484`: `suspend fun updateAlwaysMuteVideo(enabled)` — Toggles video mute preference
-- `L492`: `suspend fun updateFeedVideoAutoplay(enabled)` — Toggles video autoplay in feed
-- `L500`: `suspend fun updateAmoledMode(enabled)` — Toggles AMOLED black background mode
-- `L506`: `suspend fun updateOnboardingCompleted(completed)` — Marks onboarding as completed
-- `L514`: `val showNsfwFavorites: Flow<Boolean>` — Show NSFW favorites setting
-- `L519`: `suspend fun setShowNsfwFavorites(show)` — Sets show NSFW favorites
-- `L523`: `suspend fun updateSearchQuery(query)` — Updates search query
-- `L533`: `suspend fun updateSearchFilters(type, sort)` — Updates search type and sort
-- `L541`: `suspend fun updateSearchScrollPosition(index, offset)` — Updates search scroll position
-- `L547`: `fun searchScrollIndex()` — Flow of search scroll index
-- `L552`: `fun searchScrollOffset()` — Flow of search scroll offset
-- `L557`: `val searchHistoryCount: Flow<Int>` — Search history count
-- `L562`: `val searchOffset: Flow<Int>` — Search offset
-- `L567`: `suspend fun incrementSearchHistoryCount()` — Increments search history counter
-- `L575`: `suspend fun updateSearchOffset(offset)` — Updates search offset
-- `L583`: `suspend fun resetSearch()` — Clears search query/offset, resets type/sort defaults
+- `L20-63`: `object PreferencesKeys` — All preference keys (NSFW, SORT, PERIOD, TYPE, TAG_IDS, API_KEY, SEARCH_API_KEY, scroll positions, cursors, page limit, grid columns, paths, debug, player settings, backend, onboarding, NSFW favorites, search state)
+- `L65`: `val nsfw: Flow<String>` — NSFW filter setting
+- `L68`: `val backendEnabled: Flow<Boolean>` — Backend enabled setting
+- `L73`: `val backendUrl: Flow<String>` — Backend URL setting
+- `L76`: `val backendApiKey: Flow<String>` — Backend API key setting
+- `L81`: `val lastRoute: Flow<String>` — Last visited navigation route
+- `L86`: `val sort: Flow<String>` — Sort setting
+- `L91`: `val period: Flow<String>` — Period setting
+- `L96`: `val type: Flow<String>` — Media type setting
+- `L99`: `val tagIds: Flow<String?>` — Tag IDs setting
+- `L102`: `val apiKey: Flow<String>` — API key setting
+- `L105`: `val searchApiKey: Flow<String>` — Search API bearer token
+- `L111`: `val searchQuery: Flow<String>` — Current search query
+- `L116`: `val searchType: Flow<String>` — Search content type
+- `L121`: `val searchSort: Flow<String>` — Search sort order
+- `L126`: `fun feedScrollIndex(type)` — Flow of scroll index for feed type
+- `L136`: `fun feedScrollOffset(type)` — Flow of scroll offset for feed type
+- `L146`: `fun nextCursor(type)` — Flow of pagination cursor for feed type
+- `L152`: `val pageLimit: Flow<Int>` — Page limit setting
+- `L155`: `val gridColumns: Flow<Int>` — Grid column count
+- `L158`: `val downloadPath: Flow<String?>` — Download directory path
+- `L161`: `val favoritesPath: Flow<String?>` — Favorites directory path
+- `L164`: `val effectiveFavoritesPath: Flow<String>` — With fallback to external files dir
+- `L175`: `val debugEnabled: Flow<Boolean>` — Debug logging setting
+- `L180`: `val favoritesType: Flow<String>` — Favorites media type filter
+- `L185`: `val galleryType: Flow<String>` — Gallery media type filter
+- `L190`: `val hidePlayerControls: Flow<Boolean>` — Player controls visibility
+- `L195`: `val alwaysEnableHD: Flow<Boolean>` — HD media preference
+- `L200`: `val alwaysMuteVideo: Flow<Boolean>` — Video mute preference
+- `L205`: `val feedVideoAutoplay: Flow<Boolean>` — Video autoplay in feed
+- `L210`: `val amoledMode: Flow<Boolean>` — AMOLED black background mode
+- `L215`: `val onboardingCompleted: Flow<Boolean>` — Onboarding completion
+- `L220`: `data class InterceptorSettings` — Combined interceptor settings (apiKey, debug, backend)
+- `L228-230`: `_interceptorSettings`, `interceptorSettings: StateFlow<InterceptorSettings>` — Combined settings
+- `L232-248`: `init block` — Combines flows into interceptorSettings, updates `CivitaiUrlBuilder`
+- `L250`: `suspend fun getCurrentSettings()` — Snapshot of all settings for backup
+- `L284`: `suspend fun importSettings(settings)` — Bulk update settings from backup
+- `L332`: `suspend fun updateFilters(nsfw, sort, period, type, tagIds)` — Updates feed filter params
+- `L355`: `suspend fun updateScrollPosition(type, index, offset)` — Debounced scroll position save
+- `L378`: `suspend fun updateNextCursor(type, cursor)` — Updates pagination cursor
+- `L390`: `suspend fun updatePageLimit(limit)` — Updates page limit
+- `L396`: `suspend fun updateGridColumns(columns)` — Updates grid column count
+- `L404`: `suspend fun updateDownloadPath(path)` — Updates download directory
+- `L413`: `suspend fun updateFavoritesPath(path)` — Updates favorites directory
+- `L422`: `suspend fun updateApiKey(key)` — Updates Civitai API key
+- `L428`: `suspend fun updateSearchApiKey(token)` — Updates search API bearer token
+- `L440`: `suspend fun updateBackendEnabled(enabled)` — Toggles backend enabled
+- `L448`: `suspend fun updateBackendUrl(url)` — Updates backend URL
+- `L454`: `suspend fun updateBackendApiKey(key)` — Updates backend API key
+- `L460`: `suspend fun updateDebugEnabled(enabled)` — Toggles debug logging
+- `L468`: `suspend fun updateFavoritesType(type)` — Updates favorites media type filter
+- `L474`: `suspend fun updateGalleryType(type)` — Updates gallery media type filter
+- `L480`: `suspend fun updateLastRoute(route)` — Tracks last visited navigation route
+- `L486`: `suspend fun updateHidePlayerControls(enabled)` — Toggles player controls visibility
+- `L494`: `suspend fun updateAlwaysEnableHD(enabled)` — Toggles HD media preference
+- `L502`: `suspend fun updateAlwaysMuteVideo(enabled)` — Toggles video mute preference
+- `L510`: `suspend fun updateFeedVideoAutoplay(enabled)` — Toggles video autoplay in feed
+- `L518`: `suspend fun updateAmoledMode(enabled)` — Toggles AMOLED black background mode
+- `L524`: `suspend fun updateOnboardingCompleted(completed)` — Marks onboarding as completed
+- `L532`: `val showNsfwFavorites: Flow<Boolean>` — Show NSFW favorites setting
+- `L537`: `suspend fun setShowNsfwFavorites(show)` — Sets show NSFW favorites
+- `L545`: `suspend fun updateSearchQuery(query)` — Updates search query
+- `L557`: `suspend fun updateSearchFilters(type, sort)` — Updates search type and sort
+- `L566`: `suspend fun updateSearchScrollPosition(index, offset)` — Updates search scroll position
+- `L575`: `fun searchScrollIndex()` — Flow of search scroll index
+- `L580`: `fun searchScrollOffset()` — Flow of search scroll offset
+- `L585`: `val searchHistoryCount: Flow<Int>` — Search history count
+- `L590`: `val searchOffset: Flow<Int>` — Search offset
+- `L595`: `suspend fun incrementSearchHistoryCount()` — Increments search history counter
+- `L605`: `suspend fun updateSearchOffset(offset)` — Updates search offset
+- `L613`: `suspend fun resetSearch()` — Clears search query/offset, resets type/sort defaults
 
 ---
 
@@ -403,19 +403,19 @@ Unidirectional Data Flow (UDF):
 
 #### `AppModule.kt`
 
-- `L26`: `object AppModule` — Hilt module for dependency injection
-- `L29`: `fun provideMoshi()` — Moshi JSON adapter with Kotlin support
-- `L35`: `fun provideOkHttpClient(interceptor)` — OkHttp with dispatcher, timeouts, interceptors
-- `L54`: `fun provideRetrofit(okHttpClient, moshi)` — Retrofit with Civitai base URL
-- `L64`: `fun provideCivitaiApi(retrofit)` — Creates `CivitaiApi` service
-- `L70`: `fun provideImageLoader(context, okHttpClient)` — Coil image loader with OkHttp + video frame decoder
-- `L97`: `fun provideDatabase(context)` — Room database singleton
-- `L102`: `fun provideFavoriteImageDao(database)` — `FavoriteImageDao` provider
-- `L107`: `fun provideFeedCacheDao(database)` — `FeedCacheDao` provider
-- `L113`: `fun provideBookmarkDao(database)` — `BookmarkDao` provider
-- `L118`: `fun provideBookmarkRepository(bookmarkDao)` — `BookmarkRepository` provider
-- `L126`: `fun provideUserPreferencesRepository(context)` — DataStore repo provider
-- `L134`: `fun provideFavoritesRepository(...)` — Favorites repo with all dependencies
+- `L29`: `object AppModule` — Hilt module for dependency injection
+- `L32`: `fun provideMoshi()` — Moshi JSON adapter with Kotlin support
+- `L38`: `fun provideOkHttpClient(interceptor)` — OkHttp with dispatcher, timeouts, interceptors
+- `L70`: `fun provideRetrofit(okHttpClient, moshi)` — Retrofit with Civitai base URL
+- `L80`: `fun provideCivitaiApi(retrofit)` — Creates `CivitaiApi` service
+- `L103`: `fun provideImageLoader(context, okHttpClient)` — Coil image loader with OkHttp + video frame decoder
+- `L130`: `fun provideDatabase(context)` — Room database singleton
+- `L135`: `fun provideFavoriteImageDao(database)` — `FavoriteImageDao` provider
+- `L140`: `fun provideFeedCacheDao(database)` — `FeedCacheDao` provider
+- `L145`: `fun provideBookmarkDao(database)` — `BookmarkDao` provider
+- `L151`: `fun provideBookmarkRepository(bookmarkDao)` — `BookmarkRepository` provider
+- `L159`: `fun provideUserPreferencesRepository(context)` — DataStore repo provider
+- `L167`: `fun provideFavoritesRepository(...)` — Favorites repo with all dependencies
 
 ---
 
@@ -423,18 +423,18 @@ Unidirectional Data Flow (UDF):
 
 #### `CivitaiImage.kt`
 
-- `L5`: `data class CivitaiImage(id, url, width, height, nsfw, type, meta)` — Core media model
-- `L15`: `data class VideoMeta(size: Long? = null)` — Video metadata
-- `L18`: `data class CivitaiApiResponse(items, metadata)` — API response wrapper
-- `L20`: `data class Metadata(nextCursor)` — Pagination metadata
+- `L8`: `data class CivitaiImage(id, url, width, height, nsfw, type, meta)` — Core media model
+- `L18`: `data class VideoMeta(size: Long? = null)` — Video metadata
+- `L21`: `data class CivitaiApiResponse(items, metadata)` — API response wrapper
+- `L23`: `data class Metadata(nextCursor)` — Pagination metadata
 
 #### `SearchModels.kt`
 
-- `L5`: `data class CivitaiSearchResult(id, url, width, height, nsfwLevel, type)` — Search result from multi-search API
-- `L13`: `data class SearchQuery(q, indexUid, facets, limit, offset, filter, sort)` — Search request query
-- `L25`: `data class SearchRequest(queries)` — Search request wrapper
-- `L27`: `data class SearchResponseItem(indexUid, hits, query, processingTimeMs, limit, offset, estimatedTotalHits)` — Single search response item
-- `L36`: `data class SearchResponse(results)` — Search response wrapper
+- `L8`: `data class CivitaiSearchResult(id, url, width, height, nsfwLevel, type)` — Search result from multi-search API
+- `L18`: `data class SearchQuery(q, indexUid, facets, limit, offset, filter, sort)` — Search request query
+- `L31`: `data class SearchRequest(queries)` — Search request wrapper
+- `L34`: `data class SearchResponseItem(indexUid, hits, query, processingTimeMs, limit, offset, estimatedTotalHits)` — Single search response item
+- `L44`: `data class SearchResponse(results)` — Search response wrapper
 
 #### `FavoriteImage.kt`
 
@@ -455,11 +455,11 @@ Unidirectional Data Flow (UDF):
 
 #### `AppBackup.kt`
 
-- `L5`: `data class AppSettingsBackup(...)` — All settings including `searchApiKey`
-- `L35`: `data class FavoriteImageBackup(id, url, nsfw, type, timestamp)` — Favorite backup
-- `L44`: `data class FeedItemBackup(id, url, width, height, nsfw, type, feedType, orderIndex)` — Feed item backup
-- `L54`: `data class BookmarkBackup(id, title, type, sort, period, nsfw, cursor, tags, query, offset, timestamp)` — Bookmark backup (supports search)
-- `L67`: `data class AppBackup(version, settings, favorites, bookmarks, feedItems)` — Root backup model
+- `L6`: `data class AppSettingsBackup(...)` — All settings including `searchApiKey`
+- `L37`: `data class FavoriteImageBackup(id, url, nsfw, type, timestamp)` — Favorite backup
+- `L46`: `data class FeedItemBackup(id, url, width, height, nsfw, type, feedType, orderIndex)` — Feed item backup
+- `L58`: `data class BookmarkBackup(id, title, type, sort, period, nsfw, cursor, tags, query, offset, timestamp)` — Bookmark backup (supports search)
+- `L73`: `data class AppBackup(version, settings, favorites, bookmarks, feedItems)` — Root backup model
 
 ---
 
@@ -495,7 +495,7 @@ Unidirectional Data Flow (UDF):
 
 - `L38`: `fun BookmarkScreen(...)` — Bookmark screen with search filter, edit/delete dialogs, tag selection
 - `L307`: `fun BookmarkCard(bookmark, onLoad, onEdit, onDelete)` — Bookmark card with metadata + tags
-- `L430`: `private fun buildMetadataString(bookmark)` — Builds metadata string for display
+- `L472`: `private fun buildMetadataString(bookmark)` — Builds metadata string for display
 
 #### `OnboardingScreen.kt`
 
@@ -567,8 +567,8 @@ Unidirectional Data Flow (UDF):
 #### `MainBottomBar.kt`
 
 - `L31`: `fun MainBottomBar(currentRoute, onNavigate, feedCount, favoritesCount, searchCount, galleryCount, bookmarkCount)` — Nav between feed/favorites/gallery/search/bookmarks
-- `L109`: `fun BottomNavItem(selected, onClick, icon, selectedIcon, label, count, selectedColor)` — Nav item with scale animation
-- `L210`: `fun formatCount(count)` — Locale-aware number formatting
+- `L99`: `fun BottomNavItem(selected, onClick, icon, selectedIcon, label, count, selectedColor)` — Nav item with scale animation
+- `L203`: `fun formatCount(count)` — Locale-aware number formatting
 
 #### `MainTopBar.kt`
 
@@ -654,17 +654,17 @@ Unidirectional Data Flow (UDF):
 - `L47`: `fun extractCivitaiUuid(url)` — Extracts UUID from URL (with caching)
 - `L70`: `private fun wrapBackendUrl(type, quality, url, fallback)` — Wraps URL with backend if enabled
 - `L96`: `fun toBackendUrl(type, quality, uuid)` — Builds backend media URL
-- `L100`: `fun buildBackendFeedUrl(originalUrl)` — Builds backend feed URL
-- `L104`: `fun buildBackendSearchUrl(originalUrl)` — Builds backend search URL
-- `L113`: `fun getThumbnailUrl(url, width)` — Thumbnail variant URL
-- `L119`: `fun getVideoThumbnailUrl(url)` — Video thumbnail variant URL
-- `L129`: `fun getVideoPreviewUrl(url)` — Video preview variant URL
-- `L139`: `fun getVideoOriginalUrl(url)` — Video original file URL
-- `L149`: `fun getImageOriginalUrl(url)` — Original image file URL
-- `L159`: `fun getFallbackChain(url)` — List of fallback URLs for thumbnails
-- `L186`: `fun getBaseUrl(url)` — Extracts base URL from variant
-- `L191`: `fun modifyUrl(url, variant)` — Applies variant to URL
-- `L201`: `private fun parseCivitaiUrl(url)` — Parses Civitai URL into components
+- `L102`: `fun buildBackendFeedUrl(originalUrl)` — Builds backend feed URL
+- `L111`: `fun buildBackendSearchUrl(originalUrl)` — Builds backend search URL
+- `L117`: `fun getThumbnailUrl(url, width)` — Thumbnail variant URL
+- `L123`: `fun getVideoThumbnailUrl(url)` — Video thumbnail variant URL
+- `L133`: `fun getVideoPreviewUrl(url)` — Video preview variant URL
+- `L143`: `fun getVideoOriginalUrl(url)` — Video original file URL
+- `L153`: `fun getImageOriginalUrl(url)` — Original image file URL
+- `L163`: `fun getFallbackChain(url)` — List of fallback URLs for thumbnails
+- `L190`: `fun getBaseUrl(url)` — Extracts base URL from variant
+- `L195`: `fun modifyUrl(url, variant)` — Applies variant to URL
+- `L205`: `private fun parseCivitaiUrl(url)` — Parses Civitai URL into components
 
 #### `FileUtils.kt`
 
@@ -710,10 +710,10 @@ Unidirectional Data Flow (UDF):
 
 #### `OkHttpExtensions.kt`
 
-- `L7`: `fun Interceptor.Chain.withReadTimeout(timeout, unit)` — Returns chain wrapper with custom read timeout
+- `L8`: `fun Interceptor.Chain.withReadTimeout(timeout, unit)` — Returns chain wrapper with custom read timeout
 - `L12`: `fun Interceptor.Chain.withConnectTimeout(timeout, unit)` — Returns chain wrapper with custom connect timeout
-- `L17`: `fun Interceptor.Chain.withWriteTimeout(timeout, unit)` — Returns chain wrapper with custom write timeout
-- `L22`: `private class TimeoutChainWrapper` — Wrapper implementing `Interceptor.Chain` with custom timeout overrides
+- `L16`: `fun Interceptor.Chain.withWriteTimeout(timeout, unit)` — Returns chain wrapper with custom write timeout
+- `L20`: `private class TimeoutChainWrapper` — Wrapper implementing `Interceptor.Chain` with custom timeout overrides
 
 #### `Utils.kt`
 
@@ -745,7 +745,7 @@ Unidirectional Data Flow (UDF):
 - `L11`: `MIN_THUMBNAIL_SIZE = 100L` — Minimum thumbnail size
 - `L12`: `RESTORE_SCROLL_DELAY_MS = 500L` — Scroll restore delay
 - `L13`: `STALE_CHECK_INTERVAL_MS = 30000L` — Stale check interval
-- `L14`: `SWIPE_EDGE_THRESHOLD_DP = 150f` — Swipe edge threshold
+- `L14`: `SWIPE_EDGE_THRESHOLD_DP = 40f` — Swipe edge threshold
 - `L15`: `TEMP_FILE_MAX_AGE_MS = 3600000L` — Temp file max age
 - `L16-19`: `VIDEO_POOL_SIZE_*` — Video player pool sizes per column count
 
@@ -755,19 +755,19 @@ Unidirectional Data Flow (UDF):
 
 #### `BaseViewModel.kt`
 
-- `L11`: `abstract class BaseViewModel(repository, favoritesRepository, galleryRepository)` — Base ViewModel with shared actions
-- `L16`: `companion object isImporting: Boolean` — Static flag to prevent scroll reset during import
-- `L18`: `setActiveRoute(route)` → Sets the active navigation route
-- `L22`: `updateGridColumns(columns)` — Persists column preference
-- `L26`: `updatePageLimit(limit)` — Persists page limit
-- `L30`: `saveScrollPosition(type, index, offset)` — Debounced scroll position save
-- `L34`: `sendMessage(resId)` — Emits toast message
-- `L38`: `toggleFavorite(image)` — Delegates to `FavoritesRepository`
-- `L42`: `retryThumbnail(url, onComplete)` — Retries thumbnail fetch with delay
-- `L52`: `ensureFavoriteResources(image, force, onProgress)` — Downloads thumbnail/preview
-- `L60`: `ensureFavoriteResourcesThrottled(image, force, onProgress)` — Throttled resource sync
-- `L70`: `downloadImage(image)` — Abstract; implemented by each child
-- `L74`: `performDownload(image, onUpdateProgress, onSuccess)` — Download with progress tracking
+- `L17`: `abstract class BaseViewModel(repository, favoritesRepository, galleryRepository)` — Base ViewModel with shared actions
+- `L22`: `companion object isImporting: Boolean` — Static flag to prevent scroll reset during import
+- `L28`: `setActiveRoute(route)` → Sets the active navigation route
+- `L39`: `updateGridColumns(columns)` — Persists column preference
+- `L43`: `updatePageLimit(limit)` — Persists page limit
+- `L47`: `saveScrollPosition(type, index, offset)` — Debounced scroll position save
+- `L51`: `sendMessage(resId)` — Emits toast message
+- `L55`: `toggleFavorite(image)` — Delegates to `FavoritesRepository`
+- `L59`: `retryThumbnail(url, onComplete)` — Retries thumbnail fetch with delay
+- `L69`: `ensureFavoriteResources(image, force, onProgress)` — Downloads thumbnail/preview
+- `L77`: `ensureFavoriteResourcesThrottled(image, force, onProgress)` — Throttled resource sync
+- `L87`: `downloadImage(image)` — Abstract; implemented by each child
+- `L89`: `performDownload(image, onUpdateProgress, onSuccess)` — Download with progress tracking
 
 #### `BaseUiState.kt`
 
@@ -802,37 +802,37 @@ Unidirectional Data Flow (UDF):
 - `L39`: `isFirstSettingsLoad: Boolean` — Initial settings load flag
 - `L40`: `isJumping: Boolean` — Cursor jump in progress flag
 - `L42-150`: `init block` — Combines repository flows, initializes from cache, loads initial images
-- `L152`: `fun refresh()` — Clears cursor and reloads feed
-- `L183`: `fun loadMore()` — Loads next page with cursor
-- `L193`: `fun jumpToCursor(cursor)` — Jumps to specific cursor
-- `L206`: `private fun loadImages(isNew, cursorOverride)` — Fetches and caches feed items
-- `L272`: `fun updateFilters(nsfw, sort, period, type, tagIds)` — Updates filter params, invalidates restoration
-- `L276`: `fun resetFilters()` — Resets all filters to defaults
-- `L282`: `override fun downloadImage(image)` — Triggers download via `performDownload`
-- `L299`: `fun saveBookmark(title)` — Saves current feed state as bookmark
-- `L328`: `fun loadBookmark(bookmark)` — Loads bookmark settings and jumps to cursor
-- `L348`: `fun markRestored()` — Sets isRestored flag
+- `L160`: `fun refresh()` — Clears cursor and reloads feed
+- `L191`: `fun loadMore()` — Loads next page with cursor
+- `L201`: `fun jumpToCursor(cursor)` — Jumps to specific cursor
+- `L214`: `private fun loadImages(isNew, cursorOverride)` — Fetches and caches feed items
+- `L281`: `fun updateFilters(nsfw, sort, period, type, tagIds)` — Updates filter params, invalidates restoration
+- `L285`: `fun resetFilters()` — Resets all filters to defaults
+- `L291`: `override fun downloadImage(image)` — Triggers download via `performDownload`
+- `L308`: `fun saveBookmark(title)` — Saves current feed state as bookmark
+- `L337`: `fun loadBookmark(bookmark)` — Loads bookmark settings and jumps to cursor
+- `L360`: `fun markRestored()` — Sets isRestored flag
 
 #### `SearchViewModel.kt`
 
-- `L23`: `class SearchViewModel` — Search with pagination and filter management
-- `L29-30`: `_uiState`, `uiState: StateFlow<SearchUiState>` — UI state flow
-- `L32`: `_uiMessage`, `uiMessage: SharedFlow<Int>` — UI message flow
-- `L34`: `searchResultCount: StateFlow<Int>` — Eagerly shared count of search results
-- `L36-40`: `searchJob`, `currentOffset`, `currentPageStartOffset`, `pageSize`, `isJumping` — Search state
-- `L42-130`: `init block` — Combines preference flows, initializes state, restores search from DataStore
-- `L132`: `private fun restoreSearch(query, offset)` — Restores search from saved state
-- `L178`: `fun search(query, forceNew, startOffset)` — Executes search with 3-attempt retry
-- `L245`: `fun loadMore()` — Loads next page
-- `L253`: `fun saveScrollPosition(type, index, offset)` — Saves search scroll position
-- `L257`: `fun updateSearchFilters(type, sort)` — Updates filters and re-searches
-- `L265`: `fun updateGridColumns(columns)` — Persists grid column preference
-- `L269`: `fun clearSearch()` — Resets all search state
-- `L277`: `fun markRestored()` — Sets isRestored flag
-- `L281`: `private fun sendMessage(resId)` — Emits toast message
-- `L285`: `fun saveSearchBookmark(title)` — Saves search config as bookmark
-- `L299`: `fun loadSearchBookmark(bookmark)` — Applies bookmark query and offset
-- `L311`: `fun jumpToOffset(targetOffset)` — Jumps to specific offset with retry
+- `L31`: `class SearchViewModel` — Search with pagination and filter management
+- `L38-39`: `_uiState`, `uiState: StateFlow<SearchUiState>` — UI state flow
+- `L40`: `_uiMessage`, `uiMessage: SharedFlow<Int>` — UI message flow
+- `L43`: `searchResultCount: StateFlow<Int>` — Eagerly shared count of search results
+- `L46-50`: `searchJob`, `currentOffset`, `currentPageStartOffset`, `pageSize`, `isJumping` — Search state
+- `L52-164`: `init block` — Combines preference flows, initializes state, restores search from DataStore
+- `L166`: `private fun restoreSearch(query, offset)` — Restores search from saved state
+- `L236`: `fun search(query, forceNew, startOffset)` — Executes search with 3-attempt retry
+- `L345`: `fun loadMore()` — Loads next page
+- `L353`: `fun saveScrollPosition(type, index, offset)` — Saves search scroll position
+- `L357`: `fun updateSearchFilters(type, sort)` — Updates filters and re-searches
+- `L370`: `fun updateGridColumns(columns)` — Persists grid column preference
+- `L374`: `fun clearSearch()` — Resets all search state
+- `L384`: `fun markRestored()` — Sets isRestored flag
+- `L388`: `private fun sendMessage(resId)` — Emits toast message
+- `L392`: `fun saveSearchBookmark(title)` — Saves search config as bookmark
+- `L414`: `fun loadSearchBookmark(bookmark)` — Applies bookmark query and offset
+- `L426`: `fun jumpToOffset(targetOffset)` — Jumps to specific offset with retry
 
 #### `FavoritesViewModel.kt`
 
@@ -846,16 +846,16 @@ Unidirectional Data Flow (UDF):
 - `L155`: `fun forceRedownload(image)` — Re-downloads favorite resource
 - `L174`: `override fun downloadImage(image)` — Initiates download with progress
 - `L191`: `fun findDuplicates()` / `clearDuplicatesMode()` / `removeDuplicates()` — Duplicate detection
-- `L265`: `fun markRestored()` — Sets isRestored flag
+- `L275`: `fun markRestored()` — Sets isRestored flag
 
 #### `GalleryViewModel.kt`
 
 - `L16`: `class GalleryViewModel` — Manages local gallery browsing
 - `L23-24`: `_uiState`, `uiState: StateFlow<GalleryUiState>` — UI state flow
 - `L26-53`: `init block` — Combines gallery flow, applies type filter, monitors downloaded IDs
-- `L55`: `fun refresh()` / `performRefresh()` — Rescans directory
-- `L74`: `fun updateType(type)` — Updates media type filter
-- `L78`: `fun toggleSelection(id)` / `clearSelection()` / `selectAll()` — Selection management
+- `L63`: `fun refresh()` / `performRefresh()` — Rescans directory
+- `L84`: `fun updateType(type)` — Updates media type filter
+- `L88`: `fun toggleSelection(id)` / `clearSelection()` / `selectAll()` — Selection management
 - `L102`: `fun batchDelete()` — Deletes selected local files
 - `L126`: `fun deleteLocalFile(image)`
 - `L134`: `override fun downloadImage(image)` — Initiates download with progress
@@ -867,36 +867,36 @@ Unidirectional Data Flow (UDF):
 - `L19`: `class SettingsViewModel` — Manages app settings and import/export
 - `L29-30`: `_uiState`, `uiState: StateFlow<SettingsUiState>` — UI state flow
 - `L31-32`: `_exitEvent`, `exitEvent: SharedFlow<Unit>` — App exit trigger after import
-- `L34-122`: `init block` — Combines repository flows, loads settings, monitors player settings
-- `L124`: `override fun downloadImage(image)` — No-op (gallery handles downloads)
-- `L126`: `fun updateLastRoute(route)` — Tracks last visited route
-- `L130`: `fun updateApiKey(key)` — Updates Civitai API key
-- `L136`: `fun updateSearchApiKey(token)` — Updates search API bearer token
-- `L142`: `fun updateDownloadPath(path)` — Updates download directory
-- `L146`: `fun updateFavoritesPath(path)` — Updates favorites directory
-- `L150`: `fun updateDebugEnabled(enabled)` — Toggles debug logging
-- `L154`: `fun updateBackendEnabled(enabled)` — Toggles backend enabled
-- `L158`: `fun updateBackendUrl(url)` — Updates backend URL
-- `L162`: `fun updateBackendApiKey(key)` — Updates backend API key
-- `L166`: `fun updateHidePlayerControls(enabled)` — Toggles video player controls
-- `L170`: `fun updateAlwaysEnableHD(enabled)` — Toggles HD media preference
-- `L174`: `fun updateAlwaysMuteVideo(enabled)` — Toggles video mute
-- `L178`: `fun updateFeedVideoAutoplay(enabled)` — Toggles video autoplay in feed
-- `L182`: `fun updateAmoledMode(enabled)` — Toggles AMOLED black background
-- `L186`: `fun clearImageCache()` — Clears Coil image cache
-- `L195`: `fun updateCacheSize()` — Computes and updates cache size
-- `L204`: `private fun formatSize(bytes)` — Formats bytes to human-readable string
-- `L216`: `fun exportData(uri)` — Exports backup to URI
-- `L225`: `fun importData(uri)` — Imports backup from URI (triggers app exit on success)
+- `L34-126`: `init block` — Combines repository flows, loads settings, monitors player settings
+- `L128`: `override fun downloadImage(image)` — No-op (gallery handles downloads)
+- `L130`: `fun updateLastRoute(route)` — Tracks last visited route
+- `L134`: `fun updateApiKey(key)` — Updates Civitai API key
+- `L141`: `fun updateSearchApiKey(token)` — Updates search API bearer token
+- `L148`: `fun updateDownloadPath(path)` — Updates download directory
+- `L152`: `fun updateFavoritesPath(path)` — Updates favorites directory
+- `L156`: `fun updateDebugEnabled(enabled)` — Toggles debug logging
+- `L160`: `fun updateBackendEnabled(enabled)` — Toggles backend enabled
+- `L164`: `fun updateBackendUrl(url)` — Updates backend URL
+- `L171`: `fun updateBackendApiKey(key)` — Updates backend API key
+- `L178`: `fun updateHidePlayerControls(enabled)` — Toggles video player controls
+- `L182`: `fun updateAlwaysEnableHD(enabled)` — Toggles HD media preference
+- `L186`: `fun updateAlwaysMuteVideo(enabled)` — Toggles video mute
+- `L190`: `fun updateFeedVideoAutoplay(enabled)` — Toggles video autoplay in feed
+- `L194`: `fun updateAmoledMode(enabled)` — Toggles AMOLED black background
+- `L198`: `fun clearImageCache()` — Clears Coil image cache
+- `L207`: `fun updateCacheSize()` — Computes and updates cache size
+- `L213`: `private fun formatSize(bytes)` — Formats bytes to human-readable string
+- `L225`: `fun exportData(uri)` — Exports backup to URI
+- `L234`: `fun importData(uri)` — Imports backup from URI (triggers app exit on success)
 
-#### `BookmarkViewModel.kt` (BookmarkUiState defined inline at L12)
+#### `BookmarkViewModel.kt` (BookmarkUiState defined inline at L14)
 
-- `L12`: `data class BookmarkUiState(bookmarks, isLoading, bookmarkCount)` — UI state for bookmarks
-- `L19`: `class BookmarkViewModel` — Manages bookmarks
-- `L22-23`: `_uiState`, `uiState: StateFlow<BookmarkUiState>` — UI state flow
-- `L25-37`: `init block` — Collects bookmarks from repository
-- `L39`: `fun deleteBookmark(bookmark)` — Deletes a bookmark
-- `L43`: `fun updateBookmarkTitle(bookmark, newTitle)` — Updates bookmark title and metadata
+- `L14`: `data class BookmarkUiState(bookmarks, isLoading, bookmarkCount)` — UI state for bookmarks
+- `L21`: `class BookmarkViewModel` — Manages bookmarks
+- `L24-25`: `_uiState`, `uiState: StateFlow<BookmarkUiState>` — UI state flow
+- `L30-42`: `init block` — Collects bookmarks from repository
+- `L44`: `fun deleteBookmark(bookmark)` — Deletes a bookmark
+- `L51`: `fun updateBookmarkTitle(bookmark, newTitle)` — Updates bookmark title and metadata
 
 ---
 
