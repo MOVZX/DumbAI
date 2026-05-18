@@ -73,7 +73,7 @@ fun OnboardingScreen(onSkip: () -> Unit, onFinish: () -> Unit, modifier: Modifie
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.btn_skip),
-                tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                tint = Color.White,
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -111,7 +111,7 @@ fun OnboardingScreen(onSkip: () -> Unit, onFinish: () -> Unit, modifier: Modifie
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.primary),
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        contentColor = Color.White,
                     ),
             ) {
                 Icon(
@@ -167,7 +167,7 @@ private fun OnboardingPageContent(page: OnboardingPage) {
             Text(
                 text = page.title,
                 style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = Color.White,
                 textAlign = TextAlign.Center,
             )
 
@@ -176,7 +176,7 @@ private fun OnboardingPageContent(page: OnboardingPage) {
             Text(
                 text = page.description,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                color = Color.White,
                 textAlign = TextAlign.Center,
             )
         }
