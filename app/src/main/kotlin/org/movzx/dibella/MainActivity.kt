@@ -1,6 +1,7 @@
 package org.movzx.dibella
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -24,6 +25,7 @@ import org.movzx.dibella.data.UserPreferencesRepository
 import org.movzx.dibella.ui.screens.MainScreen
 import org.movzx.dibella.ui.screens.OnboardingScreen
 import org.movzx.dibella.ui.theme.DibellaTheme
+import org.movzx.dibella.util.ShortcutHelper
 
 enum class RightSidebarType {
     FILTERS,
@@ -68,12 +70,21 @@ class MainActivity : FragmentActivity() {
 
     private val _permissionsGranted = mutableStateOf(false)
     private val _showOnboarding = mutableStateOf(false)
+    private val _shortcutRoute = mutableStateOf<String?>(null)
 
     val permissionsGranted: State<Boolean>
         get() = _permissionsGranted
 
+    val shortcutRoute: State<String?>
+        get() = _shortcutRoute
+
+    fun clearShortcutRoute() {
+        _shortcutRoute.value = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleShortcutIntent(intent)
 
         val allGranted = permissionsToRequest.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
@@ -102,7 +113,7 @@ class MainActivity : FragmentActivity() {
                             },
                         )
                     } else {
-                        MainScreen(imageLoader)
+                        MainScreen(imageLoader, shortcutRoute)
                     }
                 } else
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -110,5 +121,26 @@ class MainActivity : FragmentActivity() {
                     }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+
+        handleShortcutIntent(intent)
+    }
+
+    private fun handleShortcutIntent(intent: Intent?) {
+        if (intent == null) return
+
+        val route =
+            intent.getStringExtra(ShortcutHelper.EXTRA_ROUTE)
+                ?: when (intent.action) {
+                    "org.movzx.dibella.action.SHORTCUT_FEED" -> "feed"
+                    "org.movzx.dibella.action.SHORTCUT_FAVORITES" -> "favorites"
+                    "org.movzx.dibella.action.SHORTCUT_GALLERY" -> "gallery"
+                    else -> null
+                }
+
+        _shortcutRoute.value = route
     }
 }

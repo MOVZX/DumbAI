@@ -31,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil3.ImageLoader
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.movzx.dibella.MainActivity
 import org.movzx.dibella.R
@@ -98,11 +99,12 @@ fun InteractiveTopBar(
 }
 
 @Composable
-fun MainScreen(imageLoader: ImageLoader) {
+fun MainScreen(imageLoader: ImageLoader, shortcutRoute: State<String?> = mutableStateOf(null)) {
     val context = LocalContext.current
     val activity = context as MainActivity
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+    val currentShortcutRoute by shortcutRoute
     val videoPlayerManager = remember { VideoPlayerManager(context) }
     val feedViewModel: FeedViewModel = hiltViewModel(activity)
     val favoritesViewModel: FavoritesViewModel = hiltViewModel(activity)
@@ -118,6 +120,25 @@ fun MainScreen(imageLoader: ImageLoader) {
     val searchGridState = rememberLazyStaggeredGridState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    LaunchedEffect(currentShortcutRoute) {
+        currentShortcutRoute?.let { route ->
+            if (currentRoute == null)
+                snapshotFlow { navController.currentBackStackEntry }.first { it != null }
+
+            if (route != currentRoute) {
+                navController.navigate(route) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+
+            activity.clearShortcutRoute()
+        }
+    }
+
     var favoritesRestored by remember { mutableStateOf(false) }
     var galleryRestored by remember { mutableStateOf(false) }
     var rightSidebarType by remember { mutableStateOf(RightSidebarType.FILTERS) }

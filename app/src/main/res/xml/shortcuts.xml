@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="shortcut_feed"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_feed"
+        android:shortcutShortLabel="@string/nav_feed"
+        android:shortcutLongLabel="@string/nav_feed">
+        <intent
+            android:action="org.movzx.dibella.action.SHORTCUT_FEED"
+            android:targetPackage="org.movzx.dibella"
+            android:targetClass="org.movzx.dibella.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="shortcut_favorites"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_favorites"
+        android:shortcutShortLabel="@string/nav_favorites"
+        android:shortcutLongLabel="@string/nav_favorites">
+        <intent
+            android:action="org.movzx.dibella.action.SHORTCUT_FAVORITES"
+            android:targetPackage="org.movzx.dibella"
+            android:targetClass="org.movzx.dibella.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="shortcut_gallery"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_gallery"
+        android:shortcutShortLabel="@string/nav_gallery"
+        android:shortcutLongLabel="@string/nav_gallery">
+        <intent
+            android:action="org.movzx.dibella.action.SHORTCUT_GALLERY"
+            android:targetPackage="org.movzx.dibella"
+            android:targetClass="org.movzx.dibella.MainActivity" />
+    </shortcut>
+</shortcuts>
