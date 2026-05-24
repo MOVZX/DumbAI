@@ -11,7 +11,9 @@ import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -81,87 +83,44 @@ constructor(
             if (!rootDir.exists()) return@withContext emptyList()
 
             val files = rootDir.listFiles() ?: emptyArray()
-            val list = mutableListOf<CivitaiImage>()
             val ids = mutableSetOf<Long>()
 
-            for (file in files) {
-                ensureActive()
+            val mediaFiles = files.filter { file ->
+                if (!file.isFile) return@filter false
 
-                if (file.isFile) {
-                    val ext = file.extension.lowercase()
-                    val isVideo = ext in FileUtils.VIDEO_EXTENSIONS
-                    val isImage = ext in FileUtils.IMAGE_EXTENSIONS
+                val ext = file.extension.lowercase()
 
-                    if (isImage || isVideo) {
-                        val id =
-                            if (file.name.startsWith("Dibella_")) {
-                                file.nameWithoutExtension.removePrefix("Dibella_").toLongOrNull()
-                                    ?: file.absolutePath.hashCode().toLong()
-                            } else {
-                                file.nameWithoutExtension.filter { it.isDigit() }.toLongOrNull()
-                                    ?: file.absolutePath.hashCode().toLong()
-                            }
+                ext in FileUtils.VIDEO_EXTENSIONS || ext in FileUtils.IMAGE_EXTENSIONS
+            }
 
-                        if (file.name.startsWith("Dibella_")) {
-                            file.nameWithoutExtension.removePrefix("Dibella_").toLongOrNull()?.let {
-                                ids.add(it)
-                            }
-                        }
+            for (file in mediaFiles) {
+                if (file.name.startsWith("Dibella_"))
+                    file.nameWithoutExtension.removePrefix("Dibella_").toLongOrNull()?.let {
+                        ids.add(it)
+                    }
+            }
 
-                        var w = 0
-                        var h = 0
+            val list = coroutineScope {
+                mediaFiles
+                    .map { file ->
+                        async {
+                            val ext = file.extension.lowercase()
+                            val isVideo = ext in FileUtils.VIDEO_EXTENSIONS
 
-                        if (isImage) {
-                            val options =
-                                BitmapFactory.Options().apply { inJustDecodeBounds = true }
-
-                            BitmapFactory.decodeFile(file.absolutePath, options)
-
-                            w = options.outWidth
-                            h = options.outHeight
-                        } else if (isVideo) {
-                            val retriever = MediaMetadataRetriever()
-                            val metaStart = System.currentTimeMillis()
-
-                            try {
-                                retriever.setDataSource(file.absolutePath)
-
-                                val rotation =
-                                    retriever
-                                        .extractMetadata(
-                                            MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION
-                                        )
-                                        ?.toIntOrNull() ?: 0
-
-                                val vidW =
-                                    retriever
-                                        .extractMetadata(
-                                            MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH
-                                        )
-                                        ?.toIntOrNull() ?: 0
-
-                                val vidH =
-                                    retriever
-                                        .extractMetadata(
-                                            MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT
-                                        )
-                                        ?.toIntOrNull() ?: 0
-
-                                if (rotation == 90 || rotation == 270) {
-                                    w = vidH
-                                    h = vidW
+                            val id =
+                                if (file.name.startsWith("Dibella_")) {
+                                    file.nameWithoutExtension
+                                        .removePrefix("Dibella_")
+                                        .toLongOrNull() ?: file.absolutePath.hashCode().toLong()
                                 } else {
-                                    w = vidW
-                                    h = vidH
+                                    file.nameWithoutExtension.filter { it.isDigit() }.toLongOrNull()
+                                        ?: file.absolutePath.hashCode().toLong()
                                 }
-                            } catch (e: Exception) {
-                                Logger.e("Dibella_Codec", "Error reading video meta: ${e.message}")
-                            } finally {
-                                retriever.release()
-                            }
-                        }
 
-                        list.add(
+                            val (w, h) =
+                                if (isVideo) extractVideoDimensions(file)
+                                else extractImageDimensions(file)
+
                             CivitaiImage(
                                 id = id,
                                 url = file.absolutePath,
@@ -171,15 +130,54 @@ constructor(
                                 type = if (isVideo) "video" else "image",
                                 meta = null,
                             )
-                        )
+                        }
                     }
-                }
+                    .awaitAll()
             }
 
             refreshMutex.withLock { _downloadedIds.value = ids }
 
-            list.sortedByDescending { File(it.url).lastModified() }
+            list.sortedByDescending { img -> File(img.url).lastModified() }
         }
+
+    private fun extractImageDimensions(file: File): Pair<Int, Int> {
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+
+        BitmapFactory.decodeFile(file.absolutePath, options)
+
+        return options.outWidth to options.outHeight
+    }
+
+    private fun extractVideoDimensions(file: File): Pair<Int, Int> {
+        val retriever = MediaMetadataRetriever()
+
+        return try {
+            retriever.setDataSource(file.absolutePath)
+
+            val rotation =
+                retriever
+                    .extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
+                    ?.toIntOrNull() ?: 0
+
+            val vidW =
+                retriever
+                    .extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                    ?.toIntOrNull() ?: 0
+
+            val vidH =
+                retriever
+                    .extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+                    ?.toIntOrNull() ?: 0
+
+            if (rotation == 90 || rotation == 270) vidH to vidW else vidW to vidH
+        } catch (e: Exception) {
+            Logger.e("Dibella_Codec", "Error reading video meta: ${e.message}")
+
+            0 to 0
+        } finally {
+            retriever.release()
+        }
+    }
 
     suspend fun deleteLocalFile(image: CivitaiImage): Boolean =
         withContext(Dispatchers.IO) {
